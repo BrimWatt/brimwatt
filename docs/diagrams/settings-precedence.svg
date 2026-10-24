@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 400" width="1020" height="400" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+<title id="t">Where each setting comes from</title><desc id="d">secrets.h holds the defaults compiled into the firmware. Whatever was saved from the setup page is kept in flash and wins, field by field. An empty secret field on the page keeps the saved value.</desc>
+<defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M10,0 L0,5 L10,10 z" fill="#475569"/></marker></defs>
+<rect width="1020" height="400" fill="#f8fafc"/>
+<rect x="30" y="40" width="300" height="170" rx="10" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+<text text-anchor="middle" font-size="14" font-weight="400" fill="#111827"><tspan x="180.0" y="75.3">secrets.h (compiled in)</tspan><tspan x="180.0" y="93.5">the defaults</tspan><tspan x="180.0" y="111.7"></tspan><tspan x="180.0" y="129.9">Wi-Fi name and password</tspan><tspan x="180.0" y="148.1">Enphase token</tspan><tspan x="180.0" y="166.3">Envoy address</tspan><tspan x="180.0" y="184.5">Update password</tspan></text>
+<rect x="30" y="250" width="300" height="90" rx="10" fill="#e0efff" stroke="#0070f3" stroke-width="1.5"/>
+<text text-anchor="middle" font-size="14" font-weight="600" fill="#111827"><tspan x="180.0" y="281.7">Setup page (WattSync-Setup)</tspan><tspan x="180.0" y="299.9">writes what you enter to the</tspan><tspan x="180.0" y="318.1">board’s flash (not to secrets.h)</tspan></text>
+<rect x="370" y="150" width="190" height="60" rx="10" fill="#fff7e0" stroke="#e5c365" stroke-width="1.5"/>
+<text text-anchor="middle" font-size="14" font-weight="600" fill="#111827"><tspan x="465.0" y="175.8">for each field,</tspan><tspan x="465.0" y="194.0">which one is set?</tspan></text>
+<polyline points="330,125 465,125 465,150" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#head)"/>
+<text text-anchor="middle" font-size="12.5" font-weight="600" fill="#475569"><tspan x="400" y="112.4">defaults</tspan></text>
+<polyline points="330,295 465,295 465,210" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#head)"/>
+<text text-anchor="middle" font-size="12.5" font-weight="600" fill="#475569"><tspan x="400" y="314.2">saved in flash:</tspan><tspan x="400" y="330.5">this one wins</tspan></text>
+<polyline points="560,180 650,180" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#head)"/>
+<rect x="650" y="30" width="350" height="320" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+<text text-anchor="middle" font-size="15" font-weight="700" fill="#111827"><tspan x="825" y="61.2">Values in use</tspan></text>
+<text text-anchor="start" font-size="13.5" font-weight="400" fill="#111827"><tspan x="668" y="122.0">• A field saved from the page wins,</tspan><tspan x="668" y="139.5">   otherwise the secrets.h value.</tspan><tspan x="668" y="157.1">• The Wi-Fi name and its password</tspan><tspan x="668" y="174.6">   go together.</tspan><tspan x="668" y="192.2">• An Envoy address saved as empty means</tspan><tspan x="668" y="209.7">   “find it automatically”, even if</tspan><tspan x="668" y="227.3">   secrets.h has an address.</tspan><tspan x="668" y="244.8">• An empty secret field on the page</tspan><tspan x="668" y="262.4">   keeps what is saved.</tspan><tspan x="668" y="279.9">• No update password anywhere:</tspan><tspan x="668" y="297.5">   updating over Wi-Fi stays off.</tspan></text>
+<text text-anchor="start" font-size="12.5" font-weight="600" fill="#475569"><tspan x="30" y="384.4">“setup clear” in the serial console forgets everything saved from the page, so secrets.h applies again.</tspan></text>
+</svg>

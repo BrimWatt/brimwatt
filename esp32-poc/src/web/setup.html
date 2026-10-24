@@ -199,7 +199,7 @@
                 : nets.length + (nets.length === 1 ? ' network found' : ' networks found');
             $('rescan').disabled = busy;
             render();
-            if (busy && Date.now() < pollUntil) pollTimer = setTimeout(loadNetworks, 1200);
+            if (busy && Date.now() < pollUntil) pollTimer = setTimeout(loadNetworks, 800);
         } catch (e) {
             // The page stops answering for a moment while the board scans on the radio the page is using.
             $('scanState').textContent = 'Waiting for the board…';

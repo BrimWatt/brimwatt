@@ -173,6 +173,11 @@ Deploy with `scp` of the jar to the Pi and `sudo systemctl restart solar-charger
 
 [esp32-poc/](esp32-poc/README.md) is a port of this controller to an ESP32-S3 board: Envoy reader, OCPP 1.6J server, the ECO / Max solar / Custom planner with the same rules, the daylight window, the outage fail-safe and saved settings, and a **setup network** (`WattSync-Setup`) from which a phone can choose the Wi-Fi and paste the Enphase details. The logic lives in a portable core that is unit-tested on the computer (174 tests, including frame-for-frame checks against this app's OCPP output). It serves this app's dashboard page at `http://wattsyncesp.local/` (the page is copied from `src/main/resources/dashboard.html` at build time, so there is one source), and can also be controlled from the serial monitor. Over-the-air updates over Wi-Fi are supported (see the board's README). The board announces itself as `wattsyncesp`. Setup, flashing and the wallbox test plan are in its README. Only one of the Pi and the board can be connected to the wallbox at a time.
 
+## Documentation
+
+[docs/README.md](docs/README.md) is the index: the ESP32 setup network with diagrams and UI mocks ([docs/setup-network.md](docs/setup-network.md)),
+the SVG diagrams, and the PDFs. `CLAUDE.md` holds the project rules, commands and the git and rollback notes.
+
 ## Regenerating the PDFs
 
 The PDFs are built from scripts in `docs/pdf-src/` (needs Python with `reportlab`):
