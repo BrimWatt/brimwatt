@@ -1,0 +1,4 @@
+.pio/
+.venv/
+src/secrets.h
+src/web/dashboard.html
