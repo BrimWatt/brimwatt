@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>WattSync setup</title>
+    <style>
+        :root { --blue: #0070f3; --ink: #111827; --muted: #64748b; --line: #e2e8f0; --bad: #b91c1c; --ok: #047857; }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 16px; font: 16px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f6f9; color: var(--ink); }
+        main { max-width: 480px; margin: 0 auto; }
+        h1 { margin: 4px 0 4px; font-size: 1.5rem; }
+        h2 { margin: 0 0 10px; font-size: 1.05rem; color: var(--blue); }
+        .lead { margin: 0 0 14px; color: var(--muted); }
+        .card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,.05); }
+        label { display: block; margin: 12px 0 4px; font-weight: 600; font-size: .9rem; color: #334155; }
+        .card > label:first-of-type { margin-top: 0; }
+        input[type=text], input[type=password], input[type=tel], textarea { width: 100%; padding: 12px; font: inherit; font-size: 16px; /* 16px stops iOS zooming in */ border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; }
+        textarea { resize: vertical; min-height: 5.5em; word-break: break-all; }
+        input:focus-visible, textarea:focus-visible, button:focus-visible, li:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
+        button { font: inherit; font-weight: 600; min-height: 44px; padding: 10px 14px; border: 0; border-radius: 8px; background: #e8ecf1; color: #334155; cursor: pointer; }
+        button:disabled { opacity: .6; cursor: progress; }
+        button.primary { width: 100%; background: var(--blue); color: #fff; font-size: 1.05rem; }
+        button.link { background: none; color: var(--blue); padding: 6px 0; min-height: 44px; }
+        .hint { margin: 6px 0 0; font-size: .85rem; color: var(--muted); }
+        .banner { padding: 12px 14px; border-radius: 8px; margin-bottom: 14px; font-weight: 600; font-size: .95rem; }
+        .banner.bad { background: #fee2e2; color: #991b1b; }
+        .banner.ok { background: #d1fae5; color: #065f46; }
+        .bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; color: var(--muted); font-size: .9rem; }
+        #nets { list-style: none; margin: 0 0 6px; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; max-height: 23rem; overflow-y: auto; }
+        #nets li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px; min-height: 48px; border-bottom: 1px solid var(--line); cursor: pointer; background: #fff; }
+        #nets li:last-child { border-bottom: 0; }
+        #nets li[aria-selected=true] { background: #e0efff; box-shadow: inset 4px 0 0 var(--blue); font-weight: 600; }
+        #nets .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #nets .meta { display: flex; gap: 8px; align-items: center; flex: none; color: var(--muted); font-size: .85rem; }
+        .signal { letter-spacing: 1px; font-size: .8rem; }
+        .signal .off { opacity: .25; }
+        .empty { padding: 14px 12px; color: var(--muted); }
+        .pw { display: flex; gap: 8px; align-items: stretch; }
+        .pw button { flex: none; }
+        .check { display: flex; align-items: center; gap: 10px; font-weight: 400; margin: 12px 0 0; }
+        .check input { width: 20px; height: 20px; }
+        #done { text-align: center; padding: 28px 8px; }
+        #done h2 { font-size: 1.3rem; color: var(--ok); }
+    </style>
+</head>
+<body>
+<main>
+    <div id="form">
+        <h1>WattSync setup</h1>
+        <p class="lead">Choose your Wi-Fi and paste your Enphase details. This page only works while the setup network is open.</p>
+
+        <div id="error" class="banner bad" role="alert" hidden></div>
+
+        <section class="card">
+            <h2>1. Wi-Fi</h2>
+            <div class="bar"><span id="scanState">Looking for networks…</span><button type="button" id="rescan">Scan again</button></div>
+            <ul id="nets" role="listbox" aria-label="Wi-Fi networks"></ul>
+            <button type="button" id="other" class="link">My network is not listed</button>
+
+            <div id="manual" hidden>
+                <label for="ssid">Wi-Fi name</label>
+                <input type="text" id="ssid" maxlength="32" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+                <label class="check"><input type="checkbox" id="openNet"> This network has no password</label>
+            </div>
+
+            <div id="pwRow">
+                <label for="password">Wi-Fi password</label>
+                <div class="pw">
+                    <input type="password" id="password" maxlength="63" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+                    <button type="button" id="showPw">Show</button>
+                </div>
+                <p class="hint" id="pwHint">8 to 63 characters.</p>
+            </div>
+            <p class="hint">Only 2.4 GHz networks work. If yours is missing, it may be 5 GHz only.</p>
+        </section>
+
+        <section class="card">
+            <h2>2. Enphase</h2>
+            <label for="token">Access token</label>
+            <textarea id="token" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Paste the whole token"></textarea>
+            <p class="hint" id="tokenHint">It is a long line of letters and numbers with dots in it.</p>
+            <label for="envoy">Envoy address (optional)</label>
+            <input type="tel" id="envoy" maxlength="15" autocomplete="off" placeholder="Find it automatically">
+            <p class="hint">Leave empty to find the Envoy by itself. If that fails, type its address, like 192.168.1.50.</p>
+        </section>
+
+        <section class="card">
+            <h2>3. Updating the board</h2>
+            <label for="updatePw">Update password</label>
+            <input type="password" id="updatePw" maxlength="64" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+            <p class="hint" id="updateHint">Needed to send new software over Wi-Fi. 8 to 64 characters, no spaces.</p>
+        </section>
+
+        <button type="button" id="save" class="primary">Save and restart</button>
+        <p class="hint" id="left" style="text-align:center"></p>
+    </div>
+
+    <div id="done" hidden>
+        <h2>Saved</h2>
+        <p id="doneText"></p>
+    </div>
+</main>
+
+<script>
+    const $ = id => document.getElementById(id);
+    let status = {};
+    let nets = [];
+    let chosen = null;        // the selected network name
+    let chosenOpen = false;   // the selected network has no password
+    let manual = false;       // typing the name instead of picking from the list
+    let pollTimer = null;
+    let pollUntil = 0;
+
+    function showError(message) {
+        const box = $('error');
+        box.textContent = message || '';
+        box.hidden = !message;
+        if (message) window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ---- network list ----
+    function bars(rssi) {
+        const level = rssi >= -55 ? 4 : rssi >= -67 ? 3 : rssi >= -75 ? 2 : 1;
+        const word = ['', 'weak', 'fair', 'good', 'strong'][level];
+        const span = document.createElement('span');
+        span.className = 'signal';
+        span.setAttribute('role', 'img');
+        span.setAttribute('aria-label', 'Signal: ' + word);
+        for (let i = 1; i <= 4; i++) {
+            const bar = document.createElement('span');
+            bar.textContent = '▮';
+            if (i > level) bar.className = 'off';
+            span.appendChild(bar);
+        }
+        return span;
+    }
+
+    function choose(ssid, open) {
+        chosen = ssid;
+        chosenOpen = open;
+        manual = false;
+        $('manual').hidden = true;
+        render();
+    }
+
+    function render() {
+        const list = $('nets');
+        list.replaceChildren();
+        // The saved network stays selectable even when the scan did not see it.
+        const rows = nets.slice();
+        if (status.ssid && !rows.some(n => n.ssid === status.ssid)) rows.unshift({ ssid: status.ssid, rssi: null, secure: true, notSeen: true });
+
+        if (rows.length === 0) {
+            const empty = document.createElement('li');
+            empty.className = 'empty';
+            empty.textContent = $('scanState').dataset.busy === '1' ? 'Looking…' : 'No networks found. Try Scan again.';
+            empty.style.cursor = 'default';
+            list.appendChild(empty);
+        }
+        for (const n of rows) {
+            const li = document.createElement('li');
+            li.setAttribute('role', 'option');
+            li.tabIndex = 0;
+            li.setAttribute('aria-selected', String(!manual && chosen === n.ssid));
+            const name = document.createElement('span');
+            name.className = 'name';
+            name.textContent = n.ssid + (n.ssid === status.ssid ? ' (current)' : '');
+            const meta = document.createElement('span');
+            meta.className = 'meta';
+            meta.append(n.secure ? 'Locked' : 'Open');
+            if (n.rssi !== null) meta.appendChild(bars(n.rssi));
+            li.append(name, meta);
+            const pick = () => choose(n.ssid, !n.secure);
+            li.addEventListener('click', pick);
+            li.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+            list.appendChild(li);
+        }
+        updatePasswordRow();
+    }
+
+    function updatePasswordRow() {
+        const open = manual ? $('openNet').checked : chosenOpen;
+        $('pwRow').hidden = open;
+        const keepsSaved = !manual && chosen && chosen === status.ssid;
+        $('pwHint').textContent = keepsSaved ? 'Leave empty to keep the saved password.' : '8 to 63 characters.';
+    }
+
+    async function loadNetworks() {
+        try {
+            const res = await fetch('/api/setup/networks', { cache: 'no-store' });
+            if (!res.ok) throw new Error(await res.text());
+            const data = await res.json();
+            nets = data.networks;
+            const busy = data.scanning;
+            $('scanState').dataset.busy = busy ? '1' : '0';
+            $('scanState').textContent = busy ? 'Looking for networks… this page may pause for a few seconds.'
+                : nets.length + (nets.length === 1 ? ' network found' : ' networks found');
+            $('rescan').disabled = busy;
+            render();
+            if (busy && Date.now() < pollUntil) pollTimer = setTimeout(loadNetworks, 1200);
+        } catch (e) {
+            // The page stops answering for a moment while the board scans on the radio the page is using.
+            $('scanState').textContent = 'Waiting for the board…';
+            if (Date.now() < pollUntil) pollTimer = setTimeout(loadNetworks, 1500);
+        }
+    }
+
+    function pollNetworks() {
+        clearTimeout(pollTimer);
+        pollUntil = Date.now() + 30000;
+        loadNetworks();
+    }
+
+    async function post(path, body) {
+        const res = await fetch(path, {
+            method: 'POST',
+            headers: { 'X-WattSync': '1', 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(body || {})
+        });
+        return { ok: res.ok, text: (await res.text()).trim() };
+    }
+
+    // ---- start ----
+    async function loadStatus() {
+        try {
+            const res = await fetch('/api/setup/status', { cache: 'no-store' });
+            if (!res.ok) throw new Error(await res.text());
+            status = await res.json();
+        } catch (e) {
+            showError('Setup is not open. Hold the BOOT button on the board for 5 seconds.');
+            $('save').disabled = true;
+            return;
+        }
+        showError(status.error);
+        if (status.ssid) { chosen = status.ssid; chosenOpen = false; }
+        $('envoy').value = status.envoyIp || '';
+        $('tokenHint').textContent = status.hasToken ? 'A token is saved. Leave empty to keep it.' : 'It is a long line of letters and numbers with dots in it.';
+        $('updateHint').textContent = status.hasUpdatePassword
+            ? 'A password is saved. Leave empty to keep it.'
+            : 'Needed to send new software over Wi-Fi. 8 to 64 characters, no spaces.';
+        if (status.secondsLeft > 0) {
+            $('left').textContent = 'The setup network closes in about ' + Math.max(1, Math.round(status.secondsLeft / 60)) + ' min if nobody uses it.';
+        }
+    }
+
+    $('other').addEventListener('click', () => {
+        manual = true;
+        $('manual').hidden = false;
+        $('ssid').focus();
+        render();
+    });
+    $('openNet').addEventListener('change', updatePasswordRow);
+    $('rescan').addEventListener('click', async () => {
+        $('rescan').disabled = true;
+        $('scanState').textContent = 'Looking for networks… this page may pause for a few seconds.';
+        await post('/api/setup/scan').catch(() => {});
+        pollNetworks();
+    });
+    $('showPw').addEventListener('click', () => {
+        const field = $('password');
+        const show = field.type === 'password';
+        field.type = show ? 'text' : 'password';
+        $('showPw').textContent = show ? 'Hide' : 'Show';
+    });
+
+    $('save').addEventListener('click', async () => {
+        showError('');
+        const body = {
+            ssid: manual ? $('ssid').value : (chosen || ''),
+            password: $('password').value,
+            open: (manual ? $('openNet').checked : chosenOpen) ? '1' : '0',
+            token: $('token').value,
+            envoyIp: $('envoy').value,
+            updatePassword: $('updatePw').value
+        };
+        $('save').disabled = true;
+        $('save').textContent = 'Saving…';
+        try {
+            const result = await post('/api/setup/save', body);
+            if (!result.ok) {
+                showError(result.text || 'Could not save.');
+                $('save').disabled = false;
+                $('save').textContent = 'Save and restart';
+                return;
+            }
+            const info = JSON.parse(result.text);
+            $('form').hidden = true;
+            $('done').hidden = false;
+            $('doneText').textContent = info.wifiChanged
+                ? 'WattSync is restarting and will join "' + info.ssid + '". Reconnect your phone to your usual Wi-Fi, then open http://wattsyncesp.local. '
+                  + 'If it cannot join, the WattSync-Setup network comes back in about a minute and says why.'
+                : 'WattSync is restarting. Reconnect your phone to your usual Wi-Fi, then open http://wattsyncesp.local.';
+        } catch (e) {
+            showError('Lost the connection. If the board has restarted, reconnect to your usual Wi-Fi and open http://wattsyncesp.local.');
+            $('save').disabled = false;
+            $('save').textContent = 'Save and restart';
+        }
+    });
+
+    loadStatus().then(pollNetworks);
+</script>
+</body>
+</html>

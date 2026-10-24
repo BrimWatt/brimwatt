@@ -5,7 +5,7 @@
 //   lib/solar_core/   portable logic, tested on the computer: OCPP, wallbox controller, planner, daylight window,
 //                     the solar controller that ties them together, the dashboard API
 //   src/platform/     clock, random numbers and the flash settings store for the core, serial logging
-//   src/net/          Wi-Fi (with a recognisable device name), network time, mDNS
+//   src/net/          Wi-Fi (with a recognisable device name), the setup network, network time, mDNS, OTA
 //   src/enphase/      Envoy client and the background meter poller
 //   src/ocpp_server/  the WebSocket endpoint the wallbox connects to
 //   src/web/          the dashboard: embedded page and HTTP server in front of the portable API (lib/solar_core/web)
@@ -27,6 +27,7 @@
 #include "net/Mdns.h"
 #include "net/EspNotifySender.h"
 #include "net/Ota.h"
+#include "net/SetupPortal.h"
 #include "notify/Notifier.h"
 #include "net/TimeSync.h"
 #include "net/WifiConnection.h"
@@ -38,9 +39,12 @@
 #include "history/HistoryService.h"
 #include "platform/FileHistoryStore.h"
 #include "platform/NvsChargerStateStore.h"
+#include "platform/NvsCredentialStore.h"
 #include "platform/NvsSettingsStore.h"
 #include "state/ChargerPersistence.h"
 #include "secrets.h"
+#include "setup/SetupApi.h"
+#include "setup/SetupLogic.h"
 #include "state/RateSchedule.h"
 #include "state/SystemState.h"
 #include "wallbox/ChargerRegistry.h"
@@ -70,13 +74,22 @@ static SolarController controller(platform, state, wallbox, daylight, settingsSt
 static device::EspDiagnostics diagnostics(__DATE__ " " __TIME__);
 static device::WifiConnection wifi(device::kHostname);
 static device::TimeSync timeSync;
-static device::EnphaseClient envoy(ENPHASE_TOKEN, ENVOY_IP);
+static device::EnphaseClient envoy;   // told its token and address in setup(), once they are known
 static device::MeterPoller meterPoller(envoy);
 static device::SerialConsole console(controller, wallbox, meterPoller);
 static device::EspNotifySender notifySender;
 static Notifier notifier(platform, state, notifySender);
 static ApiHandler api(platform, controller, wallbox, daylight);
-static device::WebServerAdapter webServer(api);
+
+// The setup network and its page. The values in secrets.h are the defaults; what was saved from the setup page wins.
+static solar::setup::Credentials compiledDefaults() {
+    return {WIFI_SSID, WIFI_PASSWORD, ENPHASE_TOKEN, ENVOY_IP, OTA_PASSWORD};
+}
+static device::NvsCredentialStore credentialStore;
+static device::SetupPortal portal;
+static solar::setup::SetupApi setupApi(credentialStore, portal, compiledDefaults());
+static device::WebServerAdapter webServer(api, setupApi, portal);
+static solar::setup::Credentials credentials;   // the values in use
 
 static uint32_t lastCycle = 0;
 static uint32_t lastStatusLine = 0;
@@ -97,8 +110,67 @@ static void printBoardInfo() {
     Serial.printf("%sLast restart: %s (code %d)\n", suspicious ? "!!! " : "", text, (int)reason);
 }
 
-static void waitForWifi() {
-    while (!wifi.connect(device::kWifiConnectTimeoutMillis)) delay(5000);
+/** Keeps everything that must keep working while the board has no Wi-Fi: the setup page, its network, the console. */
+static void serviceWhileOffline() {
+    webServer.loop();
+    portal.loop();
+    console.poll();
+    delay(5);
+}
+
+/**
+ * Joins the Wi-Fi with the saved (or compiled-in) details and returns once connected. With nothing to join, or when joining
+ * keeps failing, the setup network opens so the details can be fixed from a phone. A Wi-Fi change saved from the setup page
+ * is only a trial: if the board cannot join the new network, the old one is put back and the page says why.
+ */
+static void bringUpNetwork() {
+    using namespace solar::setup;
+    credentials = effective(credentialStore.load(), compiledDefaults());
+    bool trial = credentialStore.loadTrial().pending;
+    bool trialFailed = false;
+    bool offeredSetup = false;
+
+    if (!credentials.hasWifi()) {
+        LOG_WARN("Wi-Fi: no network is set.");
+        portal.open(device::SetupReason::NoWifi);
+        offeredSetup = true;
+    } else if (trial) {
+        LOG_INFO("Wi-Fi: trying the network just chosen on the setup page: \"%s\"", credentials.wifiSsid.c_str());
+    }
+
+    const uint32_t started = millis();
+    uint32_t nextAttempt = millis();
+    while (!wifi.isConnected()) {
+        serviceWhileOffline();
+        if (!credentials.hasWifi() || static_cast<int32_t>(millis() - nextAttempt) < 0) continue;
+        if (portal.clientsConnected()) {   // somebody is using the setup page: a join attempt would interrupt them
+            nextAttempt = millis() + 5000;
+            continue;
+        }
+        if (wifi.connect(credentials.wifiSsid, credentials.wifiPassword, device::kWifiConnectTimeoutMillis, portal.isActive())) break;
+
+        nextAttempt = millis() + (portal.isActive() ? device::kSetupRetryMillis : 5000);
+        if (trial) {
+            // The new network does not work: put the old one back, remember why, and show the setup page again.
+            trial = false;
+            trialFailed = true;
+            finishTrial(credentialStore, false, wifi.lastFailure());
+            credentials = effective(credentialStore.load(), compiledDefaults());
+            LOG_WARN("Wi-Fi: %s", credentialStore.loadTrial().lastError.c_str());
+            if (!portal.isActive()) portal.open(device::SetupReason::JoinFailed);
+            offeredSetup = true;
+            nextAttempt = millis();   // try the old network straight away
+        } else if (!offeredSetup && millis() - started > device::kSetupAfterFailMillis) {
+            offeredSetup = true;   // offered once per start; hold the BOOT button to open it again later
+            portal.open(device::SetupReason::JoinFailed);
+        }
+    }
+
+    if (trial) finishTrial(credentialStore, true, "");   // the new network works: keep it
+    // After a failed trial the setup network stays open for its time window so the reason can be read on the phone.
+    if (portal.isActive() && !trialFailed) portal.close();
+    // An old error is shown once; a normal start clears it.
+    if (!trialFailed && !credentialStore.loadTrial().lastError.empty()) credentialStore.saveTrial(solar::setup::TrialState{});
 }
 
 static bool controlStarted = false;
@@ -133,12 +205,26 @@ void setup() {
     device::installSerialLogSink();
     printBoardInfo();
 
-    waitForWifi();
-    timeSync.begin(WiFi.gatewayIP().toString().c_str());   // in the background: the dashboard must not wait for the internet
-    device::Mdns::start(device::kHostname, config::kOcppPort);
-    device::Ota::begin(device::kHostname, OTA_PASSWORD, [] {
+    // The web server starts before the Wi-Fi is up, so the setup page can be served when there is no Wi-Fi to join.
+    WiFi.setHostname(device::kHostname);
+    WiFi.mode(WIFI_STA);
+    portal.setBeforeRestart([] {
         if (history.dirty() || history.longPending()) historyStore.save(history);   // nothing recent is lost across the restart
     });
+    console.setSetup(&portal, &credentialStore);
+    webServer.begin();
+    bringUpNetwork();
+    envoy.configure(credentials.enphaseToken, credentials.envoyIp);
+
+    timeSync.begin(WiFi.gatewayIP().toString().c_str());   // in the background: the dashboard must not wait for the internet
+    device::Mdns::start(device::kHostname, config::kOcppPort);
+    if (credentials.otaPassword.empty()) {
+        LOG_WARN("OTA: no update password is set, so updating over Wi-Fi is off. Set one on the setup page.");
+    } else {
+        device::Ota::begin(device::kHostname, credentials.otaPassword.c_str(), [] {
+            if (history.dirty() || history.longPending()) historyStore.save(history);   // nothing recent is lost across the restart
+        });
+    }
 
     // The year of history lives in PSRAM, not in the small internal memory the network code needs.
     solar::bigAllocator() = [](size_t bytes) -> void* {
@@ -160,7 +246,6 @@ void setup() {
     controller.restoreSettings();
     chargerPersistence.restore();
 
-    webServer.begin();
     console.printHelpHint();
     if (device::TimeSync::isValid()) startControl();   // otherwise loop() starts it once the clock is set
 }
@@ -168,6 +253,7 @@ void setup() {
 void loop() {
     device::Ota::loop();
     webServer.loop();
+    portal.loop();   // the BOOT button, and the setup network when it is open
     console.poll();
 
     if (!controlStarted) {

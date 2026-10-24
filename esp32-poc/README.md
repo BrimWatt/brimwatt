@@ -17,6 +17,8 @@ The ESP32-S3 side of the solar charger. It does what the Java app does:
 
 - takes new firmware **over Wi-Fi** (`pio run -e esp32s3-ota -t upload`), protected by a password
 
+- opens its own **setup network** (`WattSync-Setup`) when it has no Wi-Fi to join, or when you hold the BOOT button: from a phone you pick your Wi-Fi from a scanned list and paste the Enphase token, the Envoy address and the update password, with no cable and no app (section 1b)
+
 **It now controls the wallbox on its own.** With the default settings it starts in ECO and acts on the solar surplus, exactly as the Pi does. Only one of the Pi and the ESP32 may be connected to the wallbox at a time.
 
 Board: ESP32-S3-DevKit N16R8 (16 MB flash, 8 MB octal PSRAM), Arduino framework, built with PlatformIO.
@@ -25,9 +27,9 @@ Board: ESP32-S3-DevKit N16R8 (16 MB flash, 8 MB octal PSRAM), Arduino framework,
 
 | Folder | What it holds |
 |---|---|
-| `lib/solar_core/` | Portable logic with no hardware dependency, tested on the computer: `ocpp/` (frame builders, router, handlers), `wallbox/` (charger model, registry, controller), `planner/` (smoothing and the ECO/BALANCED rules), `daylight/` (sun calculation and window), `control/SolarController` (the poll cycle, fail-safe and settings), `web/` (the dashboard API: telemetry JSON and the mode, allowance and daylight endpoints), `state/`, `common/` (config, scheduler, logging) |
-| `src/platform/` | Real clock, time zone offset and random numbers for the core, the flash settings store, serial logging |
-| `src/net/` | Wi-Fi with the device name, network time, mDNS |
+| `lib/solar_core/` | Portable logic with no hardware dependency, tested on the computer: `ocpp/` (frame builders, router, handlers), `wallbox/` (charger model, registry, controller), `planner/` (smoothing and the ECO/BALANCED rules), `daylight/` (sun calculation and window), `control/SolarController` (the poll cycle, fail-safe and settings), `web/` (the dashboard API: telemetry JSON and the mode, allowance and daylight endpoints), `setup/` (what the setup form may contain, the Wi-Fi change that is tried and undone, the scan list, the `/api/setup/...` endpoints), `state/`, `common/` (config, scheduler, logging) |
+| `src/platform/` | Real clock, time zone offset and random numbers for the core, the flash settings store, the flash store for what is entered on the setup page, serial logging |
+| `src/net/` | Wi-Fi with the device name, the setup network (`SetupPortal`), network time, mDNS, OTA |
 | `src/enphase/` | Envoy client and the meter poller (its own task, so the slow HTTPS call never delays the wallbox) |
 | `src/ocpp_server/` | The WebSocket endpoint the wallbox connects to (transport only) |
 | `src/web/` | The dashboard: HTTP server on port 80 and the embedded page, in front of the portable API (`lib/solar_core/src/web/ApiHandler`) |
@@ -55,7 +57,40 @@ open -e src/secrets.h
 
 `secrets.h` is git-ignored. The Wi-Fi network must be **2.4 GHz**.
 
+Since the setup network exists, these values are only **defaults**: anything saved from the setup page (section 1b) wins over `secrets.h`, field by field. You can still flash with real values in `secrets.h` and never use the setup page. With the placeholders left in, the board simply fails to join, and after 3 minutes the setup network opens.
+
 The device name is `kHostname` in `src/config/DeviceConfig.h` (letters, digits and hyphens, 24 characters at most). It is both the DHCP name the router lists and the mDNS name (`wattsyncesp.local`). Until you flash this version the board shows under the default name `esp32s3-XXXXXX`.
+
+## 1b. The setup network (change Wi-Fi and the Enphase details from a phone)
+
+The board can open a temporary Wi-Fi network of its own, **`WattSync-Setup`** (password **`wattsync`**, fixed for now), with a setup page on it. It works on any phone or computer, with no app and no cable, and it replaces editing `secrets.h` and reflashing when the router, the Enphase token or the Envoy address changes.
+
+**When it opens**
+- **No Wi-Fi is set** (first start with placeholders, or after `setup clear`): it opens at once and stays open until something is saved.
+- **The Wi-Fi cannot be joined** for 3 minutes at start-up (router off, password changed): it opens, once per start. While it is open and nobody is on it, the board keeps retrying the home Wi-Fi every minute, and closes the setup network if that works.
+- **By hand:** hold the **BOOT** button for 5 seconds while the board runs, or type `setup` in the console. This is how you change the token later while everything works.
+- Except with no Wi-Fi at all, it closes after **15 minutes without use**.
+
+**Using it (iPhone)**
+1. Join the Wi-Fi **WattSync-Setup**, password `wattsync`. The phone usually opens the page by itself; if it does not, open `http://192.168.4.1/setup` in Safari.
+2. The page lists the networks the board can see, strongest first (names repeated by a mesh or repeater appear once). Tap yours and type its password. Hidden networks cannot be listed: use *My network is not listed* and type the name. **Scan again** looks again; the page may stall for a few seconds while the board scans.
+3. Paste the **Enphase token** (spaces, quotes and a leading `Bearer` are cleaned off), the **Envoy address** (empty = find it as `envoy.local`) and an **update password** (8 to 64 characters, for `pio run -e esp32s3-ota`).
+4. **Save and restart.** Rejoin your usual Wi-Fi and open `http://wattsyncesp.local`.
+
+Leaving a secret field empty **keeps** what is saved: the page never shows a saved token or password, it only says one is saved. To change only the token, paste it and leave the rest.
+
+**A Wi-Fi change is a trial.** After saving a different network the board restarts and tries it. If it joins, it keeps it. If not (wrong password, 5 GHz only, out of range) the **previous network is put back** and the setup network opens again with the reason on the page (`Could not join "X": wrong password. The previous Wi-Fi was put back.`). A failed attempt never leaves the board without a network it knew worked. Changes to the token, Envoy address and update password are kept either way.
+
+**Safety**
+- The page and its endpoints answer only while the setup network is open (403 otherwise). Changes need the `X-WattSync` header like the rest of the API, and secrets travel in the body of a POST, never in an address.
+- No reply ever contains a secret. The saved values are in the flash's `net` area, which is **not encrypted**: someone holding the board can read them, exactly as they could read `secrets.h` values compiled into the firmware.
+- **The setup network's password is the same on every board and written here**, so while it is open anyone within Wi-Fi range who has read this could join it and change the settings. That window is short (15 minutes, and only after a failure, a BOOT press or a console command), but it is real. A password derived from the board's own ID is the planned improvement.
+- Saved values can be wiped with `setup clear`: the board restarts using `secrets.h` again.
+
+**Limits**
+- If the router's password changes **while the board is running**, nothing opens by itself; power-cycle the board (it opens after 3 minutes of failing) or hold BOOT.
+- Only 2.4 GHz networks can be joined or listed. While the setup network is open the board answers a little slower, because the radio is shared with the home Wi-Fi.
+- **Not yet tried on the board:** the whole flow, including how an iPhone's setup sheet behaves, scanning while a phone is joined, and the trial and undo of a bad password. The logic behind it (validation, trial and undo, scan list, endpoints) is covered by host tests; see the checks in section 4.
 
 ## 2. Connect, flash, watch
 
@@ -145,6 +180,9 @@ The wallbox can talk to only one controller, so while testing the ESP32 the Pi m
 | `stop` | Stop the charge now (in ECO and Max solar the planner may start it again by its normal rules) |
 | `ask` | Ask the charger for its status and meter values |
 | `rate C` | Electricity price in cents per kWh (0 to 200), used for the savings |
+| `wifi` | Which network the board is on, the signal and the IP (never the password) |
+| `setup` | Open the setup network (section 1b) |
+| `setup clear` | Forget everything saved from the setup page and restart: `secrets.h` applies again |
 | `help` | The list |
 
 Settings changed here are saved to flash at once.
@@ -168,6 +206,14 @@ Settings changed here are saved to flash at once.
 | Dashboard | `http://wattsyncesp.local/` loads, shows live values and updates every few seconds; switching mode, moving the allowance slider and the daylight toggle show a confirmation and match `status` in the console |
 | Measured current | The `status` line shows `n A measured` if the wallbox reports it (same as the Java app's `measured` label) |
 | Reconnect | Power-cycle the wallbox: it reconnects, a status resync follows, no duplicate sessions |
+| Setup by hand | Hold BOOT for 5 s (or type `setup`): the log says `Setup: ... the setup network is open`; `WattSync-Setup` appears on the phone; the page lists networks within a few seconds and lists yours |
+| Setup, nothing changes | Open it, change nothing, close it (wait 15 min or restart): the board's Wi-Fi, charging and dashboard are unaffected |
+| Setup, wrong Wi-Fi password | Choose your network with a wrong password and save: the board restarts, logs `Could not join ...: wrong password. The previous Wi-Fi was put back.`, rejoins the old network, and the setup page shows the same message |
+| Setup, good change | Save the same network with the right password: it restarts, joins, and `wifi` shows the network; the setup network is gone |
+| Setup, token only | Paste a new token (everything else empty): no Wi-Fi trial; after the restart the Envoy reads work (`mode ...` line shows fresh readings) |
+| Setup, no Wi-Fi at all | `setup clear` with placeholders in `secrets.h`: the setup network opens at once and stays open; after saving a real network the dashboard is back |
+| Setup, router off at boot | Power the board with the router off: after 3 minutes the setup network opens; switch the router on: the board joins by itself within a minute |
+| Phone setup sheet | Join `WattSync-Setup` on the iPhone: the setup page opens by itself, or `192.168.4.1/setup` works in Safari |
 
 Anything different from what the Pi does is a bug in this port; send me the log.
 
@@ -177,7 +223,7 @@ Anything different from what the Pi does is a bug in this port; send me the log.
 .venv/bin/pio test -e native
 ```
 
-205 tests in eight groups: `test_core` (OCPP frames checked character by character against the Java app's output, routing, handlers, the wallbox controller, reconnects), `test_planner` (smoothing and the ECO/BALANCED rules), `test_notify` (messages), `test_daylight` (sunrise and sunset against published values for London, New York, Lathrop, Sydney and the poles, plus the window), `test_control` (the poll cycle, fail-safe, night pause, mode switching and saved settings), `test_api` (the dashboard's telemetry JSON and POST endpoints, including every rejected input) `test_persistence` (saving and restoring a charger's state across a restart) and `test_history` (samples, energy totals and savings split, the activity log, charging sessions, saving and loading).
+237 tests in nine groups: `test_core` (OCPP frames checked character by character against the Java app's output, routing, handlers, the wallbox controller, reconnects), `test_planner` (smoothing and the ECO/BALANCED rules), `test_notify` (messages), `test_daylight` (sunrise and sunset against published values for London, New York, Lathrop, Sydney and the poles, plus the window), `test_control` (the poll cycle, fail-safe, night pause, mode switching and saved settings), `test_api` (the dashboard's telemetry JSON and POST endpoints, including every rejected input) `test_persistence` (saving and restoring a charger's state across a restart) `test_history` (samples, energy totals and savings split, the activity log, charging sessions, saving and loading) and `test_setup` (what the setup form may contain, token and address cleaning, the Wi-Fi change that is tried and undone, the scan list, and the setup endpoints, including that no reply contains a secret).
 
 **On this Mac** the compiler cannot find the C++ standard library headers (a Command Line Tools install problem, unrelated to this project). If the tests fail with `'string' file not found`, run them like this (only for the tests; do not use it for the firmware build):
 
@@ -191,6 +237,7 @@ CPLUS_INCLUDE_PATH=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/inclu
 - A charger that stays silent for 5 minutes (it normally beats every 60 s) is disconnected so it can reconnect cleanly. A charger reconnecting under the same id replaces its old connection.
 - Remote starts are limited to one every 30 s per charger, as in the Java app.
 - The household voltage used to turn watts into amps is 240 V (`kHouseholdVoltage` in `lib/solar_core/src/common/Config.h`). The location for the daylight window is Lathrop, CA (`kSiteLatitude` and `kSiteLongitude` in the same file); the time zone comes from `kTimezone` in `src/config/DeviceConfig.h`.
+- Values saved from the setup page win over `secrets.h` field by field (the Wi-Fi name and its password go together). The Envoy address saved as empty means "find it automatically" even if `secrets.h` has an address. With no update password anywhere, updating over Wi-Fi is switched off rather than left open.
 - All the tuning values (allowance, start and stop levels, timers, smoothing) are in `lib/solar_core/src/common/Config.h` and match the Java app's `AppConfig`.
 - The Envoy is read once per poll interval and only when needed: not with no charger connected, and not outside the daylight window in ECO and Max solar. In Custom (fast) mode it is read for the dashboard only and never changes the current.
 
@@ -201,8 +248,10 @@ CPLUS_INCLUDE_PATH=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/inclu
 - **Boot loop or `PSRAM ID read error`:** the board does not have octal PSRAM. In `platformio.ini` change `board_build.arduino.memory_type` to `qio_qspi` and remove `-DBOARD_HAS_PSRAM`.
 - **Boot lines only, nothing from the program:** the log goes to the UART/COM port with the default build (`esp32s3`). If the cable is in the other, native USB port, use `-e esp32s3-usb` for both upload and monitor.
 - **The dashboard does not load:** check the boot log for `Dashboard: http://wattsyncesp.local/`; try the IP address; make sure the computer is on the same network.
-- **Wi-Fi fails to connect:** check name and password and that the network is 2.4 GHz.
-- **`envoy.local` not found:** set `ENVOY_IP` in `src/secrets.h`.
+- **Wi-Fi fails to connect:** the log says why (`wrong password` or `network not found`, the board only joins 2.4 GHz networks). After 3 minutes the setup network opens (section 1b); fix the details there.
+- **`envoy.local` not found:** enter the Envoy address on the setup page (or set `ENVOY_IP` in `src/secrets.h`).
+- **The setup page says "Setup is off":** the setup network is closed. Hold BOOT for 5 seconds or type `setup`.
+- **The setup page stalls while scanning:** expected for a few seconds; the board scans on the radio the page uses. Wait, or press Scan again.
 - **The wallbox connects, then drops:** send me the monitor log from the moment it connects.
 - **Device name still shows `esp32s3-XXXXXX` on the router:** reboot the board, then refresh the router's list (some routers cache the old name for a while); check the `device name` shown in the Wi-Fi line of the log.
 - **Permission denied on the serial port:** close any other program using it.
