@@ -19,8 +19,8 @@ src/main/java/com/example/   Pi app: charging (planner), daylight, enphase, hist
 src/main/resources/dashboard.html   THE dashboard, one file, served by the Pi and embedded in the firmware
 src/main/resources/favicon.png      served at /favicon.ico (both apps)
 src/test/java/...            JUnit 5 tests
-esp32-poc/lib/solar_core/    portable C++17 core (no hardware): planner, daylight, control, wallbox, ocpp, history, web/ApiHandler
-esp32-poc/src/               hardware glue: platform (clock, NVS, LittleFS, diagnostics), net (Wi-Fi, mDNS, NTP, OTA),
+esp32-poc/lib/solar_core/    portable C++17 core (no hardware): planner, daylight, control, wallbox, ocpp, history, setup, web/ApiHandler
+esp32-poc/src/               hardware glue: platform (clock, NVS, LittleFS, diagnostics), net (Wi-Fi, setup network, mDNS, NTP, OTA),
                              enphase (client, poller), ocpp_server, web (WebServerAdapter), console (serial commands)
 esp32-poc/test/              host tests (Unity): test_core, planner, daylight, control, api, persistence, history
 esp32-poc/scripts/           copy_dashboard.py (pre-build), ota_auth.py (post-build, OTA env only)
@@ -128,6 +128,21 @@ After editing it, rebuild **both** the jar and the firmware, and `cmp` the two c
   **Never print secrets.** espota's `--debug` echoes the password; `scripts/ota_auth.py` strips it. The board needs one cable flash
   of OTA-capable firmware first. No automatic roll-back.
 
+## Setup network (ESP32 only)
+
+The board can open its own Wi-Fi `WattSync-Setup` (password `wattsync`, fixed for now) with a page at `http://192.168.4.1/setup` (`esp32-poc/src/web/setup.html`,
+embedded like the dashboard; it is a tracked file, not copied from the Java app). From a phone: pick the home Wi-Fi from a scanned list, paste the Enphase token,
+the Envoy address and the update (OTA) password. Wi-Fi name and password, token, Envoy address and OTA password are no longer compile-time only: they live in NVS
+namespace `net` (`NvsCredentialStore`) and **win over `secrets.h` field by field** (`solar::setup::effective`); an Envoy address saved as `"auto"` means "find it as envoy.local".
+- Logic (portable, host-tested in `test/test_setup`): `lib/solar_core/src/setup/SetupLogic` (form validation, token cleaning, IPv4 check, `tidyScan`, the Wi-Fi trial) and
+  `SetupApi` (`/api/setup/status|networks|scan|save`, 403 while setup is closed or without `X-WattSync`; replies never contain a secret; secrets arrive in a POST body).
+- Hardware glue: `src/net/SetupPortal` (AP+STA, DNS catch-all, async scan, 15-minute no-use limit, BOOT held 5 s on GPIO0, restart after a save), start-up flow in
+  `main.cpp` `bringUpNetwork()` (the web server now starts BEFORE Wi-Fi so the page can be served), routes and captive-portal redirects in `WebServerAdapter`.
+- Opens: no Wi-Fi set (never closes), joining fails 3 min at start-up (once per start), BOOT held, or console `setup`. Console also has `wifi` and `setup clear`.
+- A changed Wi-Fi is a **trial**: saved with the previous one remembered, tried at the next start; if it cannot join, the previous is put back and the reason is shown on the
+  page (`TrialState.lastError`). Never drop saved credentials just because a join failed. With no OTA password anywhere, OTA stays off.
+- Known gaps: password is the same on every board (planned: derive from the chip ID); nothing opens by itself if Wi-Fi is lost while running.
+
 ## Conventions and preferences
 
 - Keep `README.md`, `esp32-poc/README.md`, the PDFs in `docs/` and the memory notes updated whenever a feature or rule changes,
@@ -147,10 +162,12 @@ After editing it, rebuild **both** the jar and the firmware, and `cmp` the two c
 - `.local` names can take about 5 s to resolve on a Mac (the board answers IPv4 only); the board itself answers in about 30 ms.
   Using the IP (and a router DHCP reservation) avoids it.
 - `main.cpp` is touched on every build so the firmware-built time in Diagnostics is fresh.
+- A new embedded page must be added to `board_build.embed_txtfiles` in `platformio.ini` (symbol `_binary_src_web_<name>_html_start`).
+- `WiFi.mode` must be set (and the hostname set before it) before `WebServer::begin()`; the setup page needs the server up with no Wi-Fi.
 - Test output from `mvn` prints WARN lines (fail-safe tests); they are normal.
 
 ## Not yet verified on real hardware
 
-The board's start-up with no internet, the safe-header collection (`collectHeaders`), the new NVS keys, notifications over https, the departure goal on a real charge, the PSRAM allocator and flash journal at scale, the 3 min / 5 min timing on a real charge, the board's OTA update flow end to end
+The whole setup network on the board (flow, the iPhone setup sheet, scanning while a phone is joined, the trial and undo of a bad password, BOOT hold), the board's start-up with no internet, the safe-header collection (`collectHeaders`), the new NVS keys, notifications over https, the departure goal on a real charge, the PSRAM allocator and flash journal at scale, the 3 min / 5 min timing on a real charge, the board's OTA update flow end to end
 after the first flash, and an overnight run watching for crashes. Ideas not built: a native iOS wrapper, a separate total-grid-import cap (Eco's allowance does the same job),
 gzip for the page, a hint card for Add to Home Screen, a minimum run time instead of the stop delay.

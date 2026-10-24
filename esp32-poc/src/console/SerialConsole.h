@@ -4,6 +4,8 @@
 
 #include "control/SolarController.h"
 #include "enphase/MeterPoller.h"
+#include "net/SetupPortal.h"
+#include "setup/SetupLogic.h"
 #include "wallbox/WallboxController.h"
 
 namespace device {
@@ -20,6 +22,12 @@ public:
     /** Call from the main loop: reads any typed characters and runs a command at the end of the line. */
     void poll();
 
+    /** Lets the console open the setup network and clear what was saved from it. */
+    void setSetup(SetupPortal* portal, solar::setup::CredentialStore* store) {
+        portal_ = portal;
+        credentialStore_ = store;
+    }
+
     void printHelpHint();
 
     /** The one-line summary printed every minute. */
@@ -32,6 +40,8 @@ private:
     solar::SolarController& controller_;
     solar::WallboxController& wallbox_;
     MeterPoller& meters_;
+    SetupPortal* portal_ = nullptr;
+    solar::setup::CredentialStore* credentialStore_ = nullptr;
     std::string buffer_;
 };
 

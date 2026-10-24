@@ -12,9 +12,9 @@ namespace device {
 
 bool EnphaseClient::findGateway(std::string& error) {
     if (haveIp_) return true;
-    if (strlen(fixedIp_) > 0) {
-        if (!ip_.fromString(fixedIp_)) {
-            error = "ENVOY_IP in secrets.h is not a valid address";
+    if (!fixedIp_.empty()) {
+        if (!ip_.fromString(fixedIp_.c_str())) {
+            error = "the Envoy address is not valid (fix it on the setup page)";
             return false;
         }
         haveIp_ = true;
@@ -22,7 +22,7 @@ bool EnphaseClient::findGateway(std::string& error) {
     }
     uint32_t start = millis();
     if (!Mdns::resolve(kEnvoyHost, ip_, 3000)) {
-        error = "envoy.local not found (set ENVOY_IP in secrets.h)";
+        error = "envoy.local not found (enter the Envoy address on the setup page)";
         return false;
     }
     LOG_INFO("Envoy: envoy.local is %s (%lu ms)", ip_.toString().c_str(), (unsigned long)(millis() - start));
@@ -43,7 +43,7 @@ bool EnphaseClient::read(solar::MeterReading& out, std::string& error) {
         error = "could not start the HTTPS request";
         return false;
     }
-    http.addHeader("Authorization", String("Bearer ") + token_);
+    http.addHeader("Authorization", String("Bearer ") + token_.c_str());
     http.addHeader("Accept", "application/json");
 
     uint32_t start = millis();
@@ -57,7 +57,7 @@ bool EnphaseClient::read(solar::MeterReading& out, std::string& error) {
         return false;
     }
     if (code == 401 || code == 403) {
-        error = "HTTP " + std::to_string(code) + ": the access token was rejected; renew ENPHASE_TOKEN";
+        error = "HTTP " + std::to_string(code) + ": the access token was rejected; paste a new one on the setup page";
         http.end();
         return false;
     }

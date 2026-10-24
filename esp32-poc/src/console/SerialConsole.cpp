@@ -25,7 +25,7 @@ void SerialConsole::poll() {
 }
 
 void SerialConsole::printHelpHint() {
-    Serial.println("Type help for the console commands (status, mode, amps, allowance, daylight, pause, resume, stop, ask).");
+    Serial.println("Type help for the console commands (status, mode, amps, allowance, daylight, pause, resume, stop, ask, wifi, setup).");
 }
 
 void SerialConsole::printHelp() {
@@ -40,6 +40,9 @@ void SerialConsole::printHelp() {
     Serial.println("  resume            end the pause: back to the mode set before");
     Serial.println("  stop              stop the charge now (Eco and Max solar may restart it by their rules)");
     Serial.println("  ask               ask the charger for its status and meter values");
+    Serial.println("  wifi              which network the board is on (never the password)");
+    Serial.println("  setup             open the setup network (WattSync-Setup) to change Wi-Fi, the Enphase token, the Envoy address");
+    Serial.println("  setup clear       forget everything saved from the setup page (secrets.h applies again) and restart");
     Serial.println("  help              this list");
 }
 
@@ -77,6 +80,29 @@ void SerialConsole::run(const std::string& line) {
         controller_.setPaused(line == "pause");
     } else if (line == "stop") {
         controller_.stopNow();
+    } else if (line == "wifi") {
+        if (WiFi.status() == WL_CONNECTED) {
+            LOG_INFO("Wi-Fi: \"%s\", %d dBm, IP %s", WiFi.SSID().c_str(), WiFi.RSSI(), WiFi.localIP().toString().c_str());
+        } else {
+            LOG_WARN("Wi-Fi: not connected.");
+        }
+    } else if (line == "setup") {
+        if (!portal_) {
+            LOG_WARN("Console: the setup network is not available.");
+        } else if (portal_->isActive()) {
+            LOG_INFO("Setup: already open. Join \"%s\" and open http://%s/setup", solar::setup::kApName, solar::setup::kPortalAddress);
+        } else {
+            portal_->open(SetupReason::Manual);
+        }
+    } else if (line == "setup clear") {
+        if (!credentialStore_) {
+            LOG_WARN("Console: the setup network is not available.");
+        } else {
+            credentialStore_->clear();
+            LOG_WARN("Setup: everything saved from the setup page is forgotten. Restarting with the values in secrets.h.");
+            delay(300);
+            ESP.restart();
+        }
     } else if (line == "ask") {
         if (!wallbox_.hasConnectedChargers()) {
             LOG_WARN("Console: no charger is connected.");
