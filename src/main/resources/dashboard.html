@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>WattSync</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="data:image/png;base64,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">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="WattSync">
+    <meta name="theme-color" content="#2563eb">
+    <style>
+        :root { --bg: #f4f6f9; --card: #fff; --ink: #1f2937; --muted: #64748b; --line: #e2e8f0; --blue: #2563eb;
+                --green: #047857; --red: #b91c1c; --solar: #eda100; --car: #2a78d6; --home: #898781; --grid: #e34948; }
+        * { box-sizing: border-box; }
+        html, body { max-width: 100%; overflow-x: hidden; }   /* never let the page pan sideways (an iPhone does it for the smallest overflow) */
+        body { margin: 0; padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); background: var(--bg); color: var(--ink);
+               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-text-size-adjust: 100%; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        header { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 0 2px 10px; }
+        .brand { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1.25rem; font-weight: 700; }
+        .brand .logo { width: 32px; height: 32px; flex: none; }
+        .brand .sync { color: var(--blue); }
+        .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; white-space: nowrap; }
+        .pill::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+        .pill.on { background: #def7ec; color: #03543f; }
+        .pill.off { background: #ffe3e3; color: #e02424; }
+        .pill.warn { background: #fef3c7; color: #92400e; }
+        .hdr-right { display: flex; align-items: center; gap: 8px; }
+        .gear { min-height: 0; width: 44px; height: 44px; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--card); box-shadow: 0 0 0 1px var(--line); color: #475569; }
+        .gear:hover:not(:disabled) { background: #eef2f7; }
+        .pill.wait { background: #eef1f4; color: var(--muted); }
+
+        button { font: inherit; padding: 0 10px; white-space: nowrap; min-height: 44px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.9rem; background: #eaedf1; color: #374151; transition: background 0.15s; touch-action: manipulation; }
+        button:hover:not(:disabled) { background: #e2e6ea; }
+        button:disabled { cursor: progress; opacity: 0.7; }
+        button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
+
+        .notice { display: none; margin: 0 0 10px; padding: 10px 14px; border-radius: 12px; background: #ffe3e3; color: #9b1c1c; font-weight: 600; font-size: 0.9rem; }
+        .notice.soft { background: #eef1f4; color: #334155; }
+
+        .dash { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
+        .tile { background: var(--card); border-radius: 14px; padding: 10px 12px; box-shadow: 0 0 0 1px var(--line); min-width: 0; }
+        .tile h2 { margin: 0 0 8px; font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+        /* headline */
+        .hero { display: flex; align-items: center; gap: 12px; }
+        .hero .badge { width: 46px; height: 46px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #eef1f4; }
+        .hero.good .badge { background: #def7ec; } .hero.warn .badge { background: #fef3c7; } .hero.bad .badge { background: #ffe3e3; }
+        .hero .txt { flex: 1; min-width: 0; }
+        .hero .title { font-size: 1.1rem; font-weight: 700; line-height: 1.25; }
+        .hero .sub { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+        #pause-btn { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 108px; height: 44px; padding: 0 14px; font-size: 0.9rem; background: #fee2e2; color: #b91c1c; }
+        #pause-btn .ic { width: 16px; height: 16px; fill: currentColor; flex: none; }
+        #pause-btn:hover:not(:disabled) { background: #fecaca; }
+        #pause-btn.resume { background: var(--green); color: #fff; }
+        #pause-btn.resume:hover:not(:disabled) { background: #065f46; }
+
+        /* power flow: four tiles joined by straight arrows through the supply, top to bottom (sources, supply, loads), on every screen size */
+        .flowgrid { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 26px auto 26px auto; column-gap: 10px; }
+        .ft { background: #f8fafc; border-radius: 12px; padding: 6px 10px; border-left: 4px solid var(--c); min-width: 0; }
+        .ft .fl { font-size: 0.7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+        .ft b { display: block; font-size: 1.25rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
+        .ft small { display: block; font-size: 0.72rem; color: var(--muted); min-height: 1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ft.solar { --c: var(--solar); grid-column: 1; grid-row: 1; }
+        .ft.grid { --c: var(--grid); grid-column: 2; grid-row: 1; }
+        .ft.home { --c: var(--home); grid-column: 1; grid-row: 5; }
+        .ft.car { --c: var(--car); grid-column: 2; grid-row: 5; }
+        .ft.grid.export { --c: #047857; }
+        .ft.grid b.import { color: #b45309; } .ft.grid b.export { color: var(--green); }
+        .hub { grid-column: 1 / span 2; grid-row: 3; display: flex; align-items: center; justify-content: center; gap: 8px; background: #fef3c7; border-radius: 999px; padding: 3px 12px; z-index: 1; }
+        .hub .dot { font-size: 1rem; }
+        .hub small { font-size: 0.72rem; font-weight: 600; color: #92400e; text-transform: uppercase; letter-spacing: 0.04em; }
+        #flowsvg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+        .flow.stale .ft b { color: #94a3b8; }
+
+        /* today's numbers */
+        .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+        .stat { background: var(--card); border-radius: 14px; padding: 9px 10px; box-shadow: 0 0 0 1px var(--line); min-width: 0; }
+        .stat .fl { font-size: 0.68rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
+        .stat b { display: block; font-size: 1.2rem; line-height: 1.3; font-variant-numeric: tabular-nums; }
+        .stat small { display: block; font-size: 0.7rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .stat.save b { color: var(--green); }
+        @media (max-width: 360px) { .stat b { font-size: 1.05rem; white-space: nowrap; } .stat .fl { font-size: 0.62rem; letter-spacing: 0; } .stat small { white-space: normal; line-height: 1.2; } .stat:has(> .info) small { padding-right: 24px; } }
+
+        /* controls */
+        .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+        .seg button { font-size: 0.85rem; }
+        .seg button.active { background: var(--blue); color: #fff; }
+        .info { min-height: 0; width: 24px; height: 24px; padding: 0; margin-left: 6px; border-radius: 50%; position: relative; vertical-align: middle;
+                background: #e0e7ff; color: #3730a3; font-size: 0.72rem; font-weight: 700; font-style: italic; font-family: Georgia, serif; line-height: 24px; text-transform: none; letter-spacing: 0; }
+        .info::before { content: ""; position: absolute; inset: -12px; }   /* a finger-sized tap area around the small circle */
+        .info:hover:not(:disabled) { background: #c7d2fe; }
+        .hub .info { margin-left: 8px; pointer-events: auto; }
+        .stat { position: relative; } .stat:has(> .info) small { padding-right: 20px; }
+        .stat > .info { position: absolute; right: 6px; bottom: 7px; margin: 0; }
+        #tipbox, #settingsbox { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); background: rgba(15, 23, 42, 0.4); overflow-y: auto; overscroll-behavior: contain; }
+        #tipbox[hidden], #settingsbox[hidden] { display: none; }
+        #settingsbox { z-index: 19; }
+        #tipbox .card, #settingsbox .card { width: 100%; max-width: min(420px, 100%); max-height: 100%; overflow-y: auto; overflow-wrap: anywhere; background: var(--card); border-radius: 16px; padding: 16px 18px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); }
+        #tipbox h3, #settingsbox h3 { margin: 0 0 8px; font-size: 1.05rem; }
+        #tipbox p { margin: 0 0 8px; font-size: 0.95rem; line-height: 1.45; }
+        #tipbox .gotit, #settingsbox .gotit { width: 100%; margin-top: 10px; background: var(--blue); color: #fff; }
+        #tipbox .gotit:hover:not(:disabled), #settingsbox .gotit:hover:not(:disabled) { background: #1d4ed8; }
+        @media (min-width: 900px) { #tipbox, #settingsbox { align-items: center; } }
+        .help { margin: 8px 0 0; font-size: 0.82rem; color: var(--muted); }
+        .setting { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #f8fafc; border: 1px solid var(--line); display: none; }
+        .setting .top { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; font-size: 0.85rem; color: #475569; }
+        .setting output { font-size: 1.05rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+        input[type=range] { width: 100%; height: 34px; margin: 2px 0 0; accent-color: var(--blue); cursor: pointer; touch-action: pan-y; }
+        .hint { margin: 2px 0 0; font-size: 0.75rem; color: var(--muted); }
+        .hint.ok { color: var(--green); } .hint.bad { color: var(--red); } .hint.warn { color: #b45309; }
+
+        /* chart */
+        .tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; }
+        .tabs button { min-height: 44px; font-size: 0.8rem; padding: 0 4px; border-radius: 9px; }
+        .tabs button.active { background: var(--blue); color: #fff; }
+        .charthead { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
+        .charthead h2 { margin: 0 0 6px; }
+        .chip { min-height: 30px; padding: 0 10px; font-size: 0.78rem; border-radius: 999px; background: #eef2ff; color: var(--blue); }
+        .chip[hidden] { display: none; }
+        .summary { margin: 0 0 6px; font-size: 0.82rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+        .summary b { font-weight: 700; } .summary .sv { color: var(--green); }
+        .legend[hidden], .summary[hidden] { display: none; }
+        #chartcard { display: flex; flex-direction: column; }
+        #chart { position: relative; flex: 1 1 180px; min-height: 180px; max-width: 100%; overflow: hidden; }
+        #chart svg { position: absolute; left: 0; top: 0; max-width: 100%; }   /* drawn at the box's own size, so a taller box means a taller graph */
+        .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; }
+        .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+        #chart { width: 100%; touch-action: pan-y; }
+        #chart svg { display: block; width: 100%; height: auto; }
+        #readout { min-height: 1.2em; margin-top: 4px; font-size: 0.78rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+        .empty { color: var(--muted); font-size: 0.85rem; padding: 20px 0; text-align: center; }
+
+        /* activity */
+        .feed { list-style: none; margin: 0; padding: 0; }
+        .feed .t small { display: block; font-size: 0.68rem; font-weight: 400; }
+        .pager { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 0.78rem; color: var(--muted); }
+        .pager[hidden] { display: none; }
+        .pager .chip:disabled { opacity: 0.4; cursor: default; }
+        .feed li { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid #eef1f4; font-size: 0.85rem; }
+        .feed li:last-child { border-bottom: none; }
+        .feed .t { color: var(--muted); min-width: 62px; font-variant-numeric: tabular-nums; flex: none; }
+
+        /* charging sessions */
+        .sess { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #eef1f4; font-size: 0.85rem; }
+        .sess:last-child { border-bottom: none; }
+        .sess small { display: block; margin-top: 1px; font-size: 0.75rem; color: var(--muted); }
+        .sess .k { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+        .sess.now .when::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--green); }
+
+        /* the settings sheet */
+        .field { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; font-size: 0.9rem; border-bottom: 1px solid #eef1f4; }
+        .field input[type=number] { width: 86px; min-height: 40px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; font-size: 16px; font-weight: 600; text-align: center; }   /* 16px: smaller makes iOS zoom the whole page in when you tap the box */
+        .field input[type=url] { width: 170px; min-height: 40px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; font-size: 16px; }
+        .field input[type=time] { min-height: 40px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; font-size: 16px; font-weight: 600; }
+        .smallbtn { min-height: 40px; padding: 0 14px; background: var(--blue, #2a78d6); color: #fff; font-weight: 600; }
+        .smallbtn:disabled { opacity: 0.45; }
+        .edit { display: inline-flex; align-items: center; gap: 6px; }
+        .savebtn { min-width: 40px; min-height: 40px; padding: 0; background: var(--green); color: #fff; font-size: 1.15rem; line-height: 1; }
+        .savebtn:hover:not(:disabled) { background: #065f46; }
+        .savebtn[hidden] { display: none; }
+        details.more { margin-top: 8px; }
+        details.opt { border-top: 1px solid #eef1f4; margin-top: 4px; }
+        details.opt > summary .hint { margin-left: 8px; font-weight: 400; font-size: 0.78rem; color: var(--muted); opacity: 0.8; }
+        details.more > summary { cursor: pointer; font-weight: 600; font-size: 0.9rem; color: var(--muted); min-height: 44px; display: flex; align-items: center; }
+        .rows { margin: 4px 0 0; }
+        .row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid #eef1f4; font-size: 0.85rem; }
+        .row:last-child { border-bottom: none; }
+        .row dt { color: var(--muted); margin: 0; flex: none; }
+        .row dd { margin: 0; font-weight: 600; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+        .row.head dt { color: var(--ink); font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; padding-top: 6px; }
+        .row dd.ok { color: var(--green); } .row dd.warn { color: #b45309; } .row dd.bad { color: var(--red); }
+        .field.peakhours { gap: 6px; } .field.peakhours > label { flex: 1; }
+        .check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 0.9rem; border-bottom: 1px solid #eef1f4; }
+        .check input { width: 20px; height: 20px; flex: none; }
+
+        /* pull to refresh: the WattSync logo slides down and grows as you pull while its sync arrows turn; the bolt pops when you can let go;
+           after you let go the arrows spin around the bolt while the page reloads */
+        #ptr { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 6px); z-index: 30; width: 64px; height: 64px; margin-left: -32px; border-radius: 50%;
+               background: #fff; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--line); pointer-events: none;
+               display: flex; align-items: center; justify-content: center; opacity: 0; transform: translateY(-80px); --p: 0; }
+        #ptr svg { width: 46px; height: 46px; display: block; transform: scale(calc(0.6 + 0.4 * var(--p))); }
+        #ptr .arrows { transform-origin: 32px 32px; transform: rotate(calc(var(--p) * 150deg)); }
+        #ptr .bolt { transform-origin: 32px 32px; }
+        @keyframes ptrspin { from { transform: rotate(150deg); } to { transform: rotate(510deg); } }
+        @keyframes ptrpop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+        @keyframes ptrglow { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
+        @media (prefers-reduced-motion: no-preference) {
+            #ptr.ready .bolt { animation: ptrpop 0.35s ease-out, ptrglow 1.2s ease-in-out 0.35s infinite; }
+            #ptr.loading .arrows { animation: ptrspin 1.1s linear infinite; }
+        }
+        #toasts { position: fixed; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; pointer-events: none; z-index: 10; }
+        .toast { padding: 10px 14px; border-radius: 10px; background: #1e293b; color: #fff; box-shadow: 0 6px 18px rgba(0,0,0,0.2); font-size: 0.9rem; opacity: 0; transform: translateY(8px); transition: opacity 0.2s, transform 0.2s; }
+        .toast.show { opacity: 1; transform: none; } .toast.err { background: #b91c1c; }
+        .toast b { display: block; font-weight: 600; } .toast span { display: block; font-size: 0.8rem; opacity: 0.85; margin-top: 2px; }
+        @media (prefers-reduced-motion: reduce) { .toast, button { transition: none; } }
+
+        /* on a phone the two stacks dissolve into one list, in this order */
+        .stack { display: contents; }
+        #hero { order: 1; } #flow { order: 2; } #stats { order: 3; } #modes { order: 4; } #chartcard { order: 5; }
+        #feedcard { order: 6; } #sessions { order: 7; }
+
+        /* wider screens: two stacks on top and the graph beside the sessions below, so both sides end on the same line */
+        @media (min-width: 900px) {
+            body { padding: 18px 24px; }
+            .dash { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 12px; align-items: stretch; }
+            .stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+            .stack > * { order: 0 !important; }
+            .stack > :last-child { flex: 1 1 auto; }   /* the shorter stack's last tile fills the difference */
+            .stack-a { grid-column: 1; grid-row: 1; } .stack-b { grid-column: 2; grid-row: 1; }
+            #chartcard { grid-column: 1; grid-row: 2; order: 0; } #sessions { grid-column: 2; grid-row: 2; order: 0; }
+            .ft b { font-size: 1.5rem; }
+            .tile { padding: 12px 14px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1 class="brand"><svg class="logo" viewBox="0 0 64 64" role="img" aria-label="WattSync logo"><defs><linearGradient id="wgi" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#0d9488"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#wgi)"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M14.15 25.5A19 19 0 0 1 46.55 19.79"/><path d="M49.85 38.5A19 19 0 0 1 17.45 44.2"/></g><g fill="#fff"><path d="M49.8 23.6L50 16.9L43.1 22.7Z"/><path d="M14.2 40.4L20.9 41.3L14 47.1Z"/></g><path d="M36 18L25 34H32L29 47L40 30H33Z" fill="#fde047"/></svg><span>Watt<span class="sync">Sync</span></span></h1>
+        <div class="hdr-right"><span class="pill wait" id="conn" role="status">Connecting…</span><button type="button" class="gear" id="gear" aria-label="Settings" onclick="openSettings()"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.5.5 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54A.48.48 0 0 0 13.92 2h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.5.5 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg></button></div>
+    </header>
+    <div class="notice" id="notice" role="alert"></div>
+
+    <main class="dash">
+        <div class="stack stack-a">
+        <section class="tile hero" id="hero" aria-live="polite">
+            <div class="badge" id="hero-icon">⚡</div>
+            <div class="txt"><div class="title" id="hero-title">Connecting…</div><div class="sub" id="hero-sub">&nbsp;</div></div>
+            <button id="pause-btn" onclick="togglePause()"><svg class="ic" id="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><span id="pause-label">Pause</span></button>
+        </section>
+        <section class="tile flow" id="flow">
+            <div class="flowgrid" id="flowgrid">
+                <svg id="flowsvg" aria-hidden="true"></svg>
+                <div class="ft solar"><span class="fl">☀️ Solar</span><b id="solar-power">–</b><small id="solar-sub">&nbsp;</small></div>
+                <div class="hub"><span class="dot" aria-hidden="true">⚡</span><small>supply</small><button type="button" class="info" data-tip="flow" aria-label="How do I read this?">i</button></div>
+                <div class="ft home"><span class="fl">🏠 Home</span><b id="home-power">–</b><small>without the car</small></div>
+                <div class="ft grid" id="grid-tile"><span class="fl">🔌 Grid</span><b id="grid-power">–</b><small id="grid-sub">&nbsp;</small></div>
+                <div class="ft car"><span class="fl">🚗 Car</span><b id="charger-power">–</b><small id="charger-sub">&nbsp;</small></div>
+            </div>
+        </section>
+        <section class="stats" id="stats">
+            <div class="stat save"><span class="fl">Saved today</span><b id="st-saved">–</b><small id="st-saved-sub">&nbsp;</small><button type="button" class="info" data-tip="saved" aria-label="What is Saved today?">i</button></div>
+            <div class="stat"><span class="fl">From the sun</span><b id="st-share">–</b><small>of car energy</small><button type="button" class="info" data-tip="share" aria-label="What is From the sun?">i</button></div>
+            <div class="stat"><span class="fl">Car today</span><b id="st-car">–</b><small id="st-solar-sub">&nbsp;</small></div>
+        </section>
+        </div>
+        <div class="stack stack-b">
+        <section class="tile" id="modes">
+            <div class="seg" id="seg">
+                <button id="opt-ECO" class="active" aria-pressed="true" onclick="setMode('ECO')">☘️ Eco</button>
+                <button id="opt-MAX_SOLAR" aria-pressed="false" onclick="setMode('MAX_SOLAR')">🌞 Max solar</button>
+                <button id="opt-FAST" aria-pressed="false" onclick="setMode('FAST')">🎯 Custom</button>
+            </div>
+            <p class="help"><span id="mode-help">Charges with spare solar.</span><button type="button" class="info" data-tip="modes" aria-label="What are the charging modes?">i</button></p>
+            <div class="setting" id="fast-panel">
+                <div class="top"><span><label for="fast-amps-input">Current</label><button type="button" class="info" data-tip="current" aria-label="What is the current?">i</button></span><output id="fast-amps-value" for="fast-amps-input">32 A</output></div>
+                <input type="range" id="fast-amps-input" min="6" max="40" step="1" value="32" aria-valuetext="32 amps" oninput="onSlider(this)">
+                <p class="hint" id="fast-amps-status">&nbsp;</p>
+            </div>
+            <div class="setting" id="allowance-panel">
+                <div class="top"><span><label for="allowance-slider">Grid allowance</label><button type="button" class="info" data-tip="allowance" aria-label="What is the grid allowance?">i</button></span><output id="allowance-value" for="allowance-slider">1000 W</output></div>
+                <input type="range" id="allowance-slider" min="0" max="1000" step="100" value="1000" aria-valuetext="1000 watts" oninput="onAllowanceSlide(this)">
+                <p class="hint" id="allowance-status">Grid power the car may add to the solar.</p>
+            </div>
+        </section>
+        <section class="tile" id="feedcard">
+            <h2>Activity</h2>
+            <ul class="feed" id="feed"><li><span class="t"></span>Nothing yet today.</li></ul>
+            <div class="pager" id="feed-pager" hidden><button class="chip" id="feed-newer" onclick="feedPage(-1)">‹ Newer</button><span id="feed-page"></span><button class="chip" id="feed-older" onclick="feedPage(1)">Older ›</button></div>
+        </section>
+        </div>
+        <section class="tile" id="chartcard">
+            <div class="tabs" id="tabs" role="tablist" aria-label="History range">
+                <button role="tab" id="tab-day" class="active" aria-selected="true" onclick="setRange('day')">Today</button>
+                <button role="tab" id="tab-7" aria-selected="false" onclick="setRange('7')">7 days</button>
+                <button role="tab" id="tab-30" aria-selected="false" onclick="setRange('30')">30 days</button>
+                <button role="tab" id="tab-365" aria-selected="false" onclick="setRange('365')">Year</button>
+            </div>
+            <div class="charthead"><h2 id="chart-title">Today</h2><button id="chart-back" class="chip" hidden onclick="backToRange()">‹ Back</button></div>
+            <div class="legend" id="legend-curve"><span><i style="background:var(--solar)"></i>Solar</span><span><i style="background:var(--car)"></i>Car</span><span><i style="background:var(--home)"></i>Home</span><span><i style="background:var(--grid)"></i>From the grid</span></div>
+            <div class="legend" id="legend-bars" hidden><span>Charging the car used:<button type="button" class="info" data-tip="bars" aria-label="What do the bars show?">i</button></span><span><i style="background:var(--solar)"></i>☀️ Sun</span><span><i style="background:var(--grid)"></i>🔌 Grid</span></div>
+            <div id="range-summary" class="summary" hidden></div>
+            <div id="chart"><div class="empty">Collecting data…</div></div>
+            <div id="readout" aria-live="off"></div>
+        </section>
+        <section class="tile" id="sessions">
+            <h2>Charging sessions</h2>
+            <div id="session-list"><div class="empty">No sessions yet.</div></div>
+            <div class="pager" id="sess-pager" hidden><button class="chip" id="sess-newer" onclick="sessionPage(-1)">‹ Newer</button><span id="sess-page"></span><button class="chip" id="sess-older" onclick="sessionPage(1)">Older ›</button></div>
+        </section>
+    </main>
+</div>
+<div id="ptr" aria-hidden="true"><svg viewBox="0 0 64 64"><defs><linearGradient id="wgp" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#0d9488"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#wgp)"/><g class="arrows"><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M14.15 25.5A19 19 0 0 1 46.55 19.79"/><path d="M49.85 38.5A19 19 0 0 1 17.45 44.2"/></g><g fill="#fff"><path d="M49.8 23.6L50 16.9L43.1 22.7Z"/><path d="M14.2 40.4L20.9 41.3L14 47.1Z"/></g></g><path class="bolt" d="M36 18L25 34H32L29 47L40 30H33Z" fill="#fde047"/></svg></div>
+<div id="toasts" aria-live="polite"></div>
+<div id="tipbox" role="dialog" aria-modal="true" aria-labelledby="tip-title" hidden><div class="card"><h3 id="tip-title"></h3><div id="tip-text"></div><button type="button" class="gotit" id="tip-close">Got it</button></div></div>
+<div id="settingsbox" class="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden><div class="card"><h3 id="settings-title">Settings</h3>
+            <label class="check" id="daylight-panel" title="Pause meter reads and charging outside these hours">
+                <input type="checkbox" id="daylight-toggle" onchange="setDaylight(this)">
+                <span>Solar hours only (<span id="daylight-window-text">–</span>)<button type="button" class="info" data-tip="hours" aria-label="What are solar hours?">i</button></span>
+            </label>
+            <div class="field"><label for="dl-start">Start (minutes after sunrise)</label><span class="edit"><input type="number" id="dl-start" inputmode="numeric" min="0" max="180" step="5" value="30"><button id="dl-save-start" class="savebtn" hidden aria-label="Save solar hours" title="Save" onclick="sendMargins()">✓</button></span></div>
+            <div class="field"><label for="dl-end">Stop (minutes before sunset)</label><span class="edit"><input type="number" id="dl-end" inputmode="numeric" min="0" max="180" step="5" value="60"><button id="dl-save-end" class="savebtn" hidden aria-label="Save solar hours" title="Save" onclick="sendMargins()">✓</button></span></div>
+<details class="more opt"><summary>Charge by morning<span class="hint">optional</span></summary>
+            <div class="field"><span><label for="goal-kwh">Charge by morning (kWh, 0 = off)</label><button type="button" class="info" data-tip="goal" aria-label="What is the departure goal?">i</button></span><span class="edit"><input type="number" id="goal-kwh" inputmode="numeric" min="0" max="100" step="1" value="0" aria-label="Energy to have by the deadline"><button id="goal-save-kwh" class="savebtn" hidden aria-label="Save charging goal" title="Save" onclick="sendGoal()">✓</button></span></div>
+            <div class="field"><label for="goal-time">Ready by</label><span class="edit"><input type="time" id="goal-time" value="07:00"><button id="goal-save-time" class="savebtn" hidden aria-label="Save charging goal" title="Save" onclick="sendGoal()">✓</button></span></div>
+</details>
+<details class="more opt"><summary>Prices<span class="hint">optional</span></summary>
+            <div class="field"><span><label for="rate-input">Price per kWh (cents)</label><button type="button" class="info" data-tip="price" aria-label="What is the electricity price for?">i</button></span><span class="edit"><input type="number" id="rate-input" inputmode="numeric" min="0" max="200" step="1" value="30"><button id="rate-save" class="savebtn" hidden aria-label="Save price" title="Save" onclick="sendRate()">✓</button></span></div>
+            <div class="field"><span><label for="peak-cents">Peak price (cents, 0 = none)</label><button type="button" class="info" data-tip="peak" aria-label="What is the peak price?">i</button></span><span class="edit"><input type="number" id="peak-cents" inputmode="numeric" min="0" max="200" step="1" value="0"><button id="peak-save-cents" class="savebtn" hidden aria-label="Save peak price" title="Save" onclick="sendPeak()">✓</button></span></div>
+            <div class="field peakhours"><label for="peak-start">Peak hours (24 h clock)</label><span class="edit"><input type="number" id="peak-start" inputmode="numeric" min="0" max="23" step="1" value="16" aria-label="Peak starts at hour"><button id="peak-save-start" class="savebtn" hidden aria-label="Save peak hours" title="Save" onclick="sendPeak()">✓</button></span><span class="edit"><input type="number" id="peak-end" inputmode="numeric" min="1" max="24" step="1" value="21" aria-label="Peak ends at hour"><button id="peak-save-end" class="savebtn" hidden aria-label="Save peak hours" title="Save" onclick="sendPeak()">✓</button></span></div>
+</details>
+<details class="more opt"><summary>Limits<span class="hint">optional</span></summary>
+            <div class="field"><span><label for="maxamps-input">Maximum current (A)</label><button type="button" class="info" data-tip="maxamps" aria-label="What is the maximum current?">i</button></span><span class="edit"><input type="number" id="maxamps-input" inputmode="numeric" min="6" max="40" step="1" value="40"><button id="maxamps-save" class="savebtn" hidden aria-label="Save maximum current" title="Save" onclick="sendMaxAmps()">✓</button></span></div>
+</details>
+<details class="more opt"><summary>Messages<span class="hint">optional</span></summary>
+            <div class="field"><span><label for="notify-url">Messages to (web address)</label><button type="button" class="info" data-tip="notify" aria-label="What are messages for?">i</button></span><span class="edit"><input type="url" id="notify-url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="not set" maxlength="200" aria-label="Web address to send messages to"><button id="notify-save" class="savebtn" hidden aria-label="Save message address" title="Save" onclick="sendNotify()">✓</button></span></div>
+            <div class="field"><label for="notify-test">Send a test message</label><button type="button" id="notify-test" class="smallbtn" onclick="testNotify()">Send test</button></div>
+</details>
+<details class="more" id="diag"><summary>Diagnostics</summary><dl class="rows" id="diag-rows"><div class="row"><dt>Loading…</dt><dd></dd></div></dl></details>
+<button type="button" class="gotit" id="settings-close">Done</button></div></div>
+
+<script>
+const el = id => document.getElementById(id);
+let currentSystemMode = 'ECO';
+let notifyEdited = false, goalEdited = false, peakEdited = false, ampsEdited = false, allowanceEdited = false, rateEdited = false, marginsEdited = false, maxAmpsEdited = false;
+let failedPolls = 0, wasOffline = false, busy = false;
+let lastData = null, hist = null;
+
+// ---- little "i" buttons: a short explanation in plain words ----
+const TIPS = {
+    allowance: ['Grid allowance', ['A small top-up from the electric grid for the car. It lets the car reach the next whole amp, or the 6 A minimum, instead of leaving a little solar unused or stopping.', '0 W means no top-up: the car only uses solar. A higher number tops up more, but uses more grid power.', 'It matters in Eco and Max solar. Custom ignores it.']],
+    modes: ['Charging modes', ['Eco: charges only with the solar left over after the house. Slowest, but the cheapest.', 'Max solar: charges the car at the speed your solar panels are producing, no matter what the house is using. If the house needs more power than the panels give, the extra comes from the grid.', 'Custom: charges at the speed you pick, any time of day, sun or not.']],
+    current: ['Charging current', ['How fast the car charges. More amps means faster charging and more power used.', 'Each amp is about 0.24 kW. For example, 10 A is about 2.4 kW.', 'The car or charger may limit it.']],
+    flow: ['Reading the power picture', ['Solar is what your panels make right now. Home is what the house uses, not counting the car. Car is what the car is taking.', 'Grid is power coming from the electric company. If it shows sending, your extra solar is going back to the grid.', 'The arrows show where the power goes. Grey dashes mean nothing is flowing.']],
+    bars: ['Sun and grid bars', ['Each bar is the energy that charged the car that day.', 'Yellow (sun) is the part that came from your solar panels. Red (grid) is the part that came from the electric grid.']],
+    saved: ['Saved today', ['The money you saved today by charging the car from the sun instead of the grid.', 'It uses the electricity price in Settings (the gear icon at the top).']],
+    share: ['From the sun', ['How much of the car\'s energy today came from your solar panels instead of the grid. 100% means all of it.']],
+    hours: ['Solar hours', ['Eco and Max solar only work during the day: from a little after sunrise until a little before sunset. Outside these hours they do nothing.', 'You can change how many minutes after sunrise it starts, and before sunset it stops, in the two boxes below.', 'Custom works at any time.']],
+    notify: ['Messages', ['WattSync can post a short message to a web address when charging ends, the solar meter is lost, or the charger disconnects. Paste a webhook address from Slack, Discord, Home Assistant, IFTTT or Zapier.', 'The address is kept on the controller and never shown back in full. Clear the box and save to turn messages off.']],
+    goal: ['Charge by morning', ['Say how much energy you want and by when, for example 20 kWh by 7:00 am. Until time gets short, charging works as normal, from the sun.', 'When the time left is only just enough, WattSync charges at the lowest speed that still gets there, using the grid if needed, even at night.', 'Only while a car is plugged in, never while paused or in Custom mode. Set 0 to turn it off.']],
+    maxamps: ['Maximum current', ['The most current the charger is ever asked for, in any mode. Set it to what your wiring and breaker can safely carry for charging, for example 16 A on a small circuit.', 'Eco and Max solar also stop at 32 A. The Custom slider cannot go above this number.']],
+    peak: ['Peak price', ['If your power company charges more at certain hours, set that price and those hours here. Money saved then counts the sun at the price of the hour it was used.', 'Leave the price at 0 to use one price all day. The hours use a 24 hour clock, for example 16 to 21 is 4 pm to 9 pm.']],
+    price: ['Electricity price', ['What you pay the power company for each kWh, in cents. It is only used to work out how much you saved.']]
+};
+let tipOpener = null;
+function openTip(key) {
+    const tip = TIPS[key]; if (!tip) return;
+    el('tip-title').textContent = tip[0];
+    const box = el('tip-text'); box.innerHTML = '';
+    tip[1].forEach(line => { const p = document.createElement('p'); p.textContent = line; box.appendChild(p); });
+    tipOpener = document.activeElement;
+    el('tipbox').hidden = false; el('tip-close').focus();
+}
+function closeTip() { el('tipbox').hidden = true; if (tipOpener && tipOpener.focus) tipOpener.focus(); tipOpener = null; }
+/** The diagnostics list under Settings: asked for only when it is opened (and every few seconds while it stays open). */
+async function loadDiagnostics() {
+    const box = el('diag-rows');
+    try {
+        const res = await fetch('/api/diagnostics');
+        if (!res.ok) { box.innerHTML = '<div class="row"><dt>Not available on this device</dt><dd></dd></div>'; return; }
+        const d = await res.json();
+        const ago = t => fmtAge(Math.max(0, d.now - t));
+        // First the setup check: the three things that have to be true for charging to work, each with a plain verdict.
+        const ld = lastData || {};
+        const rows = [['Setup check', '', 'head'],
+            ['Solar meter', ld.enphaseOk === false ? "Can't reach the gateway" : 'Reading normally', ld.enphaseOk === false ? 'bad' : 'ok'],
+            ['Wallbox', ld.chargerConnected ? 'Connected' : 'Not connected yet', ld.chargerConnected ? 'ok' : 'warn'],
+            ['Clock', d.clockSet === false ? 'Waiting for network time' : 'Set', d.clockSet === false ? 'warn' : 'ok']];
+        if (ld.enphaseOk === false && ld.enphaseMessage) rows.push(['Meter details', ld.enphaseMessage, 'warn']);
+        rows.push(['About this device', '', 'head']);
+        rows.push(['Running for', fmtAge(d.uptimeSeconds).replace(' ago', ''), '']);
+        rows.push(['Last restart', d.lastRestart.reason, d.lastRestart.crash ? 'bad' : '']);
+        if (d.restarts !== undefined) rows.push(['Restarts counted', d.restarts + (d.crashes ? ', ' + d.crashes + ' of them crashes' : ', no crashes'), d.crashes ? 'warn' : '']);
+        if (d.restarts !== undefined) rows.push(['Last crash', d.lastCrash ? d.lastCrash.reason + ' · ' + ago(d.lastCrash.at) : 'none recorded', d.lastCrash ? 'bad' : 'ok']);
+        if (d.memory) rows.push(['Free memory', d.memory.freeKb + ' KB' + (d.memory.minFreeKb !== undefined ? ' (lowest ' + d.memory.minFreeKb + ' KB)' : ''), '']);
+        if (d.wifiRssi !== undefined) rows.push(['Wi-Fi signal', d.wifiRssi + ' dBm (' + (d.wifiRssi >= -60 ? 'good' : d.wifiRssi >= -70 ? 'fair' : 'weak') + ')', d.wifiRssi < -70 ? 'warn' : '']);
+        if (d.firmwareBuilt) rows.push(['Firmware built', d.firmwareBuilt, '']);
+        box.innerHTML = '';
+        rows.forEach(([name, value, kind]) => {
+            const row = document.createElement('div'); row.className = 'row';
+            const dt = document.createElement('dt'); dt.textContent = name;
+            if (kind === 'head') { row.className = 'row head'; row.appendChild(dt); box.appendChild(row); return; }
+            const dd = document.createElement('dd'); dd.textContent = value; if (kind) dd.className = kind;
+            row.appendChild(dt); row.appendChild(dd); box.appendChild(row);
+        });
+    } catch (e) { box.innerHTML = '<div class="row"><dt>Could not load</dt><dd></dd></div>'; }
+}
+el('diag').addEventListener('toggle', () => { if (el('diag').open) loadDiagnostics(); });
+setInterval(() => { if (!el('settingsbox').hidden && el('diag').open) loadDiagnostics(); }, 5000);
+function openSettings() { el('settingsbox').hidden = false; el('settings-close').focus(); }
+function closeSettings() { el('settingsbox').hidden = true; el('gear').focus(); }
+document.addEventListener('click', e => {
+    const btn = e.target.closest('.info');
+    if (btn) { e.preventDefault(); e.stopPropagation(); openTip(btn.dataset.tip); return; }
+    if (e.target === el('tipbox') || e.target === el('tip-close')) closeTip();
+    if (e.target === el('settingsbox') || e.target === el('settings-close')) closeSettings();
+}, true);
+// Keep Tab inside whichever card is open, so a keyboard or screen-reader user cannot wander into the page behind it.
+document.addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const open = !el('tipbox').hidden ? el('tipbox') : !el('settingsbox').hidden ? el('settingsbox') : null;
+    if (!open) return;
+    const items = [...open.querySelectorAll('button, input, summary, [href]')].filter(x => !x.disabled && x.offsetParent !== null);
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    if (!open.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
+document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (!el('tipbox').hidden) closeTip();
+    else if (!el('settingsbox').hidden && !(e.target && e.target.tagName === 'INPUT' && e.target.type === 'number')) closeSettings();   // Esc in a box only puts its saved value back
+});
+
+// ---- feedback ----
+function toast(title, kind, detail) {
+    const box = el('toasts');
+    while (box.children.length >= 3) box.firstChild.remove();
+    const t = document.createElement('div');
+    t.className = 'toast' + (kind === 'err' ? ' err' : '');
+    const b = document.createElement('b'); b.textContent = title; t.appendChild(b);
+    if (detail) { const s = document.createElement('span'); s.textContent = detail; t.appendChild(s); }
+    box.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('show'));
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 250); }, kind === 'err' ? 5000 : 3000);
+}
+async function post(url) {
+    try {
+        const res = await fetch(url, { method: 'POST', headers: { 'X-WattSync': '1' } });
+        const text = (await res.text()).trim();
+        return { ok: res.ok, text: res.ok ? text : (text || 'Something went wrong.') };
+    } catch (e) { return { ok: false, text: "Can't reach the controller." }; }
+}
+const setText = (id, text, cls) => {
+    const e = el(id);
+    if (e.dataset.base === undefined) e.dataset.base = e.className;
+    e.innerText = text;
+    e.className = (e.dataset.base + ' ' + (cls || '')).trim();
+};
+function sentDetail() { return lastData && lastData.chargerConnected ? undefined : 'Saved, charger offline'; }
+function pausedNote() { return lastData && lastData.paused ? 'Still paused' : undefined; }
+
+// ---- formatting ----
+function fmtPower(watts) { const a = Math.abs(watts); return a >= 1000 ? (watts / 1000).toFixed(2) + ' kW' : Math.round(watts) + ' W'; }
+function fmtAmps(amps) { return amps.toFixed(1) + ' A'; }
+/**
+ * How long ago, short enough for a phone: seconds, then minutes, then from an hour on whole hours with a "~" ("~5h":
+ * a half hour or less past the hour rounds down, more than that rounds up), then days.
+ */
+function fmtAge(s) {
+    if (s < 0) return 'never';
+    if (s < 5) return 'just now';
+    if (s < 90) return Math.round(s) + 's ago';
+    const minutes = Math.round(s / 60);
+    if (minutes < 60) return minutes + 'm ago';
+    const wholeHours = Math.floor(minutes / 60) + (minutes % 60 > 30 ? 1 : 0);
+    if (wholeHours < 24) return '~' + wholeHours + 'h ago';
+    const days = Math.floor(wholeHours / 24) + (wholeHours % 24 > 12 ? 1 : 0);
+    return '~' + days + 'd ago';
+}
+/** At night the app deliberately stops reading the meter, so an old reading is expected, not a problem. */
+function isResting(data) { return data.currentMode !== 'FAST' && !data.daylight.open; }
+const RESTING = 'Resting until sunrise';
+function fmtClock(hhmm) { const [h, m] = hhmm.split(':').map(Number); return ((h + 11) % 12 + 1) + ':' + String(m).padStart(2, '0') + ' ' + (h >= 12 ? 'pm' : 'am'); }
+function fmtWindow(text) { const m = /^(\d\d:\d\d) to (\d\d:\d\d)$/.exec(text); return m ? fmtClock(m[1]) + ' – ' + fmtClock(m[2]) : text; }
+/** Clock time at the site (not the phone's time zone): hours past the site's midnight, which the server gives us. */
+function siteTime(t) {
+    if (!hist) return new Date(t * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+    const mins = Math.floor(((t - hist.dayStart) / 60) % 1440 + 1440) % 1440;
+    const h = Math.floor(mins / 60), m = mins % 60;
+    return ((h + 11) % 12 + 1) + ':' + String(m).padStart(2, '0') + ' ' + (h >= 12 ? 'pm' : 'am');
+}
+/** "9 A (about 2.2 kW)": amps mean little to most people, so give the power as well. */
+function ampsWithKw(amps, data) { return amps + ' A (about ' + (amps * (data.power.voltage || 240) / 1000).toFixed(1) + ' kW)'; }
+function fmtStatus(s) {
+    const n = { NONE: 'Charger offline', AVAILABLE: 'Not plugged in', PREPARING: 'Plugged in, not charging', CHARGING: 'Charging', SUSPENDED_EV: 'Car stopped charging',
+        SUSPENDED_EVSE: 'Paused by charger', FINISHING: 'Finishing', RESERVED: 'Reserved', UNAVAILABLE: 'Unavailable', FAULTED: 'Fault', UNKNOWN: 'Unknown' };
+    return n[s] || s;
+}
+function fmtReason(reason) {
+    const n = { 'dip: at the minimum, waiting before stopping': 'Low sun, waiting a few minutes before stopping', 'dip: holding the minimum': 'Low sun, waiting a few minutes before stopping', 'waiting for surplus': 'Not enough solar yet', 'surplus present, confirming it lasts': 'Enough solar, checking it lasts', 'start': 'Starting',
+        'track surplus': 'Following the sun', 'no change': 'Holding steady',
+        'stop: surplus below the minimum, would import more than the allowance': 'Stopped: not enough solar', 'waiting for first reading': 'Getting the first solar reading…' };
+    return n[reason] || reason;
+}
+/** The one-line answer to "why is it (not) charging?", from the car, the mode and the controller. */
+function whyText(data) {
+    const c = data.charger, k = data.controller, fast = data.currentMode === 'FAST';
+    if (data.paused) return 'Paused by you';
+    if (c.status === 'NONE') return 'Charger is offline';
+    if (c.status === 'FAULTED') return 'Charger has a fault';
+    if (c.status === 'AVAILABLE') return 'No car plugged in';
+    if (c.status === 'SUSPENDED_EV') return 'Car has stopped taking power';
+    if (c.status === 'SUSPENDED_EVSE') return 'Charger has paused charging';
+    if (c.status === 'FINISHING') return 'Charge finished';
+    if (fast) return 'Fixed current you set';
+    if (!data.daylight.open) return 'Outside solar hours';
+    if (k.failSafe) return 'Lost contact with the solar meter: charging stopped';
+    if (!k.hasReading) return 'Getting the first solar reading…';
+    const stopped = k.reason.startsWith('stop:');
+    if (k.reason === 'waiting for surplus' || stopped) {
+        const minWatts = 6 * (data.power.voltage || 240);
+        const allowance = k.gridAllowanceWatts;
+        if (data.currentMode === 'MAX_SOLAR') {   // Max solar: only the sun counts, the house is ignored
+            if (data.power.solarWatts + allowance >= minWatts) return 'Enough solar, checking it lasts';
+            return stopped ? 'Stopped: not enough solar' : 'Not enough solar yet';
+        }
+        if (data.power.solarWatts - data.power.homeWatts + allowance >= minWatts) return 'Enough solar, checking it lasts';
+        if (data.power.solarWatts + allowance >= minWatts) return stopped ? 'Stopped: home is using the solar' : 'Home is using the solar';
+    }
+    return fmtReason(k.reason);
+}
+
+// ---- actions ----
+const MODE_NAME = { ECO: 'Eco', MAX_SOLAR: 'Max solar', FAST: 'Custom' };
+const MODE_HELP = { ECO: 'Charges with spare solar.', MAX_SOLAR: 'Follows the sun, ignores the house.', FAST: 'Your speed, sun or not.' };
+
+async function setMode(modeId) {
+    if (busy) return;
+    if (modeId === currentSystemMode) { toast('Already in ' + MODE_NAME[modeId]); return; }
+    let url = '/api/mode?mode=' + modeId, amps = null;
+    if (modeId === 'FAST') { amps = Number(el('fast-amps-input').value); url += '&amps=' + amps; }
+    const hadPending = modeId !== 'FAST' && ampsTimer !== null;
+    const previous = currentSystemMode;
+    busy = true;
+    document.querySelectorAll('#seg button').forEach(b => b.disabled = true);
+    updateUI(modeId);
+    const result = await post(url);
+    document.querySelectorAll('#seg button').forEach(b => b.disabled = false);
+    busy = false;
+    if (result.ok) {
+        if (modeId !== 'FAST') cancelPending(); else ampsEdited = false;
+        toast(MODE_NAME[modeId] + ' on', 'ok', modeId === 'FAST' ? (pausedNote() || sentDetail()) : (hadPending ? 'Your last slider move was not applied' : pausedNote()));
+        refreshHistory();
+    } else { updateUI(previous); toast("Couldn't switch mode", 'err', result.text); }
+}
+
+const CUSTOM_DEBOUNCE_MS = 5000;
+const SLIDER_IDLE = '\u00a0';   // nothing to say while idle; the countdown and the outcome still show
+const ALLOWANCE_IDLE = 'Grid power the car may add to the solar.';
+/** Shows the outcome of a slider change for a few seconds, then puts the usual hint back (unless the slider moved again meanwhile). */
+const hintResetTimers = {};
+function showOutcome(id, text, kind, idleText) {
+    setText(id, text, kind);
+    clearTimeout(hintResetTimers[id]);
+    hintResetTimers[id] = setTimeout(() => setText(id, idleText), 4000);
+}
+let ampsTimer = null, ampsTicker = null, ampsDeadline = 0, sliderVersion = 0;
+function onSlider(input) {
+    clearTimeout(hintResetTimers['fast-amps-status']);
+    const amps = Number(input.value);
+    ampsEdited = true; sliderVersion++;
+    el('fast-amps-value').textContent = amps + ' A';
+    input.setAttribute('aria-valuetext', amps + ' amps');
+    clearTimeout(ampsTimer);
+    ampsDeadline = Date.now() + CUSTOM_DEBOUNCE_MS;
+    ampsTimer = setTimeout(sendSlider, CUSTOM_DEBOUNCE_MS);
+    clearInterval(ampsTicker);
+    ampsTicker = setInterval(showCountdown, 250);
+    showCountdown();
+}
+function showCountdown() {
+    const left = Math.max(1, Math.ceil((ampsDeadline - Date.now()) / 1000));
+    setText('fast-amps-status', 'Changing to ' + el('fast-amps-input').value + ' A in ' + left + ' s…', 'warn');
+}
+function cancelPending() {
+    const had = ampsTimer !== null;
+    clearTimeout(ampsTimer); clearInterval(ampsTicker);
+    ampsTimer = null; ampsTicker = null; ampsEdited = false;
+    setText('fast-amps-status', SLIDER_IDLE);
+    return had;
+}
+async function sendSlider() {
+    clearInterval(ampsTicker); ampsTicker = null; ampsTimer = null;
+    const version = sliderVersion, amps = Number(el('fast-amps-input').value);
+    setText('fast-amps-status', 'Changing…');
+    const result = await post('/api/mode?mode=FAST&amps=' + amps);
+    const movedAgain = ampsTimer !== null;
+    if (result.ok) {
+        if (version === sliderVersion) ampsEdited = false;
+        if (!movedAgain) showOutcome('fast-amps-status', 'Sent: ' + amps + ' A', 'ok', SLIDER_IDLE);
+        toast('Custom speed ' + amps + ' A', 'ok', pausedNote() || sentDetail());
+        refreshHistory();
+    } else {
+        if (!movedAgain) showOutcome('fast-amps-status', 'Not sent. Try again.', 'bad', SLIDER_IDLE);
+        toast("Couldn't send", 'err', result.text);
+    }
+}
+let allowanceTimer = null, allowanceTicker = null, allowanceDeadline = 0;
+/** Like the Custom slider: nothing is sent while you move it, one change goes out once it has been still for 5 seconds. */
+function onAllowanceSlide(input) {
+    clearTimeout(hintResetTimers['allowance-status']);
+    allowanceEdited = true;
+    const watts = Number(input.value);
+    el('allowance-value').textContent = watts + ' W';
+    input.setAttribute('aria-valuetext', watts + ' watts');
+    clearTimeout(allowanceTimer);
+    allowanceDeadline = Date.now() + CUSTOM_DEBOUNCE_MS;
+    allowanceTimer = setTimeout(sendAllowance, CUSTOM_DEBOUNCE_MS);
+    clearInterval(allowanceTicker);
+    allowanceTicker = setInterval(showAllowanceCountdown, 250);
+    showAllowanceCountdown();
+}
+function showAllowanceCountdown() {
+    const left = Math.max(1, Math.ceil((allowanceDeadline - Date.now()) / 1000));
+    setText('allowance-status', 'Changing to ' + el('allowance-slider').value + ' W in ' + left + ' s…', 'warn');
+}
+async function sendAllowance() {
+    clearTimeout(allowanceTimer); clearInterval(allowanceTicker); allowanceTimer = null; allowanceTicker = null;
+    const watts = Number(el('allowance-slider').value);
+    setText('allowance-status', 'Changing…');
+    const result = await post('/api/allowance?watts=' + watts);
+    if (result.ok) { allowanceEdited = false; showOutcome('allowance-status', 'Set to ' + watts + ' W', 'ok', ALLOWANCE_IDLE); toast('Grid allowance ' + watts + ' W', 'ok'); refreshHistory(); }
+    else { showOutcome('allowance-status', 'Could not save. Please try again.', 'bad', ALLOWANCE_IDLE); toast("Couldn't save", 'err', result.text); }
+}
+async function sendPeak() {
+    const cents = Number(el('peak-cents').value.trim()), from = Number(el('peak-start').value.trim()), to = Number(el('peak-end').value.trim());
+    const empty = ['peak-cents', 'peak-start', 'peak-end'].some(id => el(id).value.trim() === '');
+    if (empty || !Number.isInteger(cents) || cents < 0 || cents > 200 || !Number.isInteger(from) || from < 0 || from > 23 || !Number.isInteger(to) || to < 1 || to > 24 || from === to) {
+        toast('Price 0 to 200, hours 0 to 24, not the same', 'err'); return;
+    }
+    const saves = ['peak-save-cents', 'peak-save-start', 'peak-save-end'].map(el);
+    saves.forEach(b => b.disabled = true);
+    const result = await post('/api/rate?peakCents=' + cents + '&peakStart=' + from + '&peakEnd=' + to);
+    saves.forEach(b => b.disabled = false);
+    if (result.ok) {
+        peakEdited = false; saves.forEach(b => b.hidden = true); document.activeElement.blur();
+        if (lastData) { lastData.peakRateCents = cents; lastData.peakStartHour = from; lastData.peakEndHour = to; }
+        toast(cents === 0 ? 'One price all day' : 'Peak ' + cents + '¢, ' + from + ':00 to ' + to + ':00', 'ok'); refresh(); refreshHistory();
+    } else toast("Couldn't save", 'err', result.text);
+}
+function minutesToTime(m) { return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+async function sendNotify() {
+    const input = el('notify-url'), url = input.value.trim();
+    if (url !== '' && !/^https?:\/\/[^\s\/]+/i.test(url)) { toast('Enter a web address starting with https://', 'err'); return; }
+    const save = el('notify-save');
+    save.disabled = true;
+    const result = await post('/api/notify?url=' + encodeURIComponent(url));
+    save.disabled = false;
+    if (result.ok) {
+        notifyEdited = false; save.hidden = true; input.value = ''; input.blur();
+        toast(url === '' ? 'Messages off' : 'Messages on. Try the test button', 'ok'); refresh();
+    } else toast("Couldn't save", 'err', result.text);
+}
+async function testNotify() {
+    const b = el('notify-test');
+    b.disabled = true;
+    const result = await post('/api/notify/test');
+    b.disabled = false;
+    toast(result.ok ? 'Test message sent' : "Couldn't send", result.ok ? 'ok' : 'err', result.ok ? undefined : result.text);
+}
+async function sendGoal() {
+    const kwhInput = el('goal-kwh'), timeInput = el('goal-time'), n = Number(kwhInput.value.trim());
+    const t = /^(\d\d):(\d\d)$/.exec(timeInput.value);
+    if (kwhInput.value.trim() === '' || !Number.isInteger(n) || n < 0 || n > 100) { toast('Enter 0 to 100 kWh', 'err'); return; }
+    if (!t) { toast('Pick a time', 'err'); return; }
+    const minutes = Number(t[1]) * 60 + Number(t[2]);
+    const result = await post('/api/goal?kwh=' + n + '&byMinutes=' + minutes);
+    if (result.ok) {
+        goalEdited = false; el('goal-save-kwh').hidden = true; el('goal-save-time').hidden = true;
+        kwhInput.blur(); timeInput.blur();
+        toast(n === 0 ? 'Goal off' : n + ' kWh by ' + fmtClock(t[1] + ':' + t[2]), 'ok'); refresh();
+    } else toast("Couldn't save", 'err', result.text);
+}
+async function sendMaxAmps() {
+    const input = el('maxamps-input'), n = Number(input.value.trim());
+    if (input.value.trim() === '' || !Number.isInteger(n) || n < 6 || n > 40) { toast('Enter 6 to 40 amps', 'err'); return; }
+    const save = el('maxamps-save');
+    save.disabled = true;
+    const result = await post('/api/maxamps?amps=' + n);
+    save.disabled = false;
+    if (result.ok) {
+        maxAmpsEdited = false; save.hidden = true; input.blur();
+        if (lastData) { lastData.maxAmps = n; if (lastData.fastModeAmps > n) lastData.fastModeAmps = n; }
+        toast('Maximum ' + n + ' A', 'ok'); refresh(); refreshHistory();
+    } else toast("Couldn't save", 'err', result.text);
+}
+async function sendRate() {
+    const input = el('rate-input'), n = Number(input.value.trim());
+    if (!Number.isInteger(n) || n < 0 || n > 200) { toast('Enter 0 to 200 cents', 'err'); return; }
+    const save = el('rate-save');
+    save.disabled = true;
+    const result = await post('/api/rate?cents=' + n);
+    save.disabled = false;
+    if (result.ok) {
+        rateEdited = false; save.hidden = true; input.blur();
+        if (lastData) lastData.rateCents = n;
+        toast('Price ' + n + '¢ per kWh', 'ok'); refreshHistory(); renderStats();
+    } else toast("Couldn't save", 'err', result.text);
+}
+async function sendMargins() {
+    const start = Number(el('dl-start').value.trim()), end = Number(el('dl-end').value.trim());
+    const ok = n => Number.isInteger(n) && n >= 0 && n <= 180;
+    if (el('dl-start').value.trim() === '' || el('dl-end').value.trim() === '' || !ok(start) || !ok(end)) { toast('Enter 0 to 180 minutes', 'err'); return; }
+    const saves = [el('dl-save-start'), el('dl-save-end')];
+    saves.forEach(b => b.disabled = true);
+    const result = await post('/api/daylight?startMin=' + start + '&endMin=' + end);
+    saves.forEach(b => b.disabled = false);
+    if (result.ok) {
+        marginsEdited = false; saves.forEach(b => b.hidden = true); document.activeElement.blur();
+        if (lastData) { lastData.daylight.startMinutes = start; lastData.daylight.endMinutes = end; }
+        toast('Solar hours updated', 'ok'); // Coming back to the app (unlocking the phone, switching back from another app): show fresh numbers at once, not after the next timer.
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { refreshing = false; refresh(); refreshHistory(); } });
+window.addEventListener('pageshow', e => { if (e.persisted) { refreshing = false; refresh(); refreshHistory(); } });
+refresh(); refreshHistory();
+    } else toast("Couldn't save", 'err', result.text);
+}
+async function togglePause() {
+    const button = el('pause-btn');
+    if (button.disabled) return;
+    const pause = !(lastData && lastData.paused);
+    button.disabled = true;
+    const result = await post('/api/pause?enabled=' + pause);
+    button.disabled = false;
+    if (result.ok) {
+        if (lastData) lastData.paused = pause;
+        toast(pause ? 'Charging paused' : 'Charging resumed', 'ok', pause ? undefined : 'Back to ' + MODE_NAME[currentSystemMode]);
+        refresh(); refreshHistory();
+    } else toast(pause ? "Couldn't pause" : "Couldn't resume", 'err', result.text);
+}
+async function setDaylight(box) {
+    const wanted = box.checked;
+    box.disabled = true;
+    const result = await post('/api/daylight?enabled=' + wanted);
+    box.disabled = false;
+    if (result.ok) toast(wanted ? 'Eco and Max solar run in solar hours only' : 'Eco and Max solar now run all day', 'ok');
+    else { box.checked = !wanted; toast("Couldn't save", 'err', result.text); }
+}
+
+// ---- rendering ----
+function updateUI(modeId) {
+    currentSystemMode = modeId;
+    document.querySelectorAll('#seg button').forEach(btn => {
+        const on = btn.id === 'opt-' + modeId;
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-pressed', on);
+    });
+    el('mode-help').textContent = MODE_HELP[modeId] || '';
+    el('fast-panel').style.display = modeId === 'FAST' ? 'block' : 'none';
+    el('allowance-panel').style.display = modeId === 'ECO' || modeId === 'MAX_SOLAR' ? 'block' : 'none';
+    el('daylight-panel').style.display = modeId === 'FAST' ? 'none' : 'flex';
+    ['dl-start', 'dl-end'].forEach(id => { el(id).closest('.field').style.display = modeId === 'FAST' ? 'none' : 'flex'; });   // the minutes mean nothing in Custom
+}
+
+function renderConnection(online) {
+    const pill = el('conn');
+    pill.className = 'pill ' + (online ? 'on' : 'off');
+    pill.textContent = online ? 'Live' : 'Offline';
+}
+
+function renderHeadline(data) {
+    const c = data.charger, p = data.power, mode = MODE_NAME[data.currentMode];
+    let h;
+    if (data.paused) h = { cls: 'warn', icon: '⏸️', title: 'Charging is paused', sub: 'Resume to go back to ' + mode + '.' };
+    else if (c.status === 'NONE') h = { cls: 'warn', icon: '🔌', title: 'Charger is offline', sub: 'Waiting for the wallbox to connect.' };
+    else if (c.status === 'FAULTED') h = { cls: 'bad', icon: '⚠️', title: 'Charger has a fault', sub: 'Check the wallbox.' };
+    else if (c.status === 'CHARGING' && c.amps > 0) {
+        const carW = p.chargerWatts, sun = Math.min(carW, Math.max(0, p.solarWatts - p.homeWatts)), grid = Math.max(0, carW - sun);
+        // This charger may not report its real current; then the number is the limit it was set to, so say "up to".
+        h = { cls: 'good', icon: '⚡', title: (c.drawMeasured ? 'Charging at ' : 'Charging, set to ') + Math.round(c.limitAmps || c.amps) + ' A',
+              sub: (c.drawMeasured ? 'Using ' : 'Up to ') + fmtPower(carW) + ': ' + fmtPower(sun) + ' from the sun' + (grid >= 50 ? ', ' + fmtPower(grid) + ' from the grid' : '') };
+    } else h = { cls: '', icon: c.status === 'AVAILABLE' ? '🔌' : '🅿️', title: c.status === 'AVAILABLE' ? 'No car plugged in' : 'Not charging', sub: c.status === 'AVAILABLE' ? 'Charging starts by itself once one is plugged in.' : whyText(data) };
+    const g = data.goal;
+    if (g && g.kwh > 0 && !data.paused && c.status !== 'NONE' && c.status !== 'FAULTED' && c.status !== 'AVAILABLE' && data.currentMode !== 'FAST') {
+        const by = fmtClock(minutesToTime(g.byMinutes));
+        if (g.forcing) h = { cls: 'good', icon: '🎯', title: 'Charging to make your goal', sub: g.doneKwh + ' of ' + g.kwh + ' kWh by ' + by + ', at ' + g.forcedAmps + ' A, grid power if needed' };
+        else h.sub += ' · Goal: ' + g.doneKwh + ' of ' + g.kwh + ' kWh by ' + by;
+    }
+    el('hero').className = 'tile hero ' + h.cls;
+    el('hero-icon').textContent = h.icon;
+    el('hero-title').textContent = h.title;
+    el('hero-sub').textContent = h.sub;
+    const b = el('pause-btn');
+    if (!b.disabled) {
+        el('pause-label').textContent = data.paused ? 'Resume' : 'Pause';
+        el('pause-icon').innerHTML = data.paused ? '<path d="M7 5v14l12-7z"/>' : '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>';
+        b.classList.toggle('resume', data.paused);
+        b.setAttribute('aria-label', data.paused ? 'Resume charging' : 'Pause charging');
+    }
+}
+
+function renderFlow(data) {
+    const p = data.power, c = data.charger, k = data.controller;
+    const stale = !k.hasReading || !data.enphaseOk || k.readingAgeSeconds > k.pollSeconds * 3 || (data.currentMode !== 'FAST' && !data.daylight.open);
+    el('flow').classList.toggle('stale', stale);
+    if (!k.hasReading) {
+        ['solar-power', 'home-power', 'grid-power'].forEach(id => setText(id, '–'));
+        setText('grid-sub', ' '); setText('solar-sub', ' ');
+    } else {
+        setText('solar-power', fmtPower(p.solarWatts));
+        // Home is what is left after the car. If that comes out below zero the car's number is only its limit, not its real draw.
+        const homeRaw = p.solarWatts + p.gridWatts - (c.amps > 0 ? p.chargerWatts : 0);
+        setText('home-power', homeRaw < -30 ? '≈ 0 W' : fmtPower(p.homeWatts));
+        const importing = p.gridWatts > 0;
+        setText('grid-power', fmtPower(Math.abs(p.gridWatts)), importing ? 'import' : 'export');
+        setText('grid-sub', importing ? 'from the grid' : 'to the grid');
+        el('grid-tile').classList.toggle('export', !importing);
+        setText('solar-sub', stale ? (isResting(data) ? RESTING : fmtAge(k.readingAgeSeconds)) : ' ');
+    }
+    setText('charger-power', fmtPower(c.amps > 0 ? p.chargerWatts : 0));
+    setText('charger-sub', c.amps > 0 ? fmtAmps(c.amps) + (c.drawMeasured ? '' : ' · limit') : fmtStatus(c.status));
+    drawFlow();
+}
+
+/**
+ * The flow lines: solar and grid run into the supply node, and from it to the home and the car. Line thickness follows
+ * the power; a flow that is zero is faint and grey; exporting turns the grid line around.
+ */
+function drawFlow() {
+    const grid = el('flowgrid'), svg = el('flowsvg'), d = lastData;
+    if (!grid || !d) return;
+    const base = grid.getBoundingClientRect();
+    if (base.width < 100) return;
+    const rect = q => { const r = grid.querySelector(q).getBoundingClientRect(); return { l: r.left - base.left, r: r.right - base.left, t: r.top - base.top, b: r.bottom - base.top, cx: (r.left + r.right) / 2 - base.left, cy: (r.top + r.bottom) / 2 - base.top, w: r.width }; };
+    const solar = rect('.ft.solar'), gridT = rect('.ft.grid'), home = rect('.ft.home'), car = rect('.ft.car');
+    const hubBox = rect('.hub');
+    const p = d.power, k = d.controller, has = k.hasReading;
+    const w = watts => Math.max(0, has ? watts : 0);
+    const thick = watts => watts < 30 ? 1.5 : Math.min(6, 2 + Math.sqrt(watts / 4000) * 5);
+    svg.setAttribute('viewBox', '0 0 ' + base.width + ' ' + base.height);
+    svg.innerHTML = '';
+    const draw = (x1, y1, x2, y2, watts, color) => {
+        const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len, nx = -uy, ny = ux;
+        const on = watts >= 30, c = on ? color : '#cbd5e1', sw = thick(watts), head = 4 + sw;
+        svgEl(svg, 'line', { x1, y1, x2: x2 - ux * head * 0.6, y2: y2 - uy * head * 0.6, stroke: c, 'stroke-width': sw, 'stroke-linecap': 'round', 'stroke-dasharray': on ? '' : '4 4' });
+        const bx = x2 - ux * head, by = y2 - uy * head;
+        const pts = [[x2, y2], [bx + nx * head * 0.6, by + ny * head * 0.6], [bx - nx * head * 0.6, by - ny * head * 0.6]];
+        svgEl(svg, 'polygon', { points: pts.map(v => v[0].toFixed(1) + ',' + v[1].toFixed(1)).join(' '), fill: c });
+    };
+    const exporting = has && p.gridWatts <= 0;
+    const carW = w(d.charger.amps > 0 ? p.chargerWatts : 0);
+    const gap = 3;
+    // straight arrows: down from the sources into the supply bar, down from it to the loads
+    draw(solar.cx, solar.b + gap, solar.cx, hubBox.t - gap, w(p.solarWatts), '#eda100');
+    if (exporting) draw(gridT.cx, hubBox.t - gap, gridT.cx, gridT.b + gap, w(-p.gridWatts), '#047857');
+    else draw(gridT.cx, gridT.b + gap, gridT.cx, hubBox.t - gap, w(p.gridWatts), '#e34948');
+    draw(home.cx, hubBox.b + gap, home.cx, home.t - gap, w(p.homeWatts), '#2a78d6');
+    draw(car.cx, hubBox.b + gap, car.cx, car.t - gap, carW, '#2a78d6');
+}
+
+function renderStats() {
+    renderSessions();
+    const t = hist && hist.totals, rate = lastData ? lastData.rateCents : 30;
+    if (!t) return;
+    setText('st-saved', '$' + savedOrEstimate(t.savedDollars, t.carSolarKwh).toFixed(2));
+    const peak = lastData && lastData.peakRateCents > 0 ? lastData.peakRateCents : 0;
+    setText('st-saved-sub', peak ? rate + '¢, peak ' + peak + '¢' : 'at ' + rate + '¢/kWh');
+    setText('st-share', t.carKwh >= 0.05 ? Math.round(t.carSolarKwh / t.carKwh * 100) + '%' : '–');
+    setText('st-car', t.carKwh.toFixed(1) + ' kWh');
+    setText('st-solar-sub', t.carSolarKwh.toFixed(1) + ' kWh from sun');
+}
+
+/** The pill says Live; in the daytime, if the solar meter has gone quiet, it turns amber and says how old the reading is. */
+function renderPill(data) {
+    const k = data.controller, d = data.daylight, fast = data.currentMode === 'FAST';
+    const stale = k.hasReading && k.readingAgeSeconds > k.pollSeconds * 3 && (fast || d.open);
+    const pill = el('conn');
+    pill.className = 'pill ' + (stale ? 'warn' : 'on');
+    pill.textContent = stale ? 'Meter ' + fmtAge(k.readingAgeSeconds).replace(' ago', '') + ' old' : 'Live';
+}
+
+function renderNotice(data, online) {
+    const notice = el('notice');
+    // The headline already says when charging is paused or the solar meter was lost, so the banner is only for what
+    // the headline cannot say: the controller is out of reach, or the gateway cannot be read.
+    if (!online) { notice.className = 'notice soft'; notice.innerText = "Can't reach the controller. Retrying…"; notice.style.display = 'block'; return; }
+    if (!data.paused && !data.enphaseOk && data.currentMode !== 'FAST' && data.daylight.open) {
+        notice.className = 'notice';
+        notice.innerText = "⚠️ Can't read the solar meter. Check that the gateway is on and on the same Wi-Fi. Details: gear, Diagnostics.";
+        notice.style.display = 'block';
+        return;
+    }
+    notice.style.display = 'none';
+}
+
+// ---- today's chart: drawn at the screen's own width so it stays crisp and readable on a phone ----
+const NS = 'http://www.w3.org/2000/svg';
+function svgEl(parent, tag, attrs, text) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    parent.appendChild(e);
+    return e;
+}
+function niceMax(w) { const steps = [1000, 2000, 3000, 4000, 5000, 6000, 8000, 10000, 12000]; for (const s of steps) if (w <= s) return s; return Math.ceil(w / 2000) * 2000; }
+
+function drawChart(h) {
+    const box = el('chart');
+    if (!h || !h.samples.length) { box.innerHTML = '<div class="empty">' + (h && h.daysAgo > 0 ? 'No data for this day.' : 'Collecting data… the first points appear within a minute or two.') + '</div>'; return; }
+    const width = Math.max(260, Math.floor(box.clientWidth)), narrow = width < 460, height = Math.max(narrow ? 180 : 170, Math.floor(box.clientHeight));
+    const L = 34, R = 8, T = 8, B = 22;
+    const ribbon = 8, plotB = height - B - ribbon - 4;
+    const day0 = h.dayStart;
+    let lo = day0 + 6 * 3600, hi = day0 + 20 * 3600;
+    if (h.daylight) { lo = h.daylight.start - 3600; hi = h.daylight.end + 3600; }
+    lo = Math.min(lo, h.samples[0][0] - 600); hi = Math.max(hi, (h.daysAgo > 0 ? 0 : h.now) + 600);   // a past day ends with its own daylight
+    lo = Math.max(day0, Math.floor(lo / 3600) * 3600); hi = Math.min(day0 + 86400, Math.ceil(hi / 3600) * 3600);
+    let max = 0; h.samples.forEach(s => { max = Math.max(max, s[1], s[2], s[4], Math.max(0, s[3])); });
+    const ymax = niceMax(max);
+    const X = t => L + (t - lo) / (hi - lo) * (width - L - R), Y = w => plotB - w / ymax * (plotB - T);
+
+    box.innerHTML = '';
+    const svg = svgEl(box, 'svg', { viewBox: '0 0 ' + width + ' ' + height, width: width, height: height, role: 'img',
+        'aria-label': "Today's solar, car, home and grid power" });
+    if (h.daylight) svgEl(svg, 'rect', { x: X(h.daylight.start), y: T, width: Math.max(0, X(h.daylight.end) - X(h.daylight.start)), height: plotB - T, fill: '#dbeafe', opacity: 0.45 });
+    const ticks = ymax <= 4000 ? 1000 : 2000;
+    for (let w = 0; w <= ymax; w += ticks) {
+        svgEl(svg, 'line', { x1: L, x2: width - R, y1: Y(w), y2: Y(w), stroke: '#e5e7eb', 'stroke-width': 1 });
+        svgEl(svg, 'text', { x: L - 5, y: Y(w) + 4, 'text-anchor': 'end', 'font-size': 11, fill: '#94a3b8' }, (w / 1000) + (w + ticks > ymax ? ' kW' : ''));
+    }
+    const stepH = narrow ? 3 : 2;
+    for (let h = Math.ceil((lo - day0) / 3600 / stepH) * stepH; day0 + h * 3600 <= hi; h += stepH) {
+        const hh = h % 24;
+        svgEl(svg, 'text', { x: X(day0 + h * 3600), y: height - B - ribbon + 12, 'text-anchor': 'middle', 'font-size': 11, fill: '#94a3b8' }, ((hh + 11) % 12 + 1) + (hh < 12 ? 'a' : 'p'));
+    }
+    const S = h.samples;
+    const line = (idx, color, w) => svgEl(svg, 'path', { d: S.map((s, i) => (i ? 'L' : 'M') + X(s[0]).toFixed(1) + ' ' + Y(Math.max(0, s[idx])).toFixed(1)).join(' '), fill: 'none', stroke: color, 'stroke-width': w, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
+    let area = 'M' + X(S[0][0]) + ' ' + plotB; S.forEach(s => area += ' L' + X(s[0]).toFixed(1) + ' ' + Y(s[1]).toFixed(1)); area += ' L' + X(S[S.length - 1][0]) + ' ' + plotB + 'Z';
+    svgEl(svg, 'path', { d: area, fill: '#eda100', opacity: 0.18 });
+    const bw = Math.max(2, Math.min(6, (width - L - R) / ((hi - lo) / 300) - 1));
+    S.forEach(s => { if (s[3] > 60) svgEl(svg, 'rect', { x: X(s[0]) - bw / 2, y: Y(s[3]), width: bw, height: plotB - Y(s[3]), fill: '#e34948', opacity: 0.7 }); });
+    line(1, '#eda100', 2); line(2, '#898781', 1.6); line(4, '#2a78d6', 2);
+    // charging ribbon: when the car was charging (blue) or charging was paused (grey)
+    svgEl(svg, 'rect', { x: L, y: height - ribbon - 2, width: width - L - R, height: ribbon, rx: 3, fill: '#f1f5f9' });
+    S.forEach(s => { if (s[6] & 1 || s[6] & 2) svgEl(svg, 'rect', { x: X(s[0]) - 3, y: height - ribbon - 2, width: 6, height: ribbon, fill: s[6] & 2 ? '#cbd5e1' : '#2a78d6' }); });
+    // reading cursor
+    const cursor = svgEl(svg, 'line', { y1: T, y2: plotB, stroke: '#64748b', 'stroke-width': 1, 'stroke-dasharray': '3 3', visibility: 'hidden' });
+    const show = evt => {
+        const r = svg.getBoundingClientRect(), x = (evt.clientX - r.left) / r.width * width;
+        let best = S[0], bd = 1e9; S.forEach(s => { const d = Math.abs(X(s[0]) - x); if (d < bd) { bd = d; best = s; } });
+        cursor.setAttribute('x1', X(best[0])); cursor.setAttribute('x2', X(best[0])); cursor.setAttribute('visibility', 'visible');
+        el('readout').textContent = siteTime(best[0]) + ' · Solar ' + fmtPower(best[1]) + ' · Home ' + fmtPower(best[2]) + ' · Car ' + fmtPower(best[4]) + ' · Grid ' + (best[3] >= 0 ? fmtPower(best[3]) + ' in' : fmtPower(-best[3]) + ' out');
+    };
+    svg.addEventListener('pointermove', show); svg.addEventListener('pointerdown', show);
+    svg.addEventListener('pointerleave', () => { cursor.setAttribute('visibility', 'hidden'); el('readout').textContent = ''; });
+}
+
+const FEED_PAGE_SIZE = 5;
+let feedPageIndex = 0, eventsData = null;
+function feedPage(step) { feedPageIndex = Math.max(0, feedPageIndex + step); loadEvents(); }
+/** Asks the controller for the one page of activity on screen (not the whole log), so a long log costs nothing extra. */
+async function loadEvents() {
+    try {
+        const res = await fetchWithTimeout('/api/events?n=' + FEED_PAGE_SIZE + '&offset=' + feedPageIndex * FEED_PAGE_SIZE);
+        if (!res.ok) return;
+        eventsData = await res.json();
+        const pages = Math.max(1, Math.ceil(eventsData.total / FEED_PAGE_SIZE));
+        if (feedPageIndex > pages - 1) { feedPageIndex = pages - 1; return loadEvents(); }   // the log shrank: go to its last page
+        renderActivity();
+    } catch (e) { /* the next refresh tries again */ }
+}
+function renderActivity() {
+    const list = el('feed');
+    const events = eventsData ? eventsData.events : [];
+    const total = eventsData ? eventsData.total : 0;
+    const pages = Math.max(1, Math.ceil(total / FEED_PAGE_SIZE));
+    list.innerHTML = '';
+    if (!events.length) { const li = document.createElement('li'); li.innerHTML = '<span class="t"></span>Nothing yet. Activity shows up here.'; list.appendChild(li); }
+    events.forEach(e => {
+        const li = document.createElement('li');
+        const t = document.createElement('span'); t.className = 't'; t.textContent = siteTime(e.t);
+        const day = dayLabel(e.t);
+        if (day && day !== 'Today') { const small = document.createElement('small'); small.textContent = day; t.appendChild(small); }
+        li.appendChild(t); li.appendChild(document.createTextNode(e.text)); list.appendChild(li);
+    });
+    el('feed-pager').hidden = pages < 2;
+    el('feed-page').textContent = (feedPageIndex + 1) + ' of ' + pages;
+    el('feed-newer').disabled = feedPageIndex === 0;
+    el('feed-older').disabled = feedPageIndex >= pages - 1;
+}
+
+// ---- the history range: Today's curve, or daily bars for 7 days, 30 days and the year (tap a day to see its curve) ----
+let range = 'day', pastDay = null, pastHist = null, daysData = null;
+const RANGE_TITLE = { day: 'Today', 7: 'Last 7 days', 30: 'Last 30 days', 365: 'Last 12 months' };
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const utcDate = epochDay => new Date(epochDay * 86400000);
+
+function shownCurve() { return pastDay !== null ? pastHist : hist; }
+function redrawChartArea() { if (range === 'day' || pastDay !== null) drawChart(shownCurve()); else drawBars(); }
+
+function showMode() {
+    const curve = range === 'day' || pastDay !== null;
+    ['day', '7', '30', '365'].forEach(r => { const b = el('tab-' + r); b.classList.toggle('active', r === range); b.setAttribute('aria-selected', r === range); });
+    el('legend-curve').hidden = !curve; el('legend-bars').hidden = curve;
+    el('range-summary').hidden = curve;
+    el('chart-back').hidden = pastDay === null;
+    el('readout').textContent = '';
+    if (pastDay !== null && pastHist) {
+        const label = utcDate(daysData ? daysData.today - pastDay : 0);
+        el('chart-title').textContent = DAYS[label.getUTCDay()] + ' ' + label.getUTCDate() + ' ' + MONTHS[label.getUTCMonth()];
+        el('chart-back').textContent = '‹ ' + RANGE_TITLE[range].replace('Last ', '');
+    } else el('chart-title').textContent = RANGE_TITLE[range];
+}
+
+async function setRange(r) {
+    range = r; pastDay = null; pastHist = null;
+    showMode();
+    if (r === 'day') { drawChart(hist); return; }
+    await loadDays();
+}
+function backToRange() { pastDay = null; pastHist = null; showMode(); drawBars(); }
+
+async function loadDays() {
+    try {
+        const res = await fetch('/api/days?n=' + range);
+        if (!res.ok) return;
+        daysData = await res.json();
+        if (pastDay === null) drawBars();
+    } catch (e) { /* the next refresh tries again */ }
+}
+
+async function showPastDay(daysAgo) {
+    pastDay = daysAgo; pastHist = null;
+    try {
+        const res = await fetch('/api/history?daysAgo=' + daysAgo);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        pastHist = await res.json();
+    } catch (e) { pastDay = null; toast("Couldn't load that day", 'err'); return; }
+    showMode();
+    drawChart(pastHist);
+}
+
+/** Money saved from a recorded amount (dollars, or -1 when none was recorded, as for days before prices were kept), else an estimate at the normal price. */
+const savedOrEstimate = (recorded, sunKwh) => (recorded !== undefined && recorded >= 0) ? recorded : sunKwh * (lastData ? lastData.rateCents : 30) / 100;
+function barRows() {
+    const sunOf = (sun, car) => Math.min(Math.max(0, sun), Math.max(0, car));   // the sun's share can never exceed what the car took
+    const today = daysData.today, map = new Map(daysData.days.map(r => [r[0], r]));
+    const row = (label, daysAgo, cars, carSolars, saved) => ({ label, daysAgo, car: cars, sun: sunOf(carSolars, cars), grid: Math.max(0, cars - sunOf(carSolars, cars)), saved: saved || 0 });
+    if (range === 'day') return [];
+    if (range === '365') {   // twelve months ending this month
+        const end = utcDate(today), months = [];
+        for (let k = 11; k >= 0; k--) months.push({ y: new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - k, 1)).getUTCFullYear(), m: new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - k, 1)).getUTCMonth(), saved: 0, car: 0, sun: 0 });
+        daysData.days.forEach(r => { const d = utcDate(r[0]); const b = months.find(x => x.y === d.getUTCFullYear() && x.m === d.getUTCMonth()); if (b) { b.car += r[2]; b.sun += r[3]; b.saved += savedOrEstimate(r[6], r[3]); } });
+        return months.map(b => row(MONTHS[b.m], null, b.car, b.sun, b.saved));
+    }
+    const n = Number(range), rows = [];
+    for (let k = n - 1; k >= 0; k--) {
+        const day = today - k, r = map.get(day), d = utcDate(day);
+        const label = n <= 7 ? DAYS[d.getUTCDay()] : (k % 5 === 0 || k === n - 1 ? String(d.getUTCDate()) : '');
+        rows.push(row(label, k, r ? r[2] : 0, r ? r[3] : 0, r ? savedOrEstimate(r[6], r[3]) : 0));
+    }
+    return rows;
+}
+
+function drawBars() {
+    const box = el('chart');
+    if (!daysData) { box.innerHTML = '<div class="empty">Loading…</div>'; return; }
+    const rows = barRows(), rate = lastData ? lastData.rateCents : 30;
+    const totalCar = rows.reduce((a, r) => a + r.car, 0), totalSun = rows.reduce((a, r) => a + r.sun, 0), totalSaved = rows.reduce((a, r) => a + r.saved, 0);
+    const sum = el('range-summary');
+    sum.innerHTML = totalCar >= 0.05
+        ? '<b>' + totalCar.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' kWh</b> charged the car · <b>' + Math.round(totalSun / totalCar * 100) + '%</b> from the sun · saved <b class="sv">$' + totalSaved.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</b>'
+        : 'No charging in this period yet.';
+    const width = Math.max(260, Math.floor(box.clientWidth)), height = Math.max(170, Math.floor(box.clientHeight)), L = 30, R = 6, T = 14, B = 22, plotB = height - B;
+    const maxKwh = Math.max(...rows.map(r => r.car), 1), steps = [5, 10, 20, 30, 40, 50, 100, 200, 500, 1000, 2000];
+    const ymax = steps.find(v => v >= maxKwh) || Math.ceil(maxKwh / 100) * 100, ticks = ymax <= 10 ? 5 : ymax / 2;
+    const bw = Math.min(40, (width - L - R) / rows.length * 0.7), slot = (width - L - R) / rows.length;
+    const Y = v => plotB - v / ymax * (plotB - T);
+    box.innerHTML = '';
+    const svg = svgEl(box, 'svg', { viewBox: '0 0 ' + width + ' ' + height, width: width, height: height, role: 'img', 'aria-label': 'Daily energy that charged the car, from the sun and from the grid' });
+    for (let v = 0; v <= ymax; v += ticks) {
+        svgEl(svg, 'line', { x1: L, x2: width - R, y1: Y(v), y2: Y(v), stroke: '#e5e7eb' });
+        svgEl(svg, 'text', { x: L - 5, y: Y(v) + 4, 'text-anchor': 'end', 'font-size': 11, fill: '#94a3b8' }, String(v));
+    }
+    rows.forEach((r, i) => {
+        const x = L + slot * i + (slot - bw) / 2;
+        const sunH = r.sun / ymax * (plotB - T), gridH = r.grid / ymax * (plotB - T);
+        const g = svgEl(svg, 'g', { style: r.daysAgo !== null ? 'cursor:pointer' : '' });
+        if (r.daysAgo !== null) { g.addEventListener('click', () => showPastDay(r.daysAgo)); }
+        svgEl(g, 'rect', { x: x, y: T, width: bw, height: plotB - T, fill: 'transparent' });   // a generous tap target
+        if (r.sun > 0.01) svgEl(g, 'rect', { x: x, y: plotB - sunH, width: bw, height: sunH, rx: 3, fill: '#eda100' });
+        if (r.grid > 0.01) svgEl(g, 'rect', { x: x, y: plotB - sunH - gridH - 1, width: bw, height: gridH, rx: 3, fill: '#e34948', opacity: 0.85 });
+        if (r.label) svgEl(svg, 'text', { x: x + bw / 2, y: height - 6, 'text-anchor': 'middle', 'font-size': 11, fill: '#94a3b8' }, r.label);
+        if (rows.length <= 7 && r.car >= 0.1) svgEl(svg, 'text', { x: x + bw / 2, y: plotB - sunH - gridH - 5, 'text-anchor': 'middle', 'font-size': 10, fill: '#475569' }, r.car.toFixed(1));
+    });
+    el('readout').textContent = range === '365' ? '' : 'Tap a day to see its curve.';
+}
+
+// ---- charging sessions ----
+let sessionsData = null;
+/** "Today", "Yesterday" or "Mon 13 Oct" for a time, counted in the site's days (not the phone's). */
+function dayLabel(t) {
+    if (!hist || hist.today === undefined) return '';
+    const offset = Math.floor((t - hist.dayStart) / 86400);
+    if (offset >= 0) return 'Today';
+    if (offset === -1) return 'Yesterday';
+    const d = utcDate(hist.today + offset);
+    return DAYS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()];
+}
+// Why a charge ended, from the wallbox's own reason code, in plain words (unknown or empty codes show nothing).
+const END_REASON = { Remote: 'stopped from the app', EVDisconnected: 'car unplugged', Local: 'stopped at the charger', EmergencyStop: 'emergency stop',
+    PowerLoss: 'power was lost', Reboot: 'charger restarted', SoftReset: 'charger restarted', HardReset: 'charger restarted',
+    DeAuthorized: 'not authorised', UnlockCommand: 'charger unlocked' };
+let sessionPageIndex = 0;
+function sessionPage(step) { sessionPageIndex = Math.max(0, sessionPageIndex + step); loadSessions(); }
+function renderSessions() {
+    const box = el('session-list');
+    if (!sessionsData) return;
+    const rate = lastData ? lastData.rateCents : 30;
+    const rows = [];
+    if (sessionsData.open && sessionPageIndex === 0) rows.push({ now: true, s: sessionsData.open });   // the charge in progress leads the first page
+    sessionsData.sessions.forEach(s => rows.push({ now: false, s }));
+    box.innerHTML = '';
+    const pages = Math.max(1, Math.ceil((sessionsData.total + (sessionsData.open ? 1 : 0)) / FEED_PAGE_SIZE));
+    el('sess-pager').hidden = pages < 2;
+    el('sess-page').textContent = (sessionPageIndex + 1) + ' of ' + pages;
+    el('sess-newer').disabled = sessionPageIndex === 0;
+    el('sess-older').disabled = sessionPageIndex >= pages - 1;
+    if (!rows.length) { box.innerHTML = '<div class="empty">No sessions yet. They appear here after the car charges.</div>'; return; }
+    rows.forEach(({ now, s }) => {
+        const row = document.createElement('div'); row.className = 'sess' + (now ? ' now' : '');
+        const left = document.createElement('div');
+        const when = document.createElement('span'); when.className = 'when';
+        const b = document.createElement('b');
+        b.textContent = now ? 'Charging now' : dayLabel(s.start);
+        when.appendChild(b);
+        when.appendChild(document.createTextNode(now ? ' since ' + siteTime(s.start)
+            : ' ' + siteTime(s.start) + ' – ' + (dayLabel(s.end) !== dayLabel(s.start) ? dayLabel(s.end) + ' ' : '') + siteTime(s.end)));
+        const sub = document.createElement('small');
+        const saved = savedOrEstimate(s.saved, s.sunKwh).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const modeText = MODE_NAME[s.mode] ? MODE_NAME[s.mode] + (s.modeMixed ? ' (changed)' : '') + ' · ' : '';
+        sub.textContent = modeText + (s.kwh > 0 ? Math.min(100, Math.max(0, s.sunPct)) + '% from the sun · ' : '') + (s.avgAmps > 0 ? 'avg ' + s.avgAmps.toFixed(1) + ' A · ' : '') + 'saved $' + saved
+            + (!now && END_REASON[s.reason] ? ' · ' + END_REASON[s.reason] : '');
+        left.appendChild(when); left.appendChild(sub);
+        const k = document.createElement('span'); k.className = 'k'; k.textContent = s.kwh.toFixed(1) + ' kWh' + (now ? ' so far' : '');
+        row.appendChild(left); row.appendChild(k); box.appendChild(row);
+    });
+}
+/** Asks for just the page on screen. The charge in progress counts as the first row of page one. */
+async function loadSessions() {
+    try {
+        const hasOpen = !!(sessionsData && sessionsData.open);
+        const offset = Math.max(0, sessionPageIndex * FEED_PAGE_SIZE - (hasOpen ? 1 : 0));
+        const n = sessionPageIndex === 0 && hasOpen ? FEED_PAGE_SIZE - 1 : FEED_PAGE_SIZE;
+        const res = await fetchWithTimeout('/api/sessions?n=' + n + '&offset=' + offset);
+        if (!res.ok) return;
+        sessionsData = await res.json();
+        const pages = Math.max(1, Math.ceil((sessionsData.total + (sessionsData.open ? 1 : 0)) / FEED_PAGE_SIZE));
+        if (sessionPageIndex > pages - 1) { sessionPageIndex = pages - 1; return loadSessions(); }
+        renderSessions();
+    } catch (e) { /* the next refresh tries again */ }
+}
+
+async function refreshHistory() {
+    try {
+        const res = await fetchWithTimeout('/api/history', undefined, 15000);
+        if (res.ok) {
+            hist = await res.json();
+            if (range === 'day' && pastDay === null) drawChart(hist);
+            else if (pastDay === null && range !== 'day') loadDays();
+            renderStats();
+        }   // a refused history reply (the board is short of memory) must not freeze the lists below
+    } catch (e) { /* the next refresh tries again */ }
+    loadEvents(); loadSessions();
+    if (lastData) renderPill(lastData);
+}
+
+/** fetch with a time limit: a hung request must count as a failure, not wait forever (the board can be slow, never silent for long). */
+function fetchWithTimeout(url, options, ms) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms || 8000);
+    return fetch(url, Object.assign({}, options, { signal: controller.signal })).finally(() => clearTimeout(timer));
+}
+let refreshing = false, refreshStartedAt = 0, refreshSeq = 0, lastOkAt = 0;
+async function refresh() {
+    // One telemetry request at a time (a slow controller must not get a new one every 2.5 s on top of the last), but a
+    // request that has been out for 12 s is given up on.
+    if (refreshing && Date.now() - refreshStartedAt < 12000) return;
+    refreshing = true; refreshStartedAt = Date.now();
+    const seq = ++refreshSeq;
+    try {
+        const res = await fetchWithTimeout('/api/telemetry', undefined, 8000);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if (seq !== refreshSeq) return;   // an answer that arrives after a newer request was started is old news
+        lastData = data; failedPolls = 0; lastOkAt = Date.now();
+        if (wasOffline) { wasOffline = false; toast('Reconnected', 'ok'); }
+        renderConnection(true);
+        if (!busy) { if (data.currentMode !== 'FAST' && ampsTimer !== null) cancelPending(); updateUI(data.currentMode); }
+        if (!ampsEdited) { el('fast-amps-input').value = data.fastModeAmps; el('fast-amps-value').textContent = data.fastModeAmps + ' A'; }
+        if (!allowanceEdited) { el('allowance-slider').value = data.gridAllowanceWatts; el('allowance-value').textContent = data.gridAllowanceWatts + ' W'; }
+        if (!rateEdited && document.activeElement !== el('rate-input')) el('rate-input').value = data.rateCents;
+        if (!peakEdited && !['peak-cents', 'peak-start', 'peak-end'].includes(document.activeElement.id) && data.peakRateCents !== undefined) {
+            el('peak-cents').value = data.peakRateCents; el('peak-start').value = data.peakStartHour; el('peak-end').value = data.peakEndHour;
+        }
+        if (data.notifyTo !== undefined) {
+            const ni = el('notify-url');
+            ni.placeholder = data.notifyTo ? 'set: ' + data.notifyTo : 'not set';
+            el('notify-test').disabled = !data.notifyTo;
+        }
+        if (data.goal) {
+            if (!goalEdited && document.activeElement !== el('goal-kwh') && document.activeElement !== el('goal-time')) {
+                el('goal-kwh').value = data.goal.kwh; el('goal-time').value = minutesToTime(data.goal.byMinutes);
+            }
+        }
+        if (data.maxAmps !== undefined) {
+            if (!maxAmpsEdited && document.activeElement !== el('maxamps-input')) el('maxamps-input').value = data.maxAmps;
+            el('fast-amps-input').max = data.maxAmps;   // the Custom slider cannot go past the installation's maximum
+        }
+        if (!el('daylight-toggle').disabled) el('daylight-toggle').checked = data.daylight.enabled;
+        el('daylight-window-text').innerText = fmtWindow(data.daylight.window);
+        if (!marginsEdited && document.activeElement !== el('dl-start') && document.activeElement !== el('dl-end')) {
+            el('dl-start').value = data.daylight.startMinutes; el('dl-end').value = data.daylight.endMinutes;
+        }
+        renderHeadline(data); renderFlow(data); renderStats(); renderNotice(data, true); renderPill(data);
+    } catch (e) {
+        failedPolls++;
+        if (failedPolls >= 2) { wasOffline = true; renderConnection(false); renderNotice(lastData, false); renderOfflineHeadline(); }
+    } finally {
+        if (seq === refreshSeq) refreshing = false;
+    }
+}
+/** When the controller cannot be reached, say so in the headline instead of leaving the last (or default) text standing. */
+function renderOfflineHeadline() {
+    el('hero').className = 'tile hero warn';
+    el('hero-icon').textContent = '📡';
+    el('hero-title').textContent = "Can't reach WattSync";
+    el('hero-sub').textContent = lastOkAt ? 'Showing the last values, from ' + fmtAge(Math.round((Date.now() - lastOkAt) / 1000)) + '.' : 'Check that it is on and on your Wi-Fi.';
+}
+// An edited price shows a check mark to save it; Enter does the same, Escape puts the saved value back.
+for (const id of ['peak-cents', 'peak-start', 'peak-end']) {
+    el(id).addEventListener('input', () => {
+        peakEdited = true;
+        const d = lastData || {};
+        const changed = el('peak-cents').value.trim() !== String(d.peakRateCents) || el('peak-start').value.trim() !== String(d.peakStartHour) || el('peak-end').value.trim() !== String(d.peakEndHour);
+        // the check mark sits beside the box being edited
+        el('peak-save-cents').hidden = !(changed && id === 'peak-cents');
+        el('peak-save-start').hidden = !(changed && id === 'peak-start');
+        el('peak-save-end').hidden = !(changed && id === 'peak-end');
+    });
+    el(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') sendPeak();
+        if (e.key === 'Escape' && lastData) {
+            peakEdited = false;
+            el('peak-cents').value = lastData.peakRateCents; el('peak-start').value = lastData.peakStartHour; el('peak-end').value = lastData.peakEndHour;
+            ['peak-save-cents', 'peak-save-start', 'peak-save-end'].forEach(i => { el(i).hidden = true; }); el(id).blur();
+        }
+    });
+}
+['goal-kwh', 'goal-time'].forEach(id => {
+    el(id).addEventListener('input', () => {
+        goalEdited = true;
+        const g = lastData && lastData.goal;
+        const changed = !g || el('goal-kwh').value.trim() !== String(g.kwh) || el('goal-time').value !== minutesToTime(g.byMinutes);
+        el('goal-save-kwh').hidden = !changed; el('goal-save-time').hidden = !changed;
+    });
+    el(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') sendGoal();
+        if (e.key === 'Escape') {
+            goalEdited = false; const g = lastData && lastData.goal;
+            if (g) { el('goal-kwh').value = g.kwh; el('goal-time').value = minutesToTime(g.byMinutes); }
+            el('goal-save-kwh').hidden = true; el('goal-save-time').hidden = true; el(id).blur();
+        }
+    });
+});
+el('notify-url').addEventListener('input', () => { notifyEdited = true; el('notify-save').hidden = false; });
+el('notify-url').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendNotify();
+    if (e.key === 'Escape') { notifyEdited = false; el('notify-url').value = ''; el('notify-save').hidden = true; el('notify-url').blur(); }
+});
+el('maxamps-input').addEventListener('input', () => {
+    maxAmpsEdited = true;
+    el('maxamps-save').hidden = !lastData || el('maxamps-input').value.trim() === String(lastData.maxAmps);
+});
+el('maxamps-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendMaxAmps();
+    if (e.key === 'Escape') { maxAmpsEdited = false; el('maxamps-input').value = lastData ? lastData.maxAmps : 40; el('maxamps-save').hidden = true; el('maxamps-input').blur(); }
+});
+el('rate-input').addEventListener('input', () => {
+    rateEdited = true;
+    el('rate-save').hidden = !lastData || el('rate-input').value.trim() === String(lastData.rateCents);
+});
+el('rate-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendRate();
+    if (e.key === 'Escape') { rateEdited = false; el('rate-input').value = lastData ? lastData.rateCents : 30; el('rate-save').hidden = true; el('rate-input').blur(); }
+});
+// Changed solar-hours margins show a check mark to save them; Enter does the same, Escape puts the saved values back.
+for (const id of ['dl-start', 'dl-end']) {
+    el(id).addEventListener('input', () => {
+        marginsEdited = true;
+        const d = lastData && lastData.daylight;
+        const changed = !!d && (el('dl-start').value.trim() !== String(d.startMinutes) || el('dl-end').value.trim() !== String(d.endMinutes));
+        // the check mark sits beside the box being edited; the other one stays hidden
+        el('dl-save-start').hidden = !(changed && id === 'dl-start');
+        el('dl-save-end').hidden = !(changed && id === 'dl-end');
+    });
+    el(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') sendMargins();
+        if (e.key === 'Escape' && lastData) {
+            marginsEdited = false; el('dl-start').value = lastData.daylight.startMinutes; el('dl-end').value = lastData.daylight.endMinutes;
+            el('dl-save-start').hidden = true; el('dl-save-end').hidden = true; el(id).blur();
+        }
+    });
+}
+// Open the page with ?debug on the end of the address to see how the phone lays it out (width, zoom, overflow).
+if (location.search.includes('debug')) {
+    const box = document.createElement('pre');
+    box.style.cssText = 'position:fixed;left:0;bottom:0;margin:0;padding:6px 8px;background:#111;color:#0f0;font:11px/1.35 monospace;z-index:99;max-width:100%;white-space:pre-wrap;';
+    document.body.appendChild(box);
+    const show = () => {
+        const v = window.visualViewport;
+        box.textContent = 'layout width ' + innerWidth + ' x ' + innerHeight + '\nvisible width ' + (v ? v.width.toFixed(0) : '?') + ', zoom ' + (v ? v.scale.toFixed(2) : '?')
+            + '\npage scroll width ' + document.documentElement.scrollWidth + ' (body ' + document.body.scrollWidth + ')\npixel ratio ' + devicePixelRatio;
+    };
+    show(); setInterval(show, 1000);
+}
+new ResizeObserver(() => redrawChartArea()).observe(el('chart'));
+new ResizeObserver(() => drawFlow()).observe(el('flowgrid'));
+// Pull down to refresh, for the Home Screen app (iOS gives a web app no pull-to-refresh of its own). In Safari the browser
+// already does it, so this only runs when the page was opened from the Home Screen. Releasing the pull reloads the page,
+// which also fetches a newer version of it after an update. Add ?pull to the address to try it elsewhere.
+(function pullToRefresh() {
+    const standalone = window.navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || location.search.includes('pull');
+    if (!standalone) return;
+    const pill = el('ptr'), NEEDED = 70;
+    let startY = null, pull = 0, pulling = false;
+    const overlayOpen = () => !el('tipbox').hidden || !el('settingsbox').hidden;
+    const show = progress => {   // 0 to 1: how far the sun has risen (and how far the indicator has come down)
+        pill.style.setProperty('--p', progress.toFixed(3));
+        pill.style.opacity = Math.min(1, progress * 1.6);
+        pill.style.transform = 'translateY(' + (-80 + progress * 92) + 'px)';
+        pill.classList.toggle('ready', progress >= 1);
+    };
+    const reset = () => {
+        startY = null; pull = 0; pulling = false;
+        pill.classList.remove('loading');
+        pill.style.transition = 'transform 0.2s, opacity 0.2s';
+        show(0);
+    };
+    document.addEventListener('touchstart', e => {
+        const onSlider = e.target.closest && e.target.closest('input[type=range]');
+        startY = (window.scrollY <= 0 && e.touches.length === 1 && !overlayOpen() && !onSlider) ? e.touches[0].clientY : null;
+        pulling = false; pull = 0; pill.style.transition = 'none';
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+        if (startY === null) return;
+        pull = e.touches[0].clientY - startY;
+        if (pull <= 0 || window.scrollY > 0) { if (pulling) reset(); startY = pull <= 0 ? startY : null; return; }
+        pulling = true;
+        show(Math.min(1, pull / NEEDED));
+    }, { passive: true });
+    document.addEventListener('touchend', () => {
+        if (pulling && pull >= NEEDED) {
+            pill.classList.add('loading');   // the rays spin while the page reloads
+            location.reload();
+        } else reset();
+    }, { passive: true });
+    document.addEventListener('touchcancel', reset, { passive: true });
+})();
+refresh(); refreshHistory();
+let pollTick = 0;
+setInterval(() => { pollTick++; if (failedPolls < 3 || pollTick % 3 === 0) refresh(); }, 2500);   // every 2.5 s, and every ~7.5 s once it is clearly down
+setInterval(refreshHistory, 30000);
+</script>
+</body>
+</html>
