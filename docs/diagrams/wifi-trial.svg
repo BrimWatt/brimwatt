@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 430" width="1060" height="430" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+<title id="t">A Wi-Fi change is a trial</title><desc id="d">Saving a different network keeps the previous one in reserve. If the board joins the new network it keeps it; if not, the previous network is put back and the setup page shows the reason.</desc>
+<defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M10,0 L0,5 L10,10 z" fill="#475569"/></marker></defs>
+<rect width="1060" height="430" fill="#f8fafc"/>
+<text text-anchor="start" font-size="12.5" font-weight="400" fill="#475569"><tspan x="30" y="34.4">Changes to the token, Envoy address and update password are kept either way.</tspan></text>
+<rect x="30" y="140" width="200" height="100" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+<text text-anchor="middle" font-size="15" font-weight="600" fill="#111827"><tspan x="130.0" y="185.5">Working network A</tspan><tspan x="130.0" y="205.0">saved and in use</tspan></text>
+<polyline points="230,190 390,190" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#head)"/>
+<text text-anchor="middle" font-size="12.5" font-weight="600" fill="#475569"><tspan x="310" y="154.2">Save network B</tspan><tspan x="310" y="170.5">on the setup page</tspan></text>
+<rect x="390" y="120" width="250" height="140" rx="10" fill="#fff7e0" stroke="#e5c365" stroke-width="1.5"/>
+<text text-anchor="middle" font-size="14" font-weight="600" fill="#111827"><tspan x="515.0" y="167.6">Trial of network B</tspan><tspan x="515.0" y="185.8">A is remembered as the</tspan><tspan x="515.0" y="204.0">previous network.</tspan><tspan x="515.0" y="222.2">The board restarts and tries B.</tspan></text>
+<polyline points="640,150 720,95 800,95" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#head)"/>
+<text text-anchor="middle" font-size="12.5" font-weight="600" fill="#475569"><tspan x="700" y="76.4">joined</tspan></text>
+<rect x="800" y="55" width="230" height="80" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+<text text-anchor="middle" font-size="15" font-weight="600" fill="#111827"><tspan x="915.0" y="90.5">Working network B</tspan><tspan x="915.0" y="110.0">A is forgotten</tspan></text>
+<polyline points="640,235 720,300 800,300" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#head)"/>
+<text text-anchor="middle" font-size="12.5" font-weight="600" fill="#475569"><tspan x="720" y="324.1">could not join</tspan><tspan x="720" y="340.4">(wrong password,</tspan><tspan x="720" y="356.6">5 GHz only, out of range)</tspan></text>
+<rect x="800" y="255" width="230" height="90" rx="10" fill="#fee2e2" stroke="#ef4444" stroke-width="1.5"/>
+<text text-anchor="middle" font-size="14" font-weight="600" fill="#111827"><tspan x="915.0" y="286.7">Back on network A</tspan><tspan x="915.0" y="304.9">the setup network opens and</tspan><tspan x="915.0" y="323.1">the page says why</tspan></text>
+<polyline points="915,345 915,380 130,380 130,240" fill="none" stroke="#475569" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#head)"/>
+<text text-anchor="middle" font-size="12.5" font-weight="600" fill="#475569"><tspan x="520" y="408.4">The old network is only dropped after the new one has worked, so a typo can never leave the board without Wi-Fi.</tspan></text>
+</svg>

@@ -63,6 +63,8 @@ The device name is `kHostname` in `src/config/DeviceConfig.h` (letters, digits a
 
 ## 1b. The setup network (change Wi-Fi and the Enphase details from a phone)
 
+> Diagrams (start-up flow, the Wi-Fi trial, where each value comes from), screenshots of every state of the page, the endpoints and the code map are in [`../docs/setup-network.md`](../docs/setup-network.md).
+
 The board can open a temporary Wi-Fi network of its own, **`WattSync-Setup`** (password **`wattsync`**, fixed for now), with a setup page on it. It works on any phone or computer, with no app and no cable, and it replaces editing `secrets.h` and reflashing when the router, the Enphase token or the Envoy address changes.
 
 **When it opens**

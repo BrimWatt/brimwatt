@@ -26,6 +26,10 @@ esp32-poc/test/              host tests (Unity): test_core, planner, daylight, c
 esp32-poc/scripts/           copy_dashboard.py (pre-build), ota_auth.py (post-build, OTA env only)
 docs/pdf-src/*.py            generate docs/*.pdf (deploy guide, test scenarios)
 README.md, esp32-poc/README.md   user-facing docs (keep them current)
+docs/README.md               index of everything under docs/
+docs/setup-network.md        the ESP32 setup network: diagrams, UI mocks, endpoints, safety (start here for that feature)
+docs/diagrams/*.svg          drawn by docs/diagram-src/make_diagrams.py (edit the script, not the SVGs)
+docs/ui/*.jpg                screenshots of the setup page at 402 px, one per state
 ```
 
 ## Commands
@@ -52,7 +56,8 @@ The `esp32s3-usb` env is only for the board's native USB port; use the default e
 
 Dashboard tests: `/opt/homebrew/bin/node --test tests/dashboard/dashboard.test.mjs` (default `node` is v16 and fails).
 
-Docs: `python3 docs/pdf-src/test_scenarios_pdf.py` and `python3 docs/pdf-src/deploy_pdf.py` regenerate the PDFs.
+Docs: `python3 docs/pdf-src/test_scenarios_pdf.py` and `python3 docs/pdf-src/deploy_pdf.py` regenerate the PDFs;
+`python3 docs/diagram-src/make_diagrams.py` regenerates the SVG diagrams.
 
 ## Departure goal and messages
 
@@ -142,6 +147,46 @@ namespace `net` (`NvsCredentialStore`) and **win over `secrets.h` field by field
 - A changed Wi-Fi is a **trial**: saved with the previous one remembered, tried at the next start; if it cannot join, the previous is put back and the reason is shown on the
   page (`TrialState.lastError`). Never drop saved credentials just because a join failed. With no OTA password anywhere, OTA stays off.
 - Known gaps: password is the same on every board (planned: derive from the chip ID); nothing opens by itself if Wi-Fi is lost while running.
+- Full write-up with diagrams, the eight UI mocks, the form rules, endpoints and code map: `docs/setup-network.md`. Keep it, the diagrams (edit
+  `make_diagrams.py`) and the screenshots in `docs/ui/` current when this feature changes. Screenshots come from the real page served by a stand-in
+  for the board's API (no board needed): serve `setup.html` plus fake `/api/setup/*` replies, resize the browser pane to 402 px and capture each state.
+
+## Documentation map
+
+| For | Read |
+|---|---|
+| What the app does, modes, settings, endpoints (Pi) | `README.md` |
+| ESP32 firmware: set-up, flashing, console, checks on the real wallbox | `esp32-poc/README.md` |
+| The ESP32 setup network | `docs/setup-network.md` (with `docs/diagrams/` and `docs/ui/`) |
+| Running the Pi app as a service, token, logs | `docs/deploy-to-raspberry-pi.pdf` |
+| Scenarios to try on the real house | `docs/test-scenarios.pdf` |
+| Index of all of the above | `docs/README.md` |
+
+When a feature or rule changes, update the matching file in the same change and say so briefly in the summary.
+
+## Git and rollback
+
+The project is a git repository (created 2026-10-23; before that it was not under version control).
+
+```
+main                            current work
+before-setup-network            branch: the code as it was before the ESP32 setup network
+snapshot-before-setup-network   tag on that same commit (a fixed marker; a branch can move, a tag does not)
+```
+
+- `before-setup-network` is a **reconstruction**. Nothing had been saved before the setup network was added, so the old code was rebuilt by undoing each of
+  those edits (every undo checked against the current text). The rebuilt code builds as firmware and passes the 206 host tests that existed then.
+- Roll back: `git checkout before-setup-network` to look at the old code (`git checkout main` to return), or `git revert <setup network commit>` to remove the
+  feature and keep later work. Compare: `git diff before-setup-network main --stat`.
+- The firmware already on a board is not touched by any of this: flash the old code (`git checkout before-setup-network`, then `pio run -e esp32s3-ota -t upload`).
+- **Never commit secrets.** `esp32-poc/src/secrets.h` is ignored (root `.gitignore` `**/secrets.h` and `esp32-poc/.gitignore`); only `secrets.example.h` is tracked.
+  When the repository was created, the commit history was scanned for the real Wi-Fi name, Wi-Fi password, Enphase token and update password: none appeared.
+  `esp32-poc/logs/` (serial monitor logs), the copied `favicon.png`, build output and per-machine state files are ignored too.
+- **The global git ignore file on this machine hides every `*.md`**, which silently left `CLAUDE.md` and the READMEs out of the first snapshot. The repository's
+  `.gitignore` ends with `!*.md` to override it. After adding a new kind of file, check `git status` really lists it (`git check-ignore -v <file>` says why not).
+  `*.log`, `*.patch` and `.idea` are also hidden by that global file; `git add -f` if one of those ever has to be tracked.
+- Commit messages end with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` when Claude made the change.
+- Take a commit before any large change so there is always something to return to.
 
 ## Conventions and preferences
 
