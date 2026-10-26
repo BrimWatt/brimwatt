@@ -42,7 +42,7 @@ python3 docs/pdf-src/test_scenarios_pdf.py
 
 ## User guide and demo (`user-guide.pdf`, `demo/`, `guide/`)
 
-`guide/*.png` are phone-width pictures of the real dashboard page (`src/main/resources/dashboard.html`) running on made-up sample numbers in headless Chrome; `user-guide.pdf` is built from them and `demo/wattsync-demo.mp4` (and a smaller `.gif`) is a captioned slideshow of the same pictures. The pictures carry numbered red callouts and the PDF explains each number; the video labels them. The callout list is `NOTES` in `docs/demo-src/make_demo.py` (edit it there, the PDF reads the same list). None comes from a real house, the board or the car. Regenerate after the dashboard's look or wording changes (needs Google Chrome, Pillow and `reportlab`):
+`guide/*.png` are phone-width pictures of the real dashboard page (`src/main/resources/dashboard.html`) running on made-up sample numbers in headless Chrome; `user-guide.pdf` is built from them and `demo/wattsync-demo.mp4` (and a smaller `.gif`) is a captioned slideshow of the same pictures. The pictures carry numbered red callouts and the PDF explains each number; the video steps through them one at a time with a written explanation. The callout list is `NOTES` in `docs/demo-src/make_demo.py` (edit it there, the PDF reads the same list). None comes from a real house, the board or the car. Regenerate after the dashboard's look or wording changes (needs Google Chrome, Pillow and `reportlab`):
 
 ```bash
 python3 docs/demo-src/make_demo.py        # pictures, GIF and MP4 (or: guide | demo); the MP4 needs ffmpeg: on the PATH, or FFMPEG=/path/to/ffmpeg (e.g. the one from `pip install imageio-ffmpeg`)
