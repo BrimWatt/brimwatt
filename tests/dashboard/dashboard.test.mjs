@@ -179,3 +179,30 @@ test('the offline notice does not reuse the round help-button class', () => {
     const page = fs.readFileSync(path.join(here, '..', '..', 'src', 'main', 'resources', 'dashboard.html'), 'utf8');
     assert.ok(!/className\s*=\s*'notice info'/.test(page), '.info is the 24 px italic circle of the help buttons');
 });
+
+test('energy can be shown as kWh or as estimated miles, and the goal always goes out as whole kWh', () => {
+    const miles = on => read('unitMiles = ' + on + '; milesPerKwh = 3;');
+    miles(false);
+    assert.equal(page.fmtEnergy(12.34), '12.3 kWh');
+    assert.equal(page.fmtCarPower(7200), '7.20 kW');
+    assert.equal(read.call(null, "goalFromBox")(20), 20);
+    assert.equal(read.call(null, "goalToBox")(20), 20);
+    miles(true);
+    assert.equal(page.fmtEnergy(14), '~42 mi');                 // whole miles from 10 up
+    assert.equal(page.fmtEnergy(2), '~6.0 mi');                  // one decimal below that
+    assert.equal(page.fmtEnergy(0), '~0.0 mi');
+    assert.equal(page.fmtEnergy(3.3), '~9.9 mi');
+    assert.equal(page.fmtEnergy(3.32), '~10 mi');                // 9.96 must not print as "10.0"
+    assert.equal(page.fmtCarPower(7200), '~22 mi/h');
+    assert.equal(page.fmtCarPower(0), '0 mi/h');
+    assert.equal(read.call(null, "goalFromBox")(40), 13);                      // 40 mi at 3 mi/kWh, rounded to whole kWh
+    assert.equal(read.call(null, "goalFromBox")(1), 1);                        // a goal above zero is never rounded down to "off"
+    assert.equal(read.call(null, "goalFromBox")(0), 0);
+    assert.equal(read.call(null, "goalToBox")(13), 39);
+    assert.equal(read.call(null, "goalText")(13), '~39 mi');
+    assert.equal(page.goalProgress({ doneKwh: 4, kwh: 13 }), '~12 of ~39 mi');
+    read('milesPerKwh = 3.5;');
+    assert.equal(page.fmtEnergy(10), '~35 mi');
+    miles(false);
+    assert.equal(page.goalProgress({ doneKwh: 4, kwh: 13 }), '4 of 13 kWh');
+});

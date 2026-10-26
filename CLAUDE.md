@@ -111,6 +111,7 @@ After editing it, rebuild **both** the jar and the firmware, and `cmp` the two c
   on top (headline/flow/numbers | modes/activity) and graph beside sessions below, all ending level; the graph grows to fit.
 - Gear icon (top right) opens the Settings sheet: solar hours and start/stop minutes always shown; Charge by morning, Prices, Limits and Messages are collapsed optional groups (`details.opt`); then a collapsed Diagnostics list.
   The pill says Live, or turns amber "Meter 12m old" when a daytime reading is stale.
+- Units: Settings > Units shows energy as kWh or estimated miles (`~`, kWh x miles-per-kWh, default 3, 1-6). Display only, stored in the phone's `localStorage` (`unit`, `mpk`); API, planner, savings, CSV and message text stay kWh. Helpers `fmtEnergy`, `fmtCarPower`, `goalToBox`/`goalFromBox` (a goal above 0 is never rounded to 0 kWh); `applyUnits()` redraws. Event text from the controller still says kWh.
 - Blue "i" buttons open plain-words help cards (`TIPS` map). Activity and Charging sessions show 5 per page and fetch only that page.
 - Sliders (Custom current and Grid allowance) send once, 5 s after you stop moving, with a countdown; the outcome fades after 4 s.
 - Elapsed times are short: `30s`, `45m`, `~5h`, `~2d` (half-hour rounds down, more rounds up). At night the Solar tile says "Resting until sunrise".
