@@ -166,15 +166,30 @@ def guide_shots():
         print("guide", name)
 
 
-def caption_frame(path, text, sub):
+def caption_frame(path, text, sub, k=1):
+    """Adds the caption bar under a picture taken at k times the phone's pixel size."""
     img = Image.open(path).convert("RGB")
-    bar = 64
+    bar = 64 * k
     canvas = Image.new("RGB", (img.width, img.height + bar), (15, 23, 42))
     canvas.paste(img, (0, 0))
     d = ImageDraw.Draw(canvas)
-    d.text((14, img.height + 9), text, font=font(17, True), fill=(255, 255, 255))
-    d.text((14, img.height + 36), sub, font=font(12), fill=(148, 163, 184))
+    d.text((14 * k, img.height + 9 * k), text, font=font(17 * k, True), fill=(255, 255, 255))
+    d.text((14 * k, img.height + 36 * k), sub, font=font(12 * k), fill=(148, 163, 184))
     return canvas
+
+
+def find_ffmpeg():
+    """ffmpeg from $FFMPEG, the PATH, or the one bundled with the imageio-ffmpeg package if that is installed."""
+    import os
+    import shutil
+    found = os.environ.get("FFMPEG") or shutil.which("ffmpeg")
+    if found:
+        return found
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return None
 
 
 FRAMES = [
@@ -192,18 +207,37 @@ FRAMES = [
 
 def demo():
     OUT_DEMO.mkdir(parents=True, exist_ok=True)
-    frames, durations = [], []
+    big, durations = [], []
     with tempfile.TemporaryDirectory() as tmp:
         for i, (scene, extra, secs, title, sub) in enumerate(FRAMES):
             p = Path(tmp) / f"f{i}.png"
-            shoot(scene, p, 820, 1, extra)
-            frames.append(caption_frame(p, title, sub))
-            durations.append(int(secs * 1000))
+            shoot(scene, p, 820, 2, extra)
+            big.append(caption_frame(p, title, sub, 2))
+            durations.append(secs)
             print("demo frame", i + 1, scene)
-    pal = [f.quantize(colors=128, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for f in frames]
-    out = OUT_DEMO / "wattsync-demo.gif"
-    pal[0].save(out, save_all=True, append_images=pal[1:], duration=durations, loop=0, optimize=True, disposal=2)
-    print("demo", out, round(out.stat().st_size / 1e6, 2), "MB")
+        # GIF: half size, small palette
+        small = [f.resize((f.width // 2, f.height // 2), Image.LANCZOS) for f in big]
+        pal = [f.quantize(colors=128, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for f in small]
+        out = OUT_DEMO / "wattsync-demo.gif"
+        pal[0].save(out, save_all=True, append_images=pal[1:], duration=[int(d * 1000) for d in durations], loop=0, optimize=True, disposal=2)
+        print("demo", out, round(out.stat().st_size / 1e6, 2), "MB")
+        # MP4 (H.264, plays everywhere): needs ffmpeg
+        ff = find_ffmpeg()
+        if not ff:
+            print("no ffmpeg found: skipped the MP4 (pip install imageio-ffmpeg, or install ffmpeg)")
+            return
+        lines = []
+        for i, (f, d) in enumerate(zip(big, durations)):
+            path = Path(tmp) / f"v{i}.png"
+            f.save(path)
+            lines.append(f"file '{path}'\nduration {d}")
+        lines.append(f"file '{Path(tmp) / f'v{len(big) - 1}.png'}'")   # the concat list needs the last file repeated
+        lst = Path(tmp) / "list.txt"
+        lst.write_text("\n".join(lines))
+        mp4 = OUT_DEMO / "wattsync-demo.mp4"
+        subprocess.run([ff, "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(lst), "-vf", "fps=30,format=yuv420p",
+                        "-c:v", "libx264", "-crf", "20", "-movflags", "+faststart", str(mp4)], check=True)
+        print("demo", mp4, round(mp4.stat().st_size / 1e6, 2), "MB")
 
 
 if __name__ == "__main__":
