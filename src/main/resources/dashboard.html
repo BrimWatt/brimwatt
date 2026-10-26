@@ -154,6 +154,8 @@
         .field { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; font-size: 0.9rem; border-bottom: 1px solid #eef1f4; }
         .field input[type=number] { width: 86px; min-height: 40px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; font-size: 16px; font-weight: 600; text-align: center; }   /* 16px: smaller makes iOS zoom the whole page in when you tap the box */
         .field input[type=url] { width: 170px; min-height: 40px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; font-size: 16px; }
+        .field select { min-height: 40px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; font: inherit; font-size: 16px; font-weight: 600; }
+        .field.sub { border-bottom: 0; padding-top: 0; } .field.sub[hidden] { display: none; }
         .field input[type=time] { min-height: 40px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; font-size: 16px; font-weight: 600; }
         .smallbtn { min-height: 40px; padding: 0 14px; background: var(--blue, #2a78d6); color: #fff; font-weight: 600; }
         .smallbtn:disabled { opacity: 0.45; }
@@ -304,7 +306,8 @@
             <div class="field"><label for="dl-start">Start (minutes after sunrise)</label><span class="edit"><input type="number" id="dl-start" inputmode="numeric" min="0" max="180" step="5" value="30"><button id="dl-save-start" class="savebtn" hidden aria-label="Save solar hours" title="Save" onclick="sendMargins()">✓</button></span></div>
             <div class="field"><label for="dl-end">Stop (minutes before sunset)</label><span class="edit"><input type="number" id="dl-end" inputmode="numeric" min="0" max="180" step="5" value="60"><button id="dl-save-end" class="savebtn" hidden aria-label="Save solar hours" title="Save" onclick="sendMargins()">✓</button></span></div>
 <details class="more opt"><summary>Charge by morning<span class="hint">optional</span></summary>
-            <div class="field"><span><label for="goal-kwh">Charge by morning (kWh, 0 = off)</label><button type="button" class="info" data-tip="goal" aria-label="What is the departure goal?">i</button></span><span class="edit"><input type="number" id="goal-kwh" inputmode="numeric" min="0" max="100" step="1" value="0" aria-label="Energy to have by the deadline"><button id="goal-save-kwh" class="savebtn" hidden aria-label="Save charging goal" title="Save" onclick="sendGoal()">✓</button></span></div>
+            <div class="field"><span><label for="goal-kwh" id="goal-label">Charge by morning (kWh, 0 = off)</label><button type="button" class="info" data-tip="goal" aria-label="What is the departure goal?">i</button></span><span class="edit"><input type="number" id="goal-kwh" inputmode="numeric" min="0" max="100" step="1" value="0" aria-label="Energy to have by the deadline"><button id="goal-save-kwh" class="savebtn" hidden aria-label="Save charging goal" title="Save" onclick="sendGoal()">✓</button></span></div>
+            <div class="field sub" id="goal-hint-row" hidden><small class="hint" id="goal-hint"></small></div>
             <div class="field"><label for="goal-time">Ready by</label><span class="edit"><input type="time" id="goal-time" value="07:00"><button id="goal-save-time" class="savebtn" hidden aria-label="Save charging goal" title="Save" onclick="sendGoal()">✓</button></span></div>
 </details>
 <details class="more opt"><summary>Prices<span class="hint">optional</span></summary>
@@ -314,6 +317,10 @@
 </details>
 <details class="more opt"><summary>Limits<span class="hint">optional</span></summary>
             <div class="field"><span><label for="maxamps-input">Maximum current (A)</label><button type="button" class="info" data-tip="maxamps" aria-label="What is the maximum current?">i</button></span><span class="edit"><input type="number" id="maxamps-input" inputmode="numeric" min="6" max="40" step="1" value="40"><button id="maxamps-save" class="savebtn" hidden aria-label="Save maximum current" title="Save" onclick="sendMaxAmps()">✓</button></span></div>
+</details>
+<details class="more opt"><summary>Units<span class="hint">optional</span></summary>
+            <div class="field"><span><label for="unit-select">Show energy as</label><button type="button" class="info" data-tip="units" aria-label="What does show energy as do?">i</button></span><span class="edit"><select id="unit-select"><option value="kwh">kWh</option><option value="miles">Miles</option></select></span></div>
+            <div class="field"><label for="mpk-input">Miles per kWh</label><span class="edit"><input type="number" id="mpk-input" inputmode="decimal" min="1" max="6" step="0.1" value="3"></span></div>
 </details>
 <details class="more opt"><summary>Messages<span class="hint">optional</span></summary>
             <div class="field"><span><label for="notify-url">Messages to (web address)</label><button type="button" class="info" data-tip="notify" aria-label="What are messages for?">i</button></span><span class="edit"><input type="url" id="notify-url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="not set" maxlength="200" aria-label="Web address to send messages to"><button id="notify-save" class="savebtn" hidden aria-label="Save message address" title="Save" onclick="sendNotify()">✓</button></span></div>
@@ -343,6 +350,7 @@ const TIPS = {
     goal: ['Charge by morning', ['Say how much energy you want and by when, for example 20 kWh by 7:00 am. Until time gets short, charging works as normal, from the sun.', 'When the time left is only just enough, WattSync charges at the lowest speed that still gets there, using the grid if needed, even at night.', 'Only while a car is plugged in, never while paused or in Custom mode. Set 0 to turn it off.']],
     maxamps: ['Maximum current', ['The most current the charger is ever asked for, in any mode. Set it to what your wiring and breaker can safely carry for charging, for example 16 A on a small circuit.', 'Eco and Max solar also stop at 32 A. The Custom slider cannot go above this number.']],
     peak: ['Peak price', ['If your power company charges more at certain hours, set that price and those hours here. Money saved then counts the sun at the price of the hour it was used.', 'Leave the price at 0 to use one price all day. The hours use a 24 hour clock, for example 16 to 21 is 4 pm to 9 pm.']],
+    units: ['Show energy as', ['Choose kWh or miles for the energy that went into the car. Miles are an estimate: kWh times the miles per kWh you enter, shown with a ~.', 'Use the miles per kWh your car really gets, counted from the wall (it is a little less than the car\'s own figure because charging loses some). 3 is a common starting point.', 'This changes only what you see on this phone. Savings stay in dollars, and the charger, the goal and the export file still use kWh.']],
     price: ['Electricity price', ['What you pay the power company for each kWh, in cents. It is only used to work out how much you saved.']]
 };
 let tipOpener = null;
@@ -447,6 +455,16 @@ function pausedNote() { return lastData && lastData.paused ? 'Still paused' : un
 // ---- formatting ----
 function fmtPower(watts) { const a = Math.abs(watts); return a >= 1000 ? (watts / 1000).toFixed(2) + ' kW' : Math.round(watts) + ' W'; }
 function fmtAmps(amps) { return amps.toFixed(1) + ' A'; }
+// Units: kWh or miles. Display only: the API, the planner and the saved goal always use kWh. Kept in this phone's browser.
+let unitMiles = false, milesPerKwh = 3;
+try { unitMiles = localStorage.getItem('unit') === 'miles'; const m = parseFloat(localStorage.getItem('mpk')); if (m >= 1 && m <= 6) milesPerKwh = m; } catch (e) { /* no storage: defaults */ }
+const milesNumber = m => m >= 9.95 ? Math.round(m).toLocaleString() : m.toFixed(1);
+function fmtEnergy(kwh) { return unitMiles ? '~' + milesNumber(kwh * milesPerKwh) + ' mi' : kwh.toFixed(1) + ' kWh'; }
+function fmtCarPower(watts) { return unitMiles ? (watts > 0 ? '~' + milesNumber(watts / 1000 * milesPerKwh) : '0') + ' mi/h' : fmtPower(watts); }
+/** The goal box holds whole kWh on the wire; in miles mode it shows miles, and any goal above zero is at least 1 kWh. */
+const goalToBox = kwh => unitMiles ? Math.round(kwh * milesPerKwh) : kwh;
+const goalFromBox = n => unitMiles ? (n === 0 ? 0 : Math.max(1, Math.round(n / milesPerKwh))) : n;
+const goalText = kwh => unitMiles ? '~' + Math.round(kwh * milesPerKwh) + ' mi' : kwh + ' kWh';
 /**
  * How long ago, short enough for a phone: seconds, then minutes, then from an hour on whole hours with a "~" ("~5h":
  * a half hour or less past the hour rounds down, more than that rounds up), then days.
@@ -654,16 +672,16 @@ async function testNotify() {
     toast(result.ok ? 'Test message sent' : "Couldn't send", result.ok ? 'ok' : 'err', result.ok ? undefined : result.text);
 }
 async function sendGoal() {
-    const kwhInput = el('goal-kwh'), timeInput = el('goal-time'), n = Number(kwhInput.value.trim());
+    const kwhInput = el('goal-kwh'), timeInput = el('goal-time'), typed = Number(kwhInput.value.trim()), n = goalFromBox(typed);
     const t = /^(\d\d):(\d\d)$/.exec(timeInput.value);
-    if (kwhInput.value.trim() === '' || !Number.isInteger(n) || n < 0 || n > 100) { toast('Enter 0 to 100 kWh', 'err'); return; }
+    if (kwhInput.value.trim() === '' || !Number.isInteger(typed) || typed < 0 || n > 100) { toast(unitMiles ? 'Enter 0 to ' + Math.floor(100 * milesPerKwh) + ' miles' : 'Enter 0 to 100 kWh', 'err'); return; }
     if (!t) { toast('Pick a time', 'err'); return; }
     const minutes = Number(t[1]) * 60 + Number(t[2]);
     const result = await post('/api/goal?kwh=' + n + '&byMinutes=' + minutes);
     if (result.ok) {
         goalEdited = false; el('goal-save-kwh').hidden = true; el('goal-save-time').hidden = true;
         kwhInput.blur(); timeInput.blur();
-        toast(n === 0 ? 'Goal off' : n + ' kWh by ' + fmtClock(t[1] + ':' + t[2]), 'ok'); refresh();
+        toast(n === 0 ? 'Goal off' : goalText(n) + ' by ' + fmtClock(t[1] + ':' + t[2]), 'ok'); refresh();
     } else toast("Couldn't save", 'err', result.text);
 }
 async function sendMaxAmps() {
@@ -752,6 +770,8 @@ function renderConnection(online) {
     pill.textContent = online ? 'Live' : 'Offline';
 }
 
+/** "12 of 20 kWh" or "~36 of ~60 mi" */
+function goalProgress(g) { return unitMiles ? '~' + Math.round(g.doneKwh * milesPerKwh) + ' of ' + goalText(g.kwh) : g.doneKwh + ' of ' + g.kwh + ' kWh'; }
 function renderHeadline(data) {
     const c = data.charger, p = data.power, mode = MODE_NAME[data.currentMode];
     let h;
@@ -762,13 +782,13 @@ function renderHeadline(data) {
         const carW = p.chargerWatts, sun = Math.min(carW, Math.max(0, p.solarWatts - p.homeWatts)), grid = Math.max(0, carW - sun);
         // This charger may not report its real current; then the number is the limit it was set to, so say "up to".
         h = { cls: 'good', icon: '⚡', title: (c.drawMeasured ? 'Charging at ' : 'Charging, set to ') + Math.round(c.limitAmps || c.amps) + ' A',
-              sub: (c.drawMeasured ? 'Using ' : 'Up to ') + fmtPower(carW) + ': ' + fmtPower(sun) + ' from the sun' + (grid >= 50 ? ', ' + fmtPower(grid) + ' from the grid' : '') };
+              sub: (c.drawMeasured ? (unitMiles ? 'Adding ' : 'Using ') : 'Up to ') + fmtCarPower(carW) + ': ' + fmtCarPower(sun) + ' from the sun' + (grid >= 50 ? ', ' + fmtCarPower(grid) + ' from the grid' : '') };
     } else h = { cls: '', icon: c.status === 'AVAILABLE' ? '🔌' : '🅿️', title: c.status === 'AVAILABLE' ? 'No car plugged in' : 'Not charging', sub: c.status === 'AVAILABLE' ? 'Charging starts by itself once one is plugged in.' : whyText(data) };
     const g = data.goal;
     if (g && g.kwh > 0 && !data.paused && c.status !== 'NONE' && c.status !== 'FAULTED' && c.status !== 'AVAILABLE' && data.currentMode !== 'FAST') {
         const by = fmtClock(minutesToTime(g.byMinutes));
-        if (g.forcing) h = { cls: 'good', icon: '🎯', title: 'Charging to make your goal', sub: g.doneKwh + ' of ' + g.kwh + ' kWh by ' + by + ', at ' + g.forcedAmps + ' A, grid power if needed' };
-        else h.sub += ' · Goal: ' + g.doneKwh + ' of ' + g.kwh + ' kWh by ' + by;
+        if (g.forcing) h = { cls: 'good', icon: '🎯', title: 'Charging to make your goal', sub: goalProgress(g) + ' by ' + by + ', at ' + g.forcedAmps + ' A, grid power if needed' };
+        else h.sub += ' · Goal: ' + goalProgress(g) + ' by ' + by;
     }
     el('hero').className = 'tile hero ' + h.cls;
     el('hero-icon').textContent = h.icon;
@@ -801,7 +821,7 @@ function renderFlow(data) {
         el('grid-tile').classList.toggle('export', !importing);
         setText('solar-sub', stale ? (isResting(data) ? RESTING : fmtAge(k.readingAgeSeconds)) : ' ');
     }
-    setText('charger-power', fmtPower(c.amps > 0 ? p.chargerWatts : 0));
+    setText('charger-power', fmtCarPower(c.amps > 0 ? p.chargerWatts : 0));
     setText('charger-sub', c.amps > 0 ? fmtAmps(c.amps) + (c.drawMeasured ? '' : ' · limit') : fmtStatus(c.status));
     drawFlow();
 }
@@ -850,8 +870,8 @@ function renderStats() {
     const peak = lastData && lastData.peakRateCents > 0 ? lastData.peakRateCents : 0;
     setText('st-saved-sub', peak ? rate + '¢, peak ' + peak + '¢' : 'at ' + rate + '¢/kWh');
     setText('st-share', t.carKwh >= 0.05 ? Math.round(t.carSolarKwh / t.carKwh * 100) + '%' : '–');
-    setText('st-car', t.carKwh.toFixed(1) + ' kWh');
-    setText('st-solar-sub', t.carSolarKwh.toFixed(1) + ' kWh from sun');
+    setText('st-car', fmtEnergy(t.carKwh));
+    setText('st-solar-sub', fmtEnergy(t.carSolarKwh) + ' from sun');
 }
 
 /** The pill says Live; in the daytime, if the solar meter has gone quiet, it turns amber and says how old the reading is. */
@@ -1054,10 +1074,11 @@ function drawBars() {
     const totalCar = rows.reduce((a, r) => a + r.car, 0), totalSun = rows.reduce((a, r) => a + r.sun, 0), totalSaved = rows.reduce((a, r) => a + r.saved, 0);
     const sum = el('range-summary');
     sum.innerHTML = totalCar >= 0.05
-        ? '<b>' + totalCar.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' kWh</b> charged the car · <b>' + Math.round(totalSun / totalCar * 100) + '%</b> from the sun · saved <b class="sv">$' + totalSaved.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</b>'
+        ? '<b>' + (unitMiles ? fmtEnergy(totalCar) : totalCar.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' kWh') + '</b> charged the car · <b>' + Math.round(totalSun / totalCar * 100) + '%</b> from the sun · saved <b class="sv">$' + totalSaved.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</b>'
         : 'No charging in this period yet.';
     const width = Math.max(260, Math.floor(box.clientWidth)), height = Math.max(170, Math.floor(box.clientHeight)), L = 30, R = 6, T = 14, B = 22, plotB = height - B;
-    const maxKwh = Math.max(...rows.map(r => r.car), 1), steps = [5, 10, 20, 30, 40, 50, 100, 200, 500, 1000, 2000];
+    if (unitMiles) rows.forEach(r => { r.car *= milesPerKwh; r.sun *= milesPerKwh; r.grid *= milesPerKwh; });   // the bars are drawn in the chosen unit
+    const maxKwh = Math.max(...rows.map(r => r.car), 1), steps = [5, 10, 20, 30, 40, 50, 100, 200, 500, 1000, 2000, 5000, 10000];
     const ymax = steps.find(v => v >= maxKwh) || Math.ceil(maxKwh / 100) * 100, ticks = ymax <= 10 ? 5 : ymax / 2;
     const bw = Math.min(40, (width - L - R) / rows.length * 0.7), slot = (width - L - R) / rows.length;
     const Y = v => plotB - v / ymax * (plotB - T);
@@ -1076,7 +1097,7 @@ function drawBars() {
         if (r.sun > 0.01) svgEl(g, 'rect', { x: x, y: plotB - sunH, width: bw, height: sunH, rx: 3, fill: '#eda100' });
         if (r.grid > 0.01) svgEl(g, 'rect', { x: x, y: plotB - sunH - gridH - 1, width: bw, height: gridH, rx: 3, fill: '#e34948', opacity: 0.85 });
         if (r.label) svgEl(svg, 'text', { x: x + bw / 2, y: height - 6, 'text-anchor': 'middle', 'font-size': 11, fill: '#94a3b8' }, r.label);
-        if (rows.length <= 7 && r.car >= 0.1) svgEl(svg, 'text', { x: x + bw / 2, y: plotB - sunH - gridH - 5, 'text-anchor': 'middle', 'font-size': 10, fill: '#475569' }, r.car.toFixed(1));
+        if (rows.length <= 7 && r.car >= 0.1) svgEl(svg, 'text', { x: x + bw / 2, y: plotB - sunH - gridH - 5, 'text-anchor': 'middle', 'font-size': 10, fill: '#475569' }, unitMiles ? String(Math.round(r.car)) : r.car.toFixed(1));
     });
     el('readout').textContent = range === '365' ? '' : 'Tap a day to see its curve.';
 }
@@ -1127,7 +1148,7 @@ function renderSessions() {
         sub.textContent = modeText + (s.kwh > 0 ? Math.min(100, Math.max(0, s.sunPct)) + '% from the sun · ' : '') + (s.avgAmps > 0 ? 'avg ' + s.avgAmps.toFixed(1) + ' A · ' : '') + 'saved $' + saved
             + (!now && END_REASON[s.reason] ? ' · ' + END_REASON[s.reason] : '');
         left.appendChild(when); left.appendChild(sub);
-        const k = document.createElement('span'); k.className = 'k'; k.textContent = s.kwh.toFixed(1) + ' kWh' + (now ? ' so far' : '');
+        const k = document.createElement('span'); k.className = 'k'; k.textContent = fmtEnergy(s.kwh) + (now ? ' so far' : '');
         row.appendChild(left); row.appendChild(k); box.appendChild(row);
     });
 }
@@ -1195,7 +1216,8 @@ async function refresh() {
         }
         if (data.goal) {
             if (!goalEdited && document.activeElement !== el('goal-kwh') && document.activeElement !== el('goal-time')) {
-                el('goal-kwh').value = data.goal.kwh; el('goal-time').value = minutesToTime(data.goal.byMinutes);
+                el('goal-kwh').value = goalToBox(data.goal.kwh); el('goal-time').value = minutesToTime(data.goal.byMinutes);
+                showGoalHint();
             }
         }
         if (data.maxAmps !== undefined) {
@@ -1242,18 +1264,47 @@ for (const id of ['peak-cents', 'peak-start', 'peak-end']) {
         }
     });
 }
+/** In miles mode, shows the whole kWh the typed miles turn into, because that is what the charger is sent. */
+function showGoalHint() {
+    const typed = Number(el('goal-kwh').value.trim()), ok = unitMiles && el('goal-kwh').value.trim() !== '' && Number.isInteger(typed) && typed > 0;
+    el('goal-hint-row').hidden = !ok;
+    if (ok) el('goal-hint').textContent = 'Sent to the charger as ' + goalFromBox(typed) + ' kWh';
+}
+/** Applies the units choice to labels and boxes, then redraws everything that shows energy. */
+function applyUnits() {
+    el('unit-select').value = unitMiles ? 'miles' : 'kwh';
+    el('mpk-input').value = milesPerKwh;
+    el('mpk-input').closest('.field').style.display = unitMiles ? 'flex' : 'none';
+    el('goal-label').textContent = unitMiles ? 'Charge by morning (miles, 0 = off)' : 'Charge by morning (kWh, 0 = off)';
+    const g = lastData && lastData.goal;
+    // A half-typed goal means something else in the other unit, so drop it and show the saved goal again.
+    if (g) { goalEdited = false; el('goal-kwh').value = goalToBox(g.kwh); el('goal-save-kwh').hidden = true; el('goal-save-time').hidden = true; }
+    showGoalHint();
+    if (lastData) { renderHeadline(lastData); renderFlow(lastData); }
+    renderStats();
+    if (typeof daysData !== 'undefined' && daysData && pastDay === null && range !== 'day') drawBars();
+}
+function saveUnits() { try { localStorage.setItem('unit', unitMiles ? 'miles' : 'kwh'); localStorage.setItem('mpk', String(milesPerKwh)); } catch (e) { /* not saved */ } }
+el('unit-select').addEventListener('change', () => { unitMiles = el('unit-select').value === 'miles'; saveUnits(); applyUnits(); });
+el('mpk-input').addEventListener('change', () => {
+    const m = Number(el('mpk-input').value);
+    if (el('mpk-input').value.trim() === '' || !(m >= 1 && m <= 6)) { toast('Enter 1 to 6 miles per kWh', 'err'); el('mpk-input').value = milesPerKwh; return; }
+    milesPerKwh = Math.round(m * 10) / 10; saveUnits(); applyUnits();
+});
+applyUnits();
 ['goal-kwh', 'goal-time'].forEach(id => {
     el(id).addEventListener('input', () => {
         goalEdited = true;
         const g = lastData && lastData.goal;
-        const changed = !g || el('goal-kwh').value.trim() !== String(g.kwh) || el('goal-time').value !== minutesToTime(g.byMinutes);
+        const changed = !g || el('goal-kwh').value.trim() !== String(goalToBox(g.kwh)) || el('goal-time').value !== minutesToTime(g.byMinutes);
         el('goal-save-kwh').hidden = !changed; el('goal-save-time').hidden = !changed;
+        showGoalHint();
     });
     el(id).addEventListener('keydown', e => {
         if (e.key === 'Enter') sendGoal();
         if (e.key === 'Escape') {
             goalEdited = false; const g = lastData && lastData.goal;
-            if (g) { el('goal-kwh').value = g.kwh; el('goal-time').value = minutesToTime(g.byMinutes); }
+            if (g) { el('goal-kwh').value = goalToBox(g.kwh); el('goal-time').value = minutesToTime(g.byMinutes); showGoalHint(); }
             el('goal-save-kwh').hidden = true; el('goal-save-time').hidden = true; el(id).blur();
         }
     });
