@@ -16,7 +16,9 @@
 
 ## Phase 0: the range test
 
-Type in the serial monitor (the VIN is used for the scan only, never saved, and only its first 3 and last 4 characters are printed):
+**Without a VIN:** `tesla scan` (or `tesla scan 120`) lists every Tesla the board hears: its name hash, a verdict, the share of 5-second windows it was heard in, and the signal, strongest first. Yours is most likely the first; scan again with the car moved to check. It also lists neighbours' cars (names are not stored). A device that advertises the Tesla service without a name shows as "(no name)". Whether a sleeping car still advertises is unverified.
+
+**With a VIN** (more precise, a clear verdict for your car alone). Type in the serial monitor (the VIN is used for the scan only, never saved, and only its first 3 and last 4 characters are printed):
 
 ```
 tesla scan <VIN> 60

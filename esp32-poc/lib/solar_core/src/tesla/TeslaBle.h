@@ -19,6 +19,9 @@ std::vector<uint8_t> sha1(const std::string& data);
 /** What a car with this VIN calls itself over Bluetooth: "S" + first 8 bytes of SHA-1(VIN) in lowercase hex + "C". Empty if the VIN is invalid. */
 std::string advertisedName(const std::string& vin);
 
+/** True for a name shaped like a Tesla's: "S", 16 hex digits (lowercase), "C". */
+bool isTeslaName(const std::string& name);
+
 /** "5YJ***********1234": enough to recognise, not enough to share. */
 std::string maskVin(const std::string& vin);
 
@@ -54,6 +57,36 @@ private:
     int max_ = 0;
     long sum_ = 0;
     std::vector<bool> windows_;
+};
+
+/**
+ * Scan without a VIN: remembers every Tesla-shaped name heard (up to kMaxCars, fixed memory so it is safe to feed from the
+ * Bluetooth task) with its own signal statistics. Devices that advertise the Tesla service but no name are kept as "(no name)".
+ */
+class Discovery {
+public:
+    static constexpr int kMaxCars = 12;
+    static constexpr const char* kNoName = "(no name)";
+
+    void start(uint32_t nowMs, uint32_t durationMs);
+    void heard(uint32_t nowMs, const char* name, int rssi);
+
+    int count() const { return count_; }
+    /** More cars than the table holds were heard. */
+    bool overflowed() const { return overflow_; }
+    /** Plain lines, strongest average signal first, one per car. */
+    std::vector<std::string> lines() const;
+
+private:
+    struct Car {
+        char name[24];
+        ScanStats stats;
+    };
+    uint32_t startMs_ = 0;
+    uint32_t durationMs_ = 0;
+    int count_ = 0;
+    bool overflow_ = false;
+    Car cars_[kMaxCars];
 };
 
 }  // namespace tesla

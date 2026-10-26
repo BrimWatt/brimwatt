@@ -17,6 +17,8 @@ class TeslaScan {
 public:
     /** Starts a scan for the car with this VIN (kept in memory only for the scan). Returns an error text, or empty when it started. */
     std::string start(const std::string& vin, uint32_t seconds);
+    /** Starts a scan that lists every Tesla it hears (no VIN needed). Returns an error text, or empty when it started. */
+    std::string startDiscover(uint32_t seconds);
     /** Call from the main loop: prints progress and the result, then frees the radio. */
     void loop();
     bool running() const { return running_; }
@@ -27,6 +29,7 @@ public:
 
 private:
     void finish();
+    std::string begin(uint32_t seconds);
 
     bool running_ = false;
     bool radioOn_ = false;
@@ -35,7 +38,9 @@ private:
     uint32_t lastProgress_ = 0;
     std::string name_;
     std::string masked_;
+    bool discover_ = false;
     solar::tesla::ScanStats stats_;
+    solar::tesla::Discovery discovery_;
 };
 
 }  // namespace device

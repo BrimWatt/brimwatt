@@ -2,6 +2,7 @@
 
 #include <cctype>
 #include <cstdio>
+#include <cstring>
 
 namespace solar {
 namespace tesla {
@@ -65,6 +66,15 @@ std::string advertisedName(const std::string& vin) {
     return name + "C";
 }
 
+bool isTeslaName(const std::string& name) {
+    if (name.size() != 18 || name[0] != 'S' || name[17] != 'C') return false;
+    for (int i = 1; i < 17; ++i) {
+        char c = name[i];
+        if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) return false;
+    }
+    return true;
+}
+
 std::string maskVin(const std::string& vin) {
     if (vin.size() != 17) return "(invalid)";
     return vin.substr(0, 3) + std::string(10, '*') + vin.substr(13);
@@ -117,6 +127,46 @@ std::string ScanStats::summary() const {
                       heardPercent(), average(), weakest(), strongest());
     }
     return buf;
+}
+
+void Discovery::start(uint32_t nowMs, uint32_t durationMs) {
+    startMs_ = nowMs;
+    durationMs_ = durationMs;
+    count_ = 0;
+    overflow_ = false;
+}
+
+void Discovery::heard(uint32_t nowMs, const char* name, int rssi) {
+    if (!name || !*name) name = kNoName;
+    int idx = -1;
+    for (int i = 0; i < count_; ++i) {
+        if (std::strcmp(cars_[i].name, name) == 0) { idx = i; break; }
+    }
+    if (idx < 0) {
+        if (count_ >= kMaxCars) { overflow_ = true; return; }
+        idx = count_++;
+        std::strncpy(cars_[idx].name, name, sizeof cars_[idx].name - 1);
+        cars_[idx].name[sizeof cars_[idx].name - 1] = 0;
+        cars_[idx].stats.start(startMs_, durationMs_);
+    }
+    cars_[idx].stats.heard(nowMs, rssi);
+}
+
+std::vector<std::string> Discovery::lines() const {
+    std::vector<int> order;
+    for (int i = 0; i < count_; ++i) order.push_back(i);
+    for (size_t a = 0; a < order.size(); ++a)
+        for (size_t b = a + 1; b < order.size(); ++b)
+            if (cars_[order[b]].stats.average() > cars_[order[a]].stats.average()) std::swap(order[a], order[b]);
+    std::vector<std::string> out;
+    char buf[160];
+    for (int i : order) {
+        const ScanStats& st = cars_[i].stats;
+        std::snprintf(buf, sizeof buf, "%s  %s, %d%% of windows, %d dBm average (%d to %d), %d times", cars_[i].name, st.verdict(), st.heardPercent(),
+                      st.average(), st.weakest(), st.strongest(), st.sightings());
+        out.push_back(buf);
+    }
+    return out;
 }
 
 }  // namespace tesla
