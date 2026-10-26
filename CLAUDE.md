@@ -171,7 +171,7 @@ It shows range only, NOT which models accept commands over Bluetooth (unknown; c
 | The ESP32 setup network | `docs/setup-network.md` (with `docs/diagrams/` and `docs/ui/`) |
 | Running the Pi app as a service, token, logs | `docs/deploy-to-raspberry-pi.pdf` |
 | Scenarios to try on the real house | `docs/test-scenarios.pdf` |
-| The owner's user guide (PDF) and the demo GIF | `docs/user-guide.pdf`, `docs/demo/` (rebuild with `docs/demo-src/make_demo.py` then `docs/pdf-src/user_guide_pdf.py`; sample data, see `docs/README.md`) |
+| The owner's user guide (PDF) and the demo GIF | `docs/user-guide.pdf`, `docs/demo/` (MP4 + GIF; rebuild with `docs/demo-src/make_demo.py` then `docs/pdf-src/user_guide_pdf.py`; sample data, see `docs/README.md`) |
 | Tesla car control: decisions and the range test | `docs/tesla-car-control.md` |
 | Index of all of the above | `docs/README.md` |
 

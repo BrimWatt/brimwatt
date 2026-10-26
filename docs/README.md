@@ -8,7 +8,7 @@
 | **Tesla car control** (decisions so far, the Phase 0 range test) | [tesla-car-control.md](tesla-car-control.md) |
 | Notes for working on the project (layout, commands, rules, git) | [../CLAUDE.md](../CLAUDE.md) |
 | **User guide** for the car owner (dashboard, modes, goal, history, miles, settings), PDF | [user-guide.pdf](user-guide.pdf) |
-| **Demo animation** of the dashboard on sample data | [demo/wattsync-demo.gif](demo/wattsync-demo.gif) |
+| **Demo video** of the dashboard on sample data (MP4, and a GIF of the same) | [demo/wattsync-demo.mp4](demo/wattsync-demo.mp4), [GIF](demo/wattsync-demo.gif) |
 | Running the Pi app on the Raspberry Pi (service, token, logs, state) | [deploy-to-raspberry-pi.pdf](deploy-to-raspberry-pi.pdf) |
 | Scenarios to try on the real house | [test-scenarios.pdf](test-scenarios.pdf) |
 
@@ -42,9 +42,9 @@ python3 docs/pdf-src/test_scenarios_pdf.py
 
 ## User guide and demo (`user-guide.pdf`, `demo/`, `guide/`)
 
-`guide/*.png` are phone-width pictures of the real dashboard page (`src/main/resources/dashboard.html`) running on made-up sample numbers in headless Chrome; `user-guide.pdf` is built from them and `demo/wattsync-demo.gif` is a captioned slideshow of the same pictures. None comes from a real house, the board or the car. Regenerate after the dashboard's look or wording changes (needs Google Chrome, Pillow and `reportlab`):
+`guide/*.png` are phone-width pictures of the real dashboard page (`src/main/resources/dashboard.html`) running on made-up sample numbers in headless Chrome; `user-guide.pdf` is built from them and `demo/wattsync-demo.mp4` (and a smaller `.gif`) is a captioned slideshow of the same pictures. None comes from a real house, the board or the car. Regenerate after the dashboard's look or wording changes (needs Google Chrome, Pillow and `reportlab`):
 
 ```bash
-python3 docs/demo-src/make_demo.py        # pictures and the GIF (or: guide | demo)
+python3 docs/demo-src/make_demo.py        # pictures, GIF and MP4 (or: guide | demo); the MP4 needs ffmpeg: on the PATH, or FFMPEG=/path/to/ffmpeg (e.g. the one from `pip install imageio-ffmpeg`)
 python3 docs/pdf-src/user_guide_pdf.py    # the PDF
 ```
