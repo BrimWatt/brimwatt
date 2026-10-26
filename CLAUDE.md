@@ -213,6 +213,6 @@ snapshot-before-setup-network   tag on that same commit (a fixed marker; a branc
 
 ## Not yet verified on real hardware
 
-The whole setup network on the board (flow, the iPhone setup sheet, scanning while a phone is joined, the trial and undo of a bad password, BOOT hold), the board's start-up with no internet, the safe-header collection (`collectHeaders`), the new NVS keys, notifications over https, the departure goal on a real charge, the PSRAM allocator and flash journal at scale, the 3 min / 5 min timing on a real charge, the board's OTA update flow end to end
+The setup network's trial and undo of a bad password, saving a real change, and setup with the router off at start-up (the network opening and an iPhone joining it and loading the page were confirmed on the board 2026-10-26), the board's start-up with no internet, the safe-header collection (`collectHeaders`), the new NVS keys, notifications over https, the departure goal on a real charge, the PSRAM allocator and flash journal at scale, the 3 min / 5 min timing on a real charge, the board's OTA update flow end to end
 after the first flash, and an overnight run watching for crashes. Ideas not built: a native iOS wrapper, a separate total-grid-import cap (Eco's allowance does the same job),
 gzip for the page, a hint card for Add to Home Screen, a minimum run time instead of the stop delay.

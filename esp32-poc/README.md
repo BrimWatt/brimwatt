@@ -92,7 +92,7 @@ Leaving a secret field empty **keeps** what is saved: the page never shows a sav
 **Limits**
 - If the router's password changes **while the board is running**, nothing opens by itself; power-cycle the board (it opens after 3 minutes of failing) or hold BOOT.
 - Only 2.4 GHz networks can be joined or listed. While the setup network is open the board answers a little slower, because the radio is shared with the home Wi-Fi.
-- **Not yet tried on the board:** the whole flow, including how an iPhone's setup sheet behaves, scanning while a phone is joined, and the trial and undo of a bad password. The logic behind it (validation, trial and undo, scan list, endpoints) is covered by host tests; see the checks in section 4.
+- **Confirmed on the board (2026-10-26):** the setup network opens, an iPhone joins it and the page works. **Not yet tried:** the trial and undo of a bad password, saving a real change, and setup with the router off at start-up. The logic behind it (validation, trial and undo, scan list, endpoints) is covered by host tests; see the checks in section 4.
 
 ## 2. Connect, flash, watch
 

@@ -2,7 +2,7 @@
 
 The ESP32 can open a temporary Wi-Fi network of its own, **`WattSync-Setup`**, with a setup page on it. From a phone you pick the home Wi-Fi from a scanned list and paste the Enphase token, the Envoy address and the update password. It replaces editing `secrets.h` and reflashing whenever the router, the token or the Envoy address changes. It works on any phone or computer, with no app and no cable.
 
-> **Status:** built, covered by host tests, and the firmware builds. **Not yet run on the board or an iPhone.** The screenshots below are the real page served by a stand-in for the board's API, with made-up networks and dummy values.
+> **Status:** built, covered by host tests, and flashed. **Confirmed on the board with an iPhone (2026-10-26):** the setup network opens, the phone joins it and the page works. **Still to check on the board:** a save with a wrong password (the trial and undo), a real change of Wi-Fi or token, and setup with the router off at start-up. The screenshots below are the real page served by a stand-in for the board's API, with made-up networks and dummy values, not photos of the board.
 
 ## At a glance
 
@@ -115,7 +115,7 @@ While the setup network is open, a phone joined to it that asks for `/` or any u
 CPLUS_INCLUDE_PATH=$(xcrun --show-sdk-path)/usr/include/c++/v1 esp32-poc/.venv/bin/pio test -d esp32-poc -e native -f test_setup
 ```
 
-**Checked on the computer only:** the logic, the endpoints, the page against a stand-in server, and that the firmware builds. **Still to check on the board:** the whole flow, how an iPhone's setup sheet behaves, scanning while a phone is joined, the trial and undo with a real wrong password, the BOOT hold, and setup with the router off at start-up. The list of checks is in section 4 of `esp32-poc/README.md`.
+**Checked on the computer only:** the logic, the endpoints, the page against a stand-in server, and that the firmware builds. **Confirmed on the board:** the setup network opens, an iPhone joins it and the page works. **Still to check on the board:** the trial and undo with a real wrong password, saving a real change, and setup with the router off at start-up. The list of checks is in section 4 of `esp32-poc/README.md`.
 
 ## Safety and limits
 
