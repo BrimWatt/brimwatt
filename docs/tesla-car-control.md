@@ -1,6 +1,6 @@
 # Tesla car control
 
-> **Status:** design only, plus the Phase 0 range test (built, host-tested, builds as firmware, **not yet run on the board or near a car**). The screens in `ui-drafts/` are proposals and use the word "charger".
+> **Status:** design only, plus the Phase 0 range test (built, host-tested, builds as firmware, run once on the board (2026-10-26): one Tesla heard, weak signal (-80 dBm, 4 sightings in 60 s) from where the board sat; closer placement and the car-asleep case not yet tried). The screens in `ui-drafts/` are proposals and use the word "charger".
 
 ## Decisions so far (2026-10-26)
 
