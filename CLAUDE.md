@@ -24,7 +24,8 @@ esp32-poc/src/               hardware glue: platform (clock, NVS, LittleFS, diag
                              enphase (client, poller), ocpp_server, web (WebServerAdapter), console (serial commands)
 esp32-poc/test/              host tests (Unity): test_core, planner, daylight, control, api, persistence, history
 esp32-poc/scripts/           copy_dashboard.py (pre-build), ota_auth.py (post-build, OTA env only)
-docs/pdf-src/*.py            generate docs/*.pdf (deploy guide, test scenarios)
+docs/pdf-src/*.py            generate docs/*.pdf (deploy guide, test scenarios, user guide)
+docs/demo-src/make_demo.py   screenshots (docs/guide) and demo GIF (docs/demo) from the real dashboard on sample data
 README.md, esp32-poc/README.md   user-facing docs (keep them current)
 docs/README.md               index of everything under docs/
 docs/setup-network.md        the ESP32 setup network: diagrams, UI mocks, endpoints, safety (start here for that feature)
@@ -170,6 +171,7 @@ It shows range only, NOT which models accept commands over Bluetooth (unknown; c
 | The ESP32 setup network | `docs/setup-network.md` (with `docs/diagrams/` and `docs/ui/`) |
 | Running the Pi app as a service, token, logs | `docs/deploy-to-raspberry-pi.pdf` |
 | Scenarios to try on the real house | `docs/test-scenarios.pdf` |
+| The owner's user guide (PDF) and the demo GIF | `docs/user-guide.pdf`, `docs/demo/` (rebuild with `docs/demo-src/make_demo.py` then `docs/pdf-src/user_guide_pdf.py`; sample data, see `docs/README.md`) |
 | Tesla car control: decisions and the range test | `docs/tesla-car-control.md` |
 | Index of all of the above | `docs/README.md` |
 
