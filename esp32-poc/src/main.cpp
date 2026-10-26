@@ -15,6 +15,7 @@
 #include <WiFi.h>
 #include <esp_system.h>
 
+#include "ble/TeslaScan.h"
 #include "common/Config.h"
 #include "common/Log.h"
 #include "common/Scheduler.h"
@@ -76,6 +77,7 @@ static device::WifiConnection wifi(device::kHostname);
 static device::TimeSync timeSync;
 static device::EnphaseClient envoy;   // told its token and address in setup(), once they are known
 static device::MeterPoller meterPoller(envoy);
+static device::TeslaScan teslaScan;
 static device::SerialConsole console(controller, wallbox, meterPoller);
 static device::EspNotifySender notifySender;
 static Notifier notifier(platform, state, notifySender);
@@ -212,6 +214,7 @@ void setup() {
         if (history.dirty() || history.longPending()) historyStore.save(history);   // nothing recent is lost across the restart
     });
     console.setSetup(&portal, &credentialStore);
+    console.setTesla(&teslaScan);
     webServer.begin();
     bringUpNetwork();
     envoy.configure(credentials.enphaseToken, credentials.envoyIp);
@@ -255,6 +258,7 @@ void loop() {
     webServer.loop();
     portal.loop();   // the BOOT button, and the setup network when it is open
     console.poll();
+    teslaScan.loop();
 
     if (!controlStarted) {
         if (device::TimeSync::isValid()) {
