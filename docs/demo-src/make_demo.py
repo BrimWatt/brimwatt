@@ -358,15 +358,9 @@ NOTES = {
 }
 
 
-VIDEO_NOTES = {   # fewer, tidier callouts where the page is crowded: name -> [(element, label, number, label above?)]
-    "settings-miles": [("#goal-kwh@.field", "Goal in miles", 1, ""), ("#unit-select@.field", "Pick miles", 2, "up")],
-}
-
-
-def marks_for(name, labels):
-    if labels and name in VIDEO_NOTES:
-        return [[sel, n, short, pref] for sel, short, n, pref in VIDEO_NOTES[name]]
-    return [[sel, i + 1, short if labels else ""] for i, (sel, short, _long) in enumerate(NOTES.get(name, []))]
+def marks_for(name, only=None):
+    """Callout list for the page script. With `only` (0-based) just that one is drawn, keeping its number."""
+    return [[sel, i + 1, ""] for i, (sel, _short, _long) in enumerate(NOTES.get(name, [])) if only is None or only == i]
 
 
 # name, scene, extra, window height (css px). Window shots show what the phone shows; the page is never stitched.
@@ -394,14 +388,14 @@ GUIDE = [
 def guide_shots():
     OUT_GUIDE.mkdir(parents=True, exist_ok=True)
     for name, scene, extra, height in GUIDE:
-        shoot(scene, OUT_GUIDE / f"{name}.png", height, 2, dict(extra, marks=marks_for(name, False)))
+        shoot(scene, OUT_GUIDE / f"{name}.png", height, 2, dict(extra, marks=marks_for(name)))
         print("guide", name)
 
 
 def caption_frame(path, text, sub, k=1):
     """Adds the caption bar under a picture taken at k times the phone's pixel size. The second part wraps to two lines."""
     img = Image.open(path).convert("RGB")
-    f_sub = font(12 * k)
+    f_sub = font(15 * k)
     probe = ImageDraw.Draw(Image.new("RGB", (4, 4)))
     lines, cur = [], ""
     for word in sub.split():
@@ -412,13 +406,13 @@ def caption_frame(path, text, sub, k=1):
         else:
             cur = trial
     lines.append(cur)
-    bar = (40 + 17 * len(lines) + 10) * k
+    bar = (44 + 21 * len(lines) + 12) * k
     canvas = Image.new("RGB", (img.width, img.height + bar), (15, 23, 42))
     canvas.paste(img, (0, 0))
     d = ImageDraw.Draw(canvas)
     d.text((14 * k, img.height + 9 * k), text, font=font(17 * k, True), fill=(255, 255, 255))
     for i, line in enumerate(lines):
-        d.text((14 * k, img.height + (36 + 17 * i) * k), line, font=f_sub, fill=(203, 213, 225))
+        d.text((14 * k, img.height + (40 + 21 * i) * k), line, font=f_sub, fill=(226, 232, 240))
     return canvas
 
 
@@ -463,12 +457,19 @@ def demo():
     OUT_DEMO.mkdir(parents=True, exist_ok=True)
     big, durations = [], []
     with tempfile.TemporaryDirectory() as tmp:
-        for i, (scene, extra, secs, notes, title, sub) in enumerate(FRAMES):
-            p = Path(tmp) / f"f{i}.png"
-            shoot(scene, p, 820, 2, dict(extra, marks=marks_for(notes, True)))
-            big.append(caption_frame(p, title, sub, 2))
-            durations.append(secs)
-            print("demo frame", i + 1, scene)
+        n = 0
+        for scene, extra, secs, notes, title, sub in FRAMES:
+            # first an overview of the screen with every callout numbered, then one callout at a time with its explanation
+            steps = [(None, title, sub, 3.0)]
+            for i, (_sel, short, long) in enumerate(NOTES[notes]):
+                steps.append((i, f"{i + 1}.  {short}", long, 4.0 + 0.25 * max(0, len(long) // 40 - 2)))
+            for only, head, text, secs in steps:
+                p = Path(tmp) / f"f{n}.png"
+                shoot(scene, p, 820, 2, dict(extra, marks=marks_for(notes, only)))
+                big.append(caption_frame(p, head, text, 2))
+                durations.append(secs)
+                n += 1
+            print("demo scene", scene, len(steps), "frames")
         # GIF: half size, small palette
         small = [f.resize((f.width // 2, f.height // 2), Image.LANCZOS) for f in big]
         pal = [f.quantize(colors=128, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for f in small]
