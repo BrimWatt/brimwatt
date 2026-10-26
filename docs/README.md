@@ -7,6 +7,8 @@
 | **The ESP32 setup network** (diagrams, UI mocks, endpoints, safety) | [setup-network.md](setup-network.md) |
 | **Tesla car control** (decisions so far, the Phase 0 range test) | [tesla-car-control.md](tesla-car-control.md) |
 | Notes for working on the project (layout, commands, rules, git) | [../CLAUDE.md](../CLAUDE.md) |
+| **User guide** for the car owner (dashboard, modes, goal, history, miles, settings), PDF | [user-guide.pdf](user-guide.pdf) |
+| **Demo animation** of the dashboard on sample data | [demo/wattsync-demo.gif](demo/wattsync-demo.gif) |
 | Running the Pi app on the Raspberry Pi (service, token, logs, state) | [deploy-to-raspberry-pi.pdf](deploy-to-raspberry-pi.pdf) |
 | Scenarios to try on the real house | [test-scenarios.pdf](test-scenarios.pdf) |
 
@@ -36,4 +38,13 @@ Built from `pdf-src/` (needs Python with `reportlab`). They describe the Raspber
 ```bash
 python3 docs/pdf-src/deploy_pdf.py
 python3 docs/pdf-src/test_scenarios_pdf.py
+```
+
+## User guide and demo (`user-guide.pdf`, `demo/`, `guide/`)
+
+`guide/*.png` are phone-width pictures of the real dashboard page (`src/main/resources/dashboard.html`) running on made-up sample numbers in headless Chrome; `user-guide.pdf` is built from them and `demo/wattsync-demo.gif` is a captioned slideshow of the same pictures. None comes from a real house, the board or the car. Regenerate after the dashboard's look or wording changes (needs Google Chrome, Pillow and `reportlab`):
+
+```bash
+python3 docs/demo-src/make_demo.py        # pictures and the GIF (or: guide | demo)
+python3 docs/pdf-src/user_guide_pdf.py    # the PDF
 ```
