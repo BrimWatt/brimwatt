@@ -45,7 +45,12 @@ void SerialConsole::printHelp() {
     Serial.println("  setup clear       forget everything saved from the setup page (secrets.h applies again) and restart");
     Serial.println("  tesla scan [seconds]         list every Tesla in range with its signal (no VIN needed; 10-300 s, default 60)");
     Serial.println("  tesla scan <VIN> [seconds]   listen for your own car only; nothing is sent to the car");
-    Serial.println("  tesla stop        end the scan early");
+    Serial.println("  tesla pair <VIN>    add this controller's own key to your car (you tap your key card in the car); VIN is never printed");
+    Serial.println("  tesla status        read-only: is the car awake, battery, charge limit, charging current (changes nothing, does not wake it)");
+    Serial.println("  tesla key           show this controller's key fingerprint and whether a car is paired");
+    Serial.println("  tesla forget        delete the key and car from this board (then remove the key in the car: Controls > Locks)");
+    Serial.println("  tesla selftest      check this board's cryptography against Tesla's published example values");
+    Serial.println("  tesla stop        end a scan, pairing or status early");
     Serial.println("  help              this list");
 }
 
@@ -107,13 +112,55 @@ void SerialConsole::run(const std::string& line) {
             ESP.restart();
         }
     } else if (line == "tesla stop") {
-        if (teslaScan_ && teslaScan_->running()) teslaScan_->cancel(); else LOG_INFO("Tesla scan: none is running.");
+        if (teslaCar_ && teslaCar_->busy()) teslaCar_->cancel();
+        else if (teslaScan_ && teslaScan_->running()) teslaScan_->cancel();
+        else LOG_INFO("Tesla: nothing is running.");
+    } else if (line == "tesla pair" || line.rfind("tesla pair ", 0) == 0) {
+        // Never echo this line back: it holds the VIN.
+        if (!teslaCar_) {
+            LOG_WARN("Console: Tesla control is not available.");
+        } else if (teslaScan_ && teslaScan_->running()) {
+            LOG_WARN("Tesla: a scan is running. Type \"tesla stop\" first.");
+        } else {
+            std::string vin = line.size() > 11 ? line.substr(11) : "";
+            std::string err = teslaCar_->startPair(vin);
+            if (!err.empty()) LOG_WARN("Tesla pair: %s", err.c_str());
+        }
+    } else if (line == "tesla status") {
+        if (!teslaCar_) {
+            LOG_WARN("Console: Tesla control is not available.");
+        } else if (teslaScan_ && teslaScan_->running()) {
+            LOG_WARN("Tesla: a scan is running. Type \"tesla stop\" first.");
+        } else {
+            std::string err = teslaCar_->startStatus();
+            if (!err.empty()) LOG_WARN("Tesla status: %s", err.c_str());
+        }
+    } else if (line == "tesla key") {
+        if (!teslaCar_) {
+            LOG_WARN("Console: Tesla control is not available.");
+        } else if (!teslaCar_->hasKey()) {
+            LOG_INFO("Tesla: no key yet. It is made the first time you run tesla pair <VIN>.");
+        } else {
+            LOG_INFO("Tesla: key fingerprint %s. %s", teslaCar_->keyFingerprint().c_str(), teslaCar_->paired() ? "A car is paired." : "No car is paired yet.");
+        }
+    } else if (line == "tesla forget") {
+        if (teslaCar_) teslaCar_->forget(); else LOG_WARN("Console: Tesla control is not available.");
+    } else if (line == "tesla selftest") {
+        if (!teslaCar_) {
+            LOG_WARN("Console: Tesla control is not available.");
+        } else {
+            std::string report;
+            uint32_t t = millis();
+            bool ok = teslaCar_->selfTest(report);
+            if (ok) LOG_INFO("Tesla selftest: all of Tesla's published example values check out on this board (%lu ms).", static_cast<unsigned long>(millis() - t));
+            else LOG_WARN("Tesla selftest: FAILED: %s", report.c_str());
+        }
     } else if (line == "tesla scan" || (line.rfind("tesla scan ", 0) == 0 && line.size() <= 14 && line.find_first_not_of("0123456789", 11) == std::string::npos)) {
         if (!teslaScan_) {
             LOG_WARN("Console: the Tesla scan is not available.");
         } else {
             uint32_t seconds = line.size() > 11 ? static_cast<uint32_t>(atoi(line.c_str() + 11)) : 60;
-            std::string err = teslaScan_->startDiscover(seconds);
+            std::string err = teslaCar_ && teslaCar_->busy() ? "A Tesla pairing or status job is running. Type \"tesla stop\" first." : teslaScan_->startDiscover(seconds);
             if (!err.empty()) LOG_WARN("Tesla scan: %s", err.c_str());
         }
     } else if (line.rfind("tesla scan ", 0) == 0) {
@@ -125,7 +172,7 @@ void SerialConsole::run(const std::string& line) {
             std::string vin = rest.substr(0, sp);
             uint32_t seconds = 60;
             if (sp != std::string::npos) seconds = static_cast<uint32_t>(atoi(rest.c_str() + sp + 1));
-            std::string err = teslaScan_->start(vin, seconds);
+            std::string err = teslaCar_ && teslaCar_->busy() ? "A Tesla pairing or status job is running. Type \"tesla stop\" first." : teslaScan_->start(vin, seconds);
             if (!err.empty()) LOG_WARN("Tesla scan: %s", err.c_str());
         }
     } else if (line == "ask") {
