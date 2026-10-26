@@ -200,6 +200,7 @@ snapshot-before-setup-network   tag on that same commit (a fixed marker; a branc
   `*.log`, `*.patch` and `.idea` are also hidden by that global file; `git add -f` if one of those ever has to be tracked.
 - Commit messages end with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` when Claude made the change.
 - Take a commit before any large change so there is always something to return to.
+- **Any major feature gets its own branch** (e.g. `tesla-car-control`), cut from an up-to-date `main`; merge to `main` only when the user says so. Small fixes and docs may go straight to `main`.
 
 ## Conventions and preferences
 
