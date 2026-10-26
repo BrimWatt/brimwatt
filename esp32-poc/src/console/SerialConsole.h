@@ -4,6 +4,7 @@
 
 #include "control/SolarController.h"
 #include "enphase/MeterPoller.h"
+#include "ble/TeslaScan.h"
 #include "net/SetupPortal.h"
 #include "setup/SetupLogic.h"
 #include "wallbox/WallboxController.h"
@@ -28,6 +29,9 @@ public:
         credentialStore_ = store;
     }
 
+    /** Lets the console start the Bluetooth range test for a Tesla. */
+    void setTesla(TeslaScan* scan) { teslaScan_ = scan; }
+
     void printHelpHint();
 
     /** The one-line summary printed every minute. */
@@ -42,6 +46,7 @@ private:
     MeterPoller& meters_;
     SetupPortal* portal_ = nullptr;
     solar::setup::CredentialStore* credentialStore_ = nullptr;
+    TeslaScan* teslaScan_ = nullptr;
     std::string buffer_;
 };
 

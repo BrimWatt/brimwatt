@@ -43,6 +43,8 @@ void SerialConsole::printHelp() {
     Serial.println("  wifi              which network the board is on (never the password)");
     Serial.println("  setup             open the setup network (WattSync-Setup) to change Wi-Fi, the Enphase token, the Envoy address");
     Serial.println("  setup clear       forget everything saved from the setup page (secrets.h applies again) and restart");
+    Serial.println("  tesla scan <VIN> [seconds]   listen for your car's Bluetooth (10-300 s, default 60); nothing is sent to the car");
+    Serial.println("  tesla stop        end the scan early");
     Serial.println("  help              this list");
 }
 
@@ -102,6 +104,20 @@ void SerialConsole::run(const std::string& line) {
             LOG_WARN("Setup: everything saved from the setup page is forgotten. Restarting with the values in secrets.h.");
             delay(300);
             ESP.restart();
+        }
+    } else if (line == "tesla stop") {
+        if (teslaScan_ && teslaScan_->running()) teslaScan_->cancel(); else LOG_INFO("Tesla scan: none is running.");
+    } else if (line.rfind("tesla scan ", 0) == 0) {
+        if (!teslaScan_) {
+            LOG_WARN("Console: the Tesla scan is not available.");
+        } else {
+            std::string rest = line.substr(11);
+            size_t sp = rest.find(' ');
+            std::string vin = rest.substr(0, sp);
+            uint32_t seconds = 60;
+            if (sp != std::string::npos) seconds = static_cast<uint32_t>(atoi(rest.c_str() + sp + 1));
+            std::string err = teslaScan_->start(vin, seconds);
+            if (!err.empty()) LOG_WARN("Tesla scan: %s", err.c_str());
         }
     } else if (line == "ask") {
         if (!wallbox_.hasConnectedChargers()) {

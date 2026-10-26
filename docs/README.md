@@ -5,6 +5,7 @@
 | Overview, modes, settings, endpoints (Pi app) | [../README.md](../README.md) |
 | ESP32 firmware: set-up, flashing, console, checks | [../esp32-poc/README.md](../esp32-poc/README.md) |
 | **The ESP32 setup network** (diagrams, UI mocks, endpoints, safety) | [setup-network.md](setup-network.md) |
+| **Tesla car control** (decisions so far, the Phase 0 range test) | [tesla-car-control.md](tesla-car-control.md) |
 | Notes for working on the project (layout, commands, rules, git) | [../CLAUDE.md](../CLAUDE.md) |
 | Running the Pi app on the Raspberry Pi (service, token, logs, state) | [deploy-to-raspberry-pi.pdf](deploy-to-raspberry-pi.pdf) |
 | Scenarios to try on the real house | [test-scenarios.pdf](test-scenarios.pdf) |
