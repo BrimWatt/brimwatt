@@ -153,14 +153,18 @@ namespace `net` (`NvsCredentialStore`) and **win over `secrets.h` field by field
   `make_diagrams.py`) and the screenshots in `docs/ui/` current when this feature changes. Screenshots come from the real page served by a stand-in
   for the board's API (no board needed): serve `setup.html` plus fake `/api/setup/*` replies, resize the browser pane to 402 px and capture each state.
 
-## Tesla car control (in design; only Phase 0 exists)
+## Tesla car control (first connecting step built, not yet tried on a real car)
 
 Decisions (2026-10-26): works for other Tesla owners, so each controller makes its own key and nothing secret ships in the repo; **one commander at a time**,
 the user picks **Control through: Charger | Car** (user-facing word is "charger", code still says wallbox/charger for the OCPP hardware); runs on both the ESP32 and the Pi;
 unreachable car = ramp to the minimum current first, keep the last setting, retry with backoff, message after 10 min, owner chooses keep / just tell me / stop on return.
-Built so far: `tesla scan [seconds]` (lists every Tesla heard, no VIN) and `tesla scan <VIN> [seconds]` (ESP32 console): `lib/solar_core/src/tesla/TeslaBle.*` (VIN rule, SHA-1, the car's name `S`+8 bytes of SHA-1(VIN) in hex+`C`,
-signal verdict, `Discovery` table; host-tested in `test/test_tesla`) and `src/ble/TeslaScan.*` (non-blocking Arduino BLE scan, radio released afterwards). It never connects.
-It shows range only, NOT which models accept commands over Bluetooth (unknown; check before promising support). Never store or print a full VIN. Details: `docs/tesla-car-control.md`.
+Built so far (ESP32 console only): `tesla scan [seconds]` / `tesla scan <VIN>` (range, never connects), and since 2026-10-27 `tesla pair <VIN>` (adds our own key with the Charging Manager
+role; the owner taps their key card), read-only `tesla status` (never wakes the car, sends no charge command), `tesla key`, `tesla forget`, `tesla selftest`.
+Code: `lib/solar_core/src/tesla/` (`Proto.h`, `TeslaMessages`, `TeslaSession`, `TeslaFlows`, `TeslaSelfTest`, `TeslaBle`), `src/ble/` (`TeslaScan`, `TeslaCar`, `MbedTeslaCrypto`),
+`src/platform/NvsTeslaStore`. Host tests: `test/test_tesla` and `test/test_tesla_protocol` (the latter needs OpenSSL; `scripts/native_openssl.py` finds Homebrew's).
+Pre-2021 Model S/X are not supported by the protocol; Model 3/Y and 2021+ S/X are expected to work but **nothing has been paired with a real car yet**; reply decryption has no
+published example and is unverified. **The full VIN is stored on the board** (NVS `tesla`, needed for signing) but never printed, logged, served or committed; the private key too.
+Never echo the typed pair line. Details, code map, test plan and the results table: `docs/tesla-car-control.md`.
 
 ## Documentation map
 

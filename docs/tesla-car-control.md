@@ -1,6 +1,6 @@
 # Tesla car control
 
-> **Status:** design plus research on compatibility and pairing (bottom of this page), plus the Phase 0 range test (built, host-tested, builds as firmware, run once on the board (2026-10-26): one Tesla heard, weak signal (-80 dBm, 4 sightings in 60 s) from where the board sat; closer placement and the car-asleep case not yet tried). The screens in `ui-drafts/` are proposals and use the word "charger".
+> **Status:** built (2026-10-27, **not yet tried on a real car**): `tesla pair <VIN>`, read-only `tesla status`, `tesla key|forget|selftest` (section "First connecting step: what was built"). Before that: design and research (below), plus the Phase 0 range test (built, host-tested, builds as firmware, run once on the board (2026-10-26): one Tesla heard, weak signal (-80 dBm, 4 sightings in 60 s) from where the board sat; closer placement and the car-asleep case not yet tried). The screens in `ui-drafts/` are proposals and use the word "charger".
 
 ## Decisions so far (2026-10-26)
 
@@ -80,3 +80,39 @@ Goal: prove the whole chain on one real car with the smallest, safest step, and 
 - **Firmware changes**: Tesla changes the protocol over time (responses encrypted from 2024.38). Pin what we tested.
 - **Valid amps range and the charge-state field names** are in `vehicle.proto`, which we have not read yet. Read it before step 4.
 - Source caveat: the two read-only summaries of the repository files were produced by a fetch tool, so exact numbers (UUIDs, enum values) should be checked against the repository when the code is written. The host tests will pin them.
+
+## First connecting step: what was built (2026-10-27)
+
+Console commands on the ESP32 (see `esp32-poc/README.md`): `tesla pair <VIN>`, `tesla status`, `tesla key`, `tesla forget`, `tesla selftest`. Nothing here changes how the car charges; `tesla pair` is the only command that changes anything (the car's key list) and it needs the owner's key card.
+
+**Code map**
+
+| Piece | Where |
+|---|---|
+| Protobuf writer/reader (just what we need) | `lib/solar_core/src/tesla/Proto.h` |
+| Messages to build and read (add key, status, charge state, the envelope) | `TeslaMessages.*` |
+| Secure session: handshake check, signed prefix, encrypted command, reply check | `TeslaSession.*` |
+| Pairing and status as step-by-step logic with no radio | `TeslaFlows.*` (`PairFlow`, `StatusFlow`) |
+| Crypto interface; mbedTLS on the board, OpenSSL in host tests | `TeslaCrypto.h`, `src/ble/MbedTeslaCrypto.*`, `test/support/OpenSslCrypto.h` |
+| Tesla's published example values, runnable on the board | `TeslaSelfTest.*` (`tesla selftest`) |
+| Bluetooth link, one job at a time, radio released after | `src/ble/TeslaCar.*` |
+| Key and VIN in flash (namespace `tesla`) | `src/platform/NvsTeslaStore.*` |
+
+**What is verified (on the computer):** the message layouts byte for byte, Tesla's example key agreement, session-info check, signed-data prefix and AES-GCM command (all match the published values), pairing and status against a pretend car (asleep car is not woken, unknown key, wrong VIN, damaged reply, silent car). 19 tests in `test/test_tesla_protocol`.
+
+**What is NOT verified (needs a real car):** the car's actual replies; that the add-key request is accepted with the Charging Manager role (the fallback to Driver is not built yet); the Bluetooth connection, indications, fragmenting and MTU on the S3; the **reply decryption** (the protocol description has no example for it, so the code follows the written rules: signature type 9, domain, VIN, counter, flags, request hash = 0x05 + our tag, fault; if the car disagrees, `tesla status` will say "the car's reply could not be verified" and shows nothing); `tesla selftest` on the board's mbedTLS; Bluetooth next to Wi-Fi; range.
+
+**Decision changed: the VIN is stored on the board.** Earlier notes said "never store a VIN". Signing needs it (the VIN is part of what is signed), so after a successful pairing the full VIN is kept in the board's flash, beside the key. It is never printed (only `5YJ**********1234`), logged, shown in the API or dashboard, or put in the repository. The flash is not encrypted: someone holding the board could read it. `tesla forget` deletes it.
+
+**Privacy of the console:** the typed `tesla pair <VIN>` line is never echoed back by the board. The serial monitor on your own computer does show what you type (`monitor_echo`), as with every command.
+
+**Trying it on a real car (suggested order)**
+1. `tesla selftest` on the board (no car): must say all values check out.
+2. `tesla scan` with the car where it will park; check the signal.
+3. In the car, with your key card in hand: `tesla pair <VIN>`; tap the card on the centre console when told, confirm on the screen. Then Controls > Locks should list a new key.
+4. `tesla status` with the car awake (open a door, or the car just driven); then again asleep: expect "asleep" and no charge data.
+5. Write the model, year and result in the table below.
+
+| Model / year / firmware | Pair | Status | Notes |
+|---|---|---|---|
+| (none tried yet) | | | |
