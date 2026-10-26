@@ -6,6 +6,7 @@ Run:  python3 docs/pdf-src/user_guide_pdf.py
 """
 import io
 import os
+import sys
 
 from PIL import Image
 from reportlab.lib import colors
@@ -19,6 +20,9 @@ from reportlab.platypus import (Image as RLImage, KeepTogether, PageBreak, Parag
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "user-guide.pdf")
 SHOTS = os.path.join(HERE, "..", "guide")
+
+sys.path.insert(0, os.path.join(HERE, "..", "demo-src"))
+from make_demo import NOTES  # noqa: E402  the numbered callouts drawn on the pictures, with their explanations
 
 ss = getSampleStyleSheet()
 BLUE = colors.HexColor("#0b3d91")
@@ -51,7 +55,9 @@ def shot(name, width=2.35 * inch, crop=None, caption=None):
     ratio = img.height / img.width
     pic = RLImage(buf, width=width, height=width * ratio)
     pic.hAlign = "CENTER"
-    t = Table([[pic]] + ([[P(caption, small)]] if caption else []), colWidths=[width + 8])
+    key = [[P("<font color='#e11d48'><b>%d</b></font>&nbsp; <b>%s.</b> %s" % (i + 1, short, long), small)]
+           for i, (_sel, short, long) in enumerate(NOTES.get(name, []))]
+    t = Table([[pic]] + ([[P(caption, small)]] if caption else []) + key, colWidths=[width + 8])
     t.setStyle(TableStyle([("BOX", (0, 0), (0, 0), 0.6, colors.HexColor("#cfd6df")), ("LEFTPADDING", (0, 0), (-1, -1), 3),
                            ("RIGHTPADDING", (0, 0), (-1, -1), 3), ("TOPPADDING", (0, 0), (0, 0), 3), ("BOTTOMPADDING", (0, 0), (0, 0), 3),
                            ("BOX", (0, 1), (0, 1), 0, colors.white)]))
@@ -122,7 +128,7 @@ S.append(side(shot("top-goal", caption="Top of the page"), [
 # ---- modes ----------------------------------------------------------------------------------------------------------
 S += [P("2. Choose how to charge", h2),
       P("Three modes sit under the numbers. Tap one. The line below the buttons describes it in a sentence.")]
-S.append(side(shot("modes-eco", width=2.3 * inch, caption="Eco, with the grid allowance"), [
+S.append(side(shot("modes-eco", width=2.0 * inch, caption="Eco, with the grid allowance"), [
     P("<b>Eco</b> charges only with spare solar: what the panels make, minus what the house is using. It is the only mode that takes the house into account. "
       "Charging needs at least 6 amps and starts once there is room for about 7 amps."),
     P("<b>Grid allowance</b> (the slider that appears in Eco and Max solar) is how much power from the grid the car may add to the sun. "
@@ -130,7 +136,7 @@ S.append(side(shot("modes-eco", width=2.3 * inch, caption="Eco, with the grid al
     P("<b>Max solar</b> uses everything the panels make and ignores the house. The grid allowance only tops the car up to the next whole amp, or to 6 amps when it is close."),
     P("<b>Custom</b> charges at a fixed current you choose, from 6 to 40 amps, whether the sun is out or not."),
 ], pic_left=True))
-S.append(side(shot("modes-custom", width=2.3 * inch, caption="Custom: a fixed current"), [
+S.append(side(shot("modes-custom", width=2.0 * inch, caption="Custom: a fixed current"), [
     P("In Custom, a <b>Current</b> slider sets the speed. It ignores the sun, the grid allowance, the solar hours and the lost-meter safety stop, so it can use grid power day or night. "
       "Use it when you simply need a fast charge."),
     P("<b>Pause</b> is a kill switch that beats every mode. It stops a running charge, blocks any new start and any change of speed (even if someone starts the car from the charger's own app), "
@@ -164,8 +170,8 @@ S.append(table(["You see", "It means", "What to do"], [
 ], [1.9 * inch, 2.5 * inch, 2.4 * inch]))
 
 # ---- goal -----------------------------------------------------------------------------------------------------------
-S += [PageBreak(), P("4. Charge by morning (departure goal)", h2)]
-S.append(side(shot("settings-goal", width=2.4 * inch, crop=(0.27, 0.78), caption="Settings: Charge by morning"), [
+S += [P("4. Charge by morning (departure goal)", h2)]
+S.append(side(shot("settings-goal", width=2.4 * inch, crop=(0.27, 0.97), caption="Settings: Charge by morning"), [
     P("Open <b>Settings</b> (the gear icon at the top right) and the <b>Charge by morning</b> group. Say how much energy you want, and by when, for example 20 kWh by 7:00 am. Set 0 to turn it off."),
     P("Until time gets short, nothing changes: the sun charges as usual. When the time left is only just enough, WattSync charges at the lowest speed that still gets there, "
       "using grid power if it has to, even at night."),
@@ -191,7 +197,7 @@ S.append(side(shot("graph-7", width=2.3 * inch, caption="Last 7 days"), [
 ], pic_left=False))
 
 # ---- miles ----------------------------------------------------------------------------------------------------------
-S += [PageBreak(), P("6. Show energy as miles", h2)]
+S += [P("6. Show energy as miles", h2)]
 S.append(side(shot("top-miles", width=2.35 * inch, caption="Miles view (estimate)"), [
     P("Prefer miles to kilowatt-hours? In <b>Settings</b>, open <b>Units</b> and set <b>Show energy as</b> to <b>Miles</b>. Enter <b>Miles per kWh</b> for your car "
       "(1 to 6; it starts at 3). Miles are an estimate: the energy times that number, shown with a <b>~</b>."),
@@ -220,7 +226,7 @@ S.append(table(["Setting", "What it does"], [
     ["Diagnostics", "A short health list: setup check (solar meter, charger, clock), how long it has been running, why it last restarted, free memory and Wi-Fi signal."],
 ], [1.7 * inch, 5.1 * inch]))
 S.append(Spacer(1, 6))
-S.append(shot("settings-diag", width=2.3 * inch, crop=(0.27, 1.0), caption="Settings with Diagnostics open (sample data)"))
+S.append(shot("settings-diag", width=1.8 * inch, crop=(0.27, 1.0), caption="Settings with Diagnostics open (sample data)"))
 
 # ---- help -----------------------------------------------------------------------------------------------------------
 S += [P("8. Quick answers", h2)]
