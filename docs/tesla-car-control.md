@@ -1,6 +1,6 @@
 # Tesla car control
 
-> **Status:** design only, plus the Phase 0 range test (built, host-tested, builds as firmware, **not yet run on the board or near a car**). The screens in `ui-drafts/` are proposals and use the old word "wallbox" in places; the decided word is **charger**.
+> **Status:** design only, plus the Phase 0 range test (built, host-tested, builds as firmware, **not yet run on the board or near a car**). The screens in `ui-drafts/` are proposals and use the word "charger".
 
 ## Decisions so far (2026-10-26)
 
