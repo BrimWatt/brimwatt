@@ -200,7 +200,7 @@ test('energy can be shown as kWh or as estimated miles, and the goal always goes
     assert.equal(read.call(null, "goalFromBox")(0), 0);
     assert.equal(read.call(null, "goalToBox")(13), 39);
     assert.equal(read.call(null, "goalText")(13), '~39 mi');
-    assert.equal(page.goalProgress({ doneKwh: 4, kwh: 13 }), '~12 of ~39 mi');
+    assert.equal(page.goalProgress({ doneKwh: 4, kwh: 13 }), '~12 of ~39 mi range');
     read('milesPerKwh = 3.5;');
     assert.equal(page.fmtEnergy(10), '~35 mi');
     miles(false);

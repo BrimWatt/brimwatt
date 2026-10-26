@@ -246,7 +246,7 @@
         <section class="stats" id="stats">
             <div class="stat save"><span class="fl">Saved today</span><b id="st-saved">–</b><small id="st-saved-sub">&nbsp;</small><button type="button" class="info" data-tip="saved" aria-label="What is Saved today?">i</button></div>
             <div class="stat"><span class="fl">From the sun</span><b id="st-share">–</b><small>of car energy</small><button type="button" class="info" data-tip="share" aria-label="What is From the sun?">i</button></div>
-            <div class="stat"><span class="fl">Car today</span><b id="st-car">–</b><small id="st-solar-sub">&nbsp;</small></div>
+            <div class="stat"><span class="fl" id="st-car-label">Car today</span><b id="st-car">–</b><small id="st-solar-sub">&nbsp;</small></div>
         </section>
         </div>
         <div class="stack stack-b">
@@ -681,7 +681,7 @@ async function sendGoal() {
     if (result.ok) {
         goalEdited = false; el('goal-save-kwh').hidden = true; el('goal-save-time').hidden = true;
         kwhInput.blur(); timeInput.blur();
-        toast(n === 0 ? 'Goal off' : goalText(n) + ' by ' + fmtClock(t[1] + ':' + t[2]), 'ok'); refresh();
+        toast(n === 0 ? 'Goal off' : goalText(n) + (unitMiles ? ' range' : '') + ' by ' + fmtClock(t[1] + ':' + t[2]), 'ok'); refresh();
     } else toast("Couldn't save", 'err', result.text);
 }
 async function sendMaxAmps() {
@@ -771,7 +771,7 @@ function renderConnection(online) {
 }
 
 /** "12 of 20 kWh" or "~36 of ~60 mi" */
-function goalProgress(g) { return unitMiles ? '~' + Math.round(g.doneKwh * milesPerKwh) + ' of ' + goalText(g.kwh) : g.doneKwh + ' of ' + g.kwh + ' kWh'; }
+function goalProgress(g) { return unitMiles ? '~' + Math.round(g.doneKwh * milesPerKwh) + ' of ' + goalText(g.kwh) + ' range' : g.doneKwh + ' of ' + g.kwh + ' kWh'; }
 function renderHeadline(data) {
     const c = data.charger, p = data.power, mode = MODE_NAME[data.currentMode];
     let h;
@@ -1074,7 +1074,7 @@ function drawBars() {
     const totalCar = rows.reduce((a, r) => a + r.car, 0), totalSun = rows.reduce((a, r) => a + r.sun, 0), totalSaved = rows.reduce((a, r) => a + r.saved, 0);
     const sum = el('range-summary');
     sum.innerHTML = totalCar >= 0.05
-        ? '<b>' + (unitMiles ? fmtEnergy(totalCar) : totalCar.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' kWh') + '</b> charged the car · <b>' + Math.round(totalSun / totalCar * 100) + '%</b> from the sun · saved <b class="sv">$' + totalSaved.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</b>'
+        ? (unitMiles ? '<b>' + fmtEnergy(totalCar) + '</b> range added' : '<b>' + totalCar.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' kWh</b> charged the car') + ' ·<b>' + Math.round(totalSun / totalCar * 100) + '%</b> from the sun · saved <b class="sv">$' + totalSaved.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</b>'
         : 'No charging in this period yet.';
     const width = Math.max(260, Math.floor(box.clientWidth)), height = Math.max(170, Math.floor(box.clientHeight)), L = 30, R = 6, T = 14, B = 22, plotB = height - B;
     if (unitMiles) rows.forEach(r => { r.car *= milesPerKwh; r.sun *= milesPerKwh; r.grid *= milesPerKwh; });   // the bars are drawn in the chosen unit
@@ -1083,7 +1083,7 @@ function drawBars() {
     const bw = Math.min(40, (width - L - R) / rows.length * 0.7), slot = (width - L - R) / rows.length;
     const Y = v => plotB - v / ymax * (plotB - T);
     box.innerHTML = '';
-    const svg = svgEl(box, 'svg', { viewBox: '0 0 ' + width + ' ' + height, width: width, height: height, role: 'img', 'aria-label': 'Daily energy that charged the car, from the sun and from the grid' });
+    const svg = svgEl(box, 'svg', { viewBox: '0 0 ' + width + ' ' + height, width: width, height: height, role: 'img', 'aria-label': (unitMiles ? 'Daily range added to the car, from the sun and from the grid' : 'Daily energy that charged the car, from the sun and from the grid') });
     for (let v = 0; v <= ymax; v += ticks) {
         svgEl(svg, 'line', { x1: L, x2: width - R, y1: Y(v), y2: Y(v), stroke: '#e5e7eb' });
         svgEl(svg, 'text', { x: L - 5, y: Y(v) + 4, 'text-anchor': 'end', 'font-size': 11, fill: '#94a3b8' }, String(v));
@@ -1148,7 +1148,7 @@ function renderSessions() {
         sub.textContent = modeText + (s.kwh > 0 ? Math.min(100, Math.max(0, s.sunPct)) + '% from the sun · ' : '') + (s.avgAmps > 0 ? 'avg ' + s.avgAmps.toFixed(1) + ' A · ' : '') + 'saved $' + saved
             + (!now && END_REASON[s.reason] ? ' · ' + END_REASON[s.reason] : '');
         left.appendChild(when); left.appendChild(sub);
-        const k = document.createElement('span'); k.className = 'k'; k.textContent = fmtEnergy(s.kwh) + (now ? ' so far' : '');
+        const k = document.createElement('span'); k.className = 'k'; k.textContent = fmtEnergy(s.kwh) + (unitMiles ? ' range added' : '') + (now ? ' so far' : '');
         row.appendChild(left); row.appendChild(k); box.appendChild(row);
     });
 }
@@ -1275,7 +1275,8 @@ function applyUnits() {
     el('unit-select').value = unitMiles ? 'miles' : 'kwh';
     el('mpk-input').value = milesPerKwh;
     el('mpk-input').closest('.field').style.display = unitMiles ? 'flex' : 'none';
-    el('goal-label').textContent = unitMiles ? 'Charge by morning (miles, 0 = off)' : 'Charge by morning (kWh, 0 = off)';
+    el('goal-label').textContent = unitMiles ? 'Range by morning (miles, 0 = off)' : 'Charge by morning (kWh, 0 = off)';
+    el('st-car-label').textContent = unitMiles ? 'Range added today' : 'Car today';
     const g = lastData && lastData.goal;
     // A half-typed goal means something else in the other unit, so drop it and show the saved goal again.
     if (g) { goalEdited = false; el('goal-kwh').value = goalToBox(g.kwh); el('goal-save-kwh').hidden = true; el('goal-save-time').hidden = true; }
