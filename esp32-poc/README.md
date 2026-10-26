@@ -185,7 +185,8 @@ The wallbox can talk to only one controller, so while testing the ESP32 the Pi m
 | `wifi` | Which network the board is on, the signal and the IP (never the password) |
 | `setup` | Open the setup network (section 1b) |
 | `setup clear` | Forget everything saved from the setup page and restart: `secrets.h` applies again |
-| `tesla scan <VIN> [seconds]` | Phase 0 of Tesla control: listen 10-300 s (default 60) for your car's Bluetooth and report how well the board hears it. Connects to nothing, writes nothing. `tesla stop` ends it early |
+| `tesla scan [seconds]` | Phase 0 of Tesla control, no VIN needed: list every Tesla in range (name hash, signal, how often), strongest first, for 10-300 s (default 60). Connects to nothing, writes nothing |
+| `tesla scan <VIN> [seconds]` | The same for your own car only, with a clear verdict. The VIN is not saved. `tesla stop` ends either scan early |
 | `help` | The list |
 
 Settings changed here are saved to flash at once.
@@ -226,7 +227,7 @@ Anything different from what the Pi does is a bug in this port; send me the log.
 .venv/bin/pio test -e native
 ```
 
-246 tests in ten groups: `test_core` (OCPP frames checked character by character against the Java app's output, routing, handlers, the wallbox controller, reconnects), `test_planner` (smoothing and the ECO/BALANCED rules), `test_notify` (messages), `test_daylight` (sunrise and sunset against published values for London, New York, Lathrop, Sydney and the poles, plus the window), `test_control` (the poll cycle, fail-safe, night pause, mode switching and saved settings), `test_api` (the dashboard's telemetry JSON and POST endpoints, including every rejected input) `test_persistence` (saving and restoring a charger's state across a restart) `test_history` (samples, energy totals and savings split, the activity log, charging sessions, saving and loading) `test_tesla` (the VIN rule, the car's Bluetooth name checked against Tesla's published example, the signal verdict) and `test_setup` (what the setup form may contain, token and address cleaning, the Wi-Fi change that is tried and undone, the scan list, and the setup endpoints, including that no reply contains a secret).
+250 tests in ten groups: `test_core` (OCPP frames checked character by character against the Java app's output, routing, handlers, the wallbox controller, reconnects), `test_planner` (smoothing and the ECO/BALANCED rules), `test_notify` (messages), `test_daylight` (sunrise and sunset against published values for London, New York, Lathrop, Sydney and the poles, plus the window), `test_control` (the poll cycle, fail-safe, night pause, mode switching and saved settings), `test_api` (the dashboard's telemetry JSON and POST endpoints, including every rejected input) `test_persistence` (saving and restoring a charger's state across a restart) `test_history` (samples, energy totals and savings split, the activity log, charging sessions, saving and loading) `test_tesla` (the VIN rule, the car's Bluetooth name checked against Tesla's published example, the signal verdict, the list of cars heard) and `test_setup` (what the setup form may contain, token and address cleaning, the Wi-Fi change that is tried and undone, the scan list, and the setup endpoints, including that no reply contains a secret).
 
 **On this Mac** the compiler cannot find the C++ standard library headers (a Command Line Tools install problem, unrelated to this project). If the tests fail with `'string' file not found`, run them like this (only for the tests; do not use it for the firmware build):
 

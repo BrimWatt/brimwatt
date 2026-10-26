@@ -93,6 +93,49 @@ void test_min_max_average_and_late_sightings() {
     TEST_ASSERT_EQUAL(100, s.heardPercent());   // both windows
 }
 
+void test_tesla_shaped_names() {
+    TEST_ASSERT_TRUE(isTeslaName("S1a87a5a75f3df858C"));
+    TEST_ASSERT_FALSE(isTeslaName("S1A87A5A75F3DF858C"));   // the car uses lowercase
+    TEST_ASSERT_FALSE(isTeslaName("S1a87a5a75f3df858"));
+    TEST_ASSERT_FALSE(isTeslaName("X1a87a5a75f3df858C"));
+    TEST_ASSERT_FALSE(isTeslaName("S1a87a5a75f3df85gC"));
+    TEST_ASSERT_FALSE(isTeslaName(""));
+}
+
+void test_discovery_keeps_cars_apart_and_sorts_by_signal() {
+    Discovery d;
+    d.start(0, 20000);
+    for (uint32_t t = 0; t < 20000; t += 1000) d.heard(t, "S1a87a5a75f3df858C", -90);
+    for (uint32_t t = 0; t < 20000; t += 1000) d.heard(t, "S0000000000000000C", -50);
+    d.heard(500, nullptr, -70);
+    TEST_ASSERT_EQUAL(3, d.count());
+    auto lines = d.lines();
+    TEST_ASSERT_EQUAL(3, (int)lines.size());
+    TEST_ASSERT_TRUE(lines[0].find("S0000000000000000C") == 0);   // the strongest first
+    TEST_ASSERT_TRUE(lines[0].find("Good") != std::string::npos);
+    TEST_ASSERT_TRUE(lines[1].find("(no name)") == 0);
+    TEST_ASSERT_TRUE(lines[2].find("S1a87a5a75f3df858C") == 0);
+}
+
+void test_discovery_table_is_bounded() {
+    Discovery d;
+    d.start(0, 10000);
+    for (int i = 0; i < Discovery::kMaxCars + 3; ++i) {
+        char n[24];
+        snprintf(n, sizeof n, "S%016xC", i);
+        d.heard(1000, n, -60);
+    }
+    TEST_ASSERT_EQUAL(Discovery::kMaxCars, d.count());
+    TEST_ASSERT_TRUE(d.overflowed());
+}
+
+void test_discovery_with_nothing_heard_is_empty() {
+    Discovery d;
+    d.start(0, 10000);
+    TEST_ASSERT_EQUAL(0, d.count());
+    TEST_ASSERT_TRUE(d.lines().empty());
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_vin_rules);
@@ -104,5 +147,9 @@ int main() {
     RUN_TEST(test_a_patchy_signal_is_weak);
     RUN_TEST(test_a_loud_but_gappy_signal_is_not_good);
     RUN_TEST(test_min_max_average_and_late_sightings);
+    RUN_TEST(test_tesla_shaped_names);
+    RUN_TEST(test_discovery_keeps_cars_apart_and_sorts_by_signal);
+    RUN_TEST(test_discovery_table_is_bounded);
+    RUN_TEST(test_discovery_with_nothing_heard_is_empty);
     return UNITY_END();
 }

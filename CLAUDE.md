@@ -156,8 +156,8 @@ namespace `net` (`NvsCredentialStore`) and **win over `secrets.h` field by field
 Decisions (2026-10-26): works for other Tesla owners, so each controller makes its own key and nothing secret ships in the repo; **one commander at a time**,
 the user picks **Control through: Charger | Car** (user-facing word is "charger", code still says wallbox/charger for the OCPP hardware); runs on both the ESP32 and the Pi;
 unreachable car = ramp to the minimum current first, keep the last setting, retry with backoff, message after 10 min, owner chooses keep / just tell me / stop on return.
-Built so far: `tesla scan <VIN> [seconds]` (ESP32 console): `lib/solar_core/src/tesla/TeslaBle.*` (VIN rule, SHA-1, the car's name `S`+8 bytes of SHA-1(VIN) in hex+`C`,
-signal verdict; host-tested in `test/test_tesla`) and `src/ble/TeslaScan.*` (non-blocking Arduino BLE scan, radio released afterwards). It never connects.
+Built so far: `tesla scan [seconds]` (lists every Tesla heard, no VIN) and `tesla scan <VIN> [seconds]` (ESP32 console): `lib/solar_core/src/tesla/TeslaBle.*` (VIN rule, SHA-1, the car's name `S`+8 bytes of SHA-1(VIN) in hex+`C`,
+signal verdict, `Discovery` table; host-tested in `test/test_tesla`) and `src/ble/TeslaScan.*` (non-blocking Arduino BLE scan, radio released afterwards). It never connects.
 It shows range only, NOT which models accept commands over Bluetooth (unknown; check before promising support). Never store or print a full VIN. Details: `docs/tesla-car-control.md`.
 
 ## Documentation map

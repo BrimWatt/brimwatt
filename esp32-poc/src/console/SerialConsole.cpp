@@ -43,7 +43,8 @@ void SerialConsole::printHelp() {
     Serial.println("  wifi              which network the board is on (never the password)");
     Serial.println("  setup             open the setup network (WattSync-Setup) to change Wi-Fi, the Enphase token, the Envoy address");
     Serial.println("  setup clear       forget everything saved from the setup page (secrets.h applies again) and restart");
-    Serial.println("  tesla scan <VIN> [seconds]   listen for your car's Bluetooth (10-300 s, default 60); nothing is sent to the car");
+    Serial.println("  tesla scan [seconds]         list every Tesla in range with its signal (no VIN needed; 10-300 s, default 60)");
+    Serial.println("  tesla scan <VIN> [seconds]   listen for your own car only; nothing is sent to the car");
     Serial.println("  tesla stop        end the scan early");
     Serial.println("  help              this list");
 }
@@ -107,6 +108,14 @@ void SerialConsole::run(const std::string& line) {
         }
     } else if (line == "tesla stop") {
         if (teslaScan_ && teslaScan_->running()) teslaScan_->cancel(); else LOG_INFO("Tesla scan: none is running.");
+    } else if (line == "tesla scan" || (line.rfind("tesla scan ", 0) == 0 && line.size() <= 14 && line.find_first_not_of("0123456789", 11) == std::string::npos)) {
+        if (!teslaScan_) {
+            LOG_WARN("Console: the Tesla scan is not available.");
+        } else {
+            uint32_t seconds = line.size() > 11 ? static_cast<uint32_t>(atoi(line.c_str() + 11)) : 60;
+            std::string err = teslaScan_->startDiscover(seconds);
+            if (!err.empty()) LOG_WARN("Tesla scan: %s", err.c_str());
+        }
     } else if (line.rfind("tesla scan ", 0) == 0) {
         if (!teslaScan_) {
             LOG_WARN("Console: the Tesla scan is not available.");
