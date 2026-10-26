@@ -1276,7 +1276,7 @@ function applyUnits() {
     el('mpk-input').value = milesPerKwh;
     el('mpk-input').closest('.field').style.display = unitMiles ? 'flex' : 'none';
     el('goal-label').textContent = unitMiles ? 'Range by morning (miles, 0 = off)' : 'Charge by morning (kWh, 0 = off)';
-    el('st-car-label').textContent = unitMiles ? 'Range added today' : 'Car today';
+    el('st-car-label').textContent = unitMiles ? 'Range today' : 'Car today';
     const g = lastData && lastData.goal;
     // A half-typed goal means something else in the other unit, so drop it and show the saved goal again.
     if (g) { goalEdited = false; el('goal-kwh').value = goalToBox(g.kwh); el('goal-save-kwh').hidden = true; el('goal-save-time').hidden = true; }
