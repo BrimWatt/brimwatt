@@ -35,6 +35,9 @@ public:
     std::string startCharge(solar::tesla::ChargeCommandFlow::Command command, int amps);
     void loop();
     void cancel();
+    /** Prints every message to and from the car as hex (no secrets in them). Off by default; for trying a new car model. */
+    void setDebug(bool on) { debug_ = on; }
+    bool debug() const { return debug_; }
     bool busy() const { return job_ != Job::None; }
 
     /** A short, shareable fingerprint of our public key (first 4 bytes of its SHA-256), or empty when there is no key yet. */
@@ -69,6 +72,7 @@ private:
     void* write_ = nullptr;   // BLERemoteCharacteristic*
     bool radioOn_ = false;
     bool scanFailed_ = false;
+    bool debug_ = false;
     uint32_t startedAt_ = 0;
     uint32_t lastActivity_ = 0;
     uint32_t lastProgress_ = 0;

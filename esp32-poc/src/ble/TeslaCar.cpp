@@ -253,9 +253,9 @@ bool TeslaCar::connect() {
 void TeslaCar::sendMessage(const Bytes& routable) {
     auto* write = static_cast<BLERemoteCharacteristic*>(write_);
     if (!write || !client_) return;
-    // First-connection diagnostics, every job: what goes out and what comes back. Nothing secret is in these bytes (public key, challenge,
+    // Diagnostics (tesla debug on): what goes out and what comes back. Nothing secret is in these bytes (public key, challenge,
     // routing ids and encrypted data; the VIN is never sent in the clear).
-    LOG_INFO("Tesla >> %u bytes: %s", (unsigned)routable.size(), solar::tesla::toHex(routable).c_str());
+    if (debug_) LOG_INFO("Tesla >> %u bytes: %s", (unsigned)routable.size(), solar::tesla::toHex(routable).c_str());
     Bytes frame;
     frame.push_back(static_cast<uint8_t>(routable.size() >> 8));
     frame.push_back(static_cast<uint8_t>(routable.size()));
@@ -281,7 +281,7 @@ void TeslaCar::handleFrames() {
         Bytes message(rx_.begin() + 2, rx_.begin() + 2 + n);
         rx_.erase(0, 2 + n);
         lastActivity_ = millis();
-        LOG_INFO("Tesla << %u bytes: %s", (unsigned)message.size(), solar::tesla::toHex(message).c_str());
+        if (debug_) LOG_INFO("Tesla << %u bytes: %s", (unsigned)message.size(), solar::tesla::toHex(message).c_str());
         if (job_ == Job::Pair && pair_) {
             Bytes next = pair_->onMessage(message);
             if (!next.empty()) sendMessage(next);
