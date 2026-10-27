@@ -293,6 +293,9 @@ public:
     int commandsSeen = 0;
     int currentRequest = 32;
     bool refuseCommands = false;        // answer charge commands with an error and a reason
+    bool wakeWorks = true;              // the wake command really wakes the car
+    bool refuseWake = false;            // answer the wake command with a fault
+    int wakesSeen = 0;
     int chargeCommandsSeen = 0;
     Bytes lastPlain;
 
@@ -304,7 +307,7 @@ public:
         Routable out;
         out.toRouting = in.fromRouting;
         out.requestUuid = in.uuid;
-        if (in.toDomain == kDomainVehicleSecurity) {
+        if (in.toDomain == kDomainVehicleSecurity && !in.hasSessionInfoRequest && !in.hasGcm) {
             out.hasPayload = true;
             out.payload = fromVcsecStatus(1, sleep, 1);
             return encodeRoutable(out);
@@ -347,6 +350,23 @@ public:
             lastPlain = plain;
             if (in.gcmCounter <= counter) return Bytes();
             counter = in.gcmCounter;
+            if (in.toDomain == kDomainVehicleSecurity) {          // a signed command to the security computer: the wake command
+                if (plain == vcsecWake()) wakesSeen++;
+                if (refuseWake) {
+                    Writer st;                                        // signedMessageStatus (12) { operation ERROR, fault 7 }, appended by hand
+                    st.varint(1, 2);
+                    st.varint(2, 7);
+                    Writer extra;
+                    extra.message(12, st);
+                    Bytes reply = encodeRoutable(out);
+                    reply.insert(reply.end(), extra.data().begin(), extra.data().end());
+                    return reply;
+                }
+                if (wakeWorks) sleep = 1;
+                out.hasPayload = true;
+                out.payload = Bytes{0x22, 0x00};                  // FromVCSECMessage { commandStatus {} }: accepted
+                return encodeRoutable(out);
+            }
             Bytes body;
             if (plain == carGetChargeState()) {
                 Writer cs, charging, data, response2;
@@ -698,8 +718,147 @@ void test_a_charge_command_ignores_broadcasts_too() {
     TEST_ASSERT_EQUAL(1, car.chargeCommandsSeen);
 }
 
+// ---- waking the car ---------------------------------------------------------------------------------------------------------------
+
+void test_the_wake_command_has_the_published_layout() {
+    TEST_ASSERT_EQUAL_STRING("101e", hex(vcsecWake()).c_str());      // UnsignedMessage { RKEAction = WAKE_VEHICLE (30) }
+}
+
+/** Runs a wake to its end, letting time pass between the flow's own questions. */
+static void driveWake(WakeFlow& flow, FakeCar& car, uint32_t* endMs = nullptr) {
+    Bytes msg = flow.start();
+    uint32_t now = 10000;
+    for (int guard = 0; guard < 80 && !flow.finished(); guard++) {
+        if (!msg.empty()) {
+            Bytes reply = car.answer(msg);
+            msg.clear();
+            if (reply.empty()) break;
+            msg = flow.onMessage(reply, now += 150);
+        } else {
+            now += 500;
+            msg = flow.poll(now);
+        }
+    }
+    if (endMs) *endMs = now;
+}
+
+void test_a_sleeping_car_is_woken_and_confirmed_awake() {
+    FakeCar car;
+    car.sleep = 2;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    WakeFlow flow(crypto, priv, pub, car.vin);
+    driveWake(flow, car);
+    std::string all = joined(flow.lines());
+    TEST_ASSERT_TRUE_MESSAGE(flow.finished(), all.c_str());
+    TEST_ASSERT_TRUE_MESSAGE(flow.ok(), all.c_str());
+    TEST_ASSERT_EQUAL(1, car.wakesSeen);
+    TEST_ASSERT_EQUAL(1, car.sleep);
+    TEST_ASSERT_TRUE(all.find("awake") != std::string::npos);
+}
+
+void test_an_awake_car_is_left_alone() {
+    FakeCar car;
+    car.sleep = 1;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    WakeFlow flow(crypto, priv, pub, car.vin);
+    driveWake(flow, car);
+    TEST_ASSERT_TRUE(flow.ok());
+    TEST_ASSERT_EQUAL(0, car.wakesSeen);
+    TEST_ASSERT_EQUAL(0, (int)car.key.size());              // not even a session was opened
+    TEST_ASSERT_TRUE(joined(flow.lines()).find("already awake") != std::string::npos);
+}
+
+void test_a_car_that_stays_asleep_is_reported_after_a_few_looks() {
+    FakeCar car;
+    car.sleep = 2;
+    car.wakeWorks = false;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    WakeFlow flow(crypto, priv, pub, car.vin);
+    uint32_t end = 0;
+    driveWake(flow, car, &end);
+    TEST_ASSERT_TRUE(flow.finished());
+    TEST_ASSERT_FALSE(flow.ok());
+    TEST_ASSERT_EQUAL(1, car.wakesSeen);                    // one command, never repeated by the flow
+    TEST_ASSERT_TRUE(joined(flow.lines()).find("did not wake") != std::string::npos);
+    TEST_ASSERT_TRUE(end - 10000 < 30000);                  // gives up within about twenty seconds
+}
+
+void test_a_refused_wake_says_why_and_is_not_repeated() {
+    FakeCar car;
+    car.sleep = 2;
+    car.refuseWake = true;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    WakeFlow flow(crypto, priv, pub, car.vin);
+    driveWake(flow, car);
+    TEST_ASSERT_FALSE(flow.ok());
+    TEST_ASSERT_TRUE(joined(flow.lines()).find("role") != std::string::npos);
+    TEST_ASSERT_EQUAL(1, car.wakesSeen);                    // it arrived once, was refused, and was not sent again
+}
+
+void test_the_wake_needs_a_known_key_and_the_right_vin_and_a_listening_car() {
+    {
+        FakeCar car;
+        car.sleep = 2;
+        car.knowsKey = false;
+        Bytes priv, pub;
+        crypto.generateKeyPair(priv, pub);
+        WakeFlow flow(crypto, priv, pub, car.vin);
+        driveWake(flow, car);
+        TEST_ASSERT_FALSE(flow.ok());
+        TEST_ASSERT_TRUE(joined(flow.lines()).find("Pair again") != std::string::npos);
+        TEST_ASSERT_EQUAL(0, car.wakesSeen);
+    }
+    {
+        FakeCar car;
+        car.sleep = 2;
+        Bytes priv, pub;
+        crypto.generateKeyPair(priv, pub);
+        WakeFlow flow(crypto, priv, pub, "5YJ30123456789ABD");
+        driveWake(flow, car);
+        TEST_ASSERT_FALSE(flow.ok());
+        TEST_ASSERT_EQUAL(0, car.wakesSeen);
+    }
+    {
+        Bytes priv, pub;
+        crypto.generateKeyPair(priv, pub);
+        WakeFlow flow(crypto, priv, pub, "5YJ30123456789ABC");
+        flow.start();
+        flow.timedOut();
+        TEST_ASSERT_TRUE(flow.finished());
+        TEST_ASSERT_FALSE(flow.ok());
+        TEST_ASSERT_TRUE(joined(flow.lines()).find("did not answer") != std::string::npos);
+    }
+}
+
+void test_a_wake_ignores_broadcasts() {
+    FakeCar car;
+    car.sleep = 2;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    WakeFlow flow(crypto, priv, pub, car.vin);
+    Bytes msg = flow.start();
+    flow.onMessage(broadcastNoise(), 9900);
+    msg = flow.onMessage(car.answer(msg), 10000);           // status -> handshake
+    flow.onMessage(broadcastNoise(), 10100);
+    msg = flow.onMessage(car.answer(msg), 10200);           // session -> the wake command
+    TEST_ASSERT_FALSE(msg.empty());
+    flow.onMessage(broadcastNoise(), 10300);
+    TEST_ASSERT_FALSE(flow.finished());
+}
+
 int main() {
     UNITY_BEGIN();
+    RUN_TEST(test_the_wake_command_has_the_published_layout);
+    RUN_TEST(test_a_sleeping_car_is_woken_and_confirmed_awake);
+    RUN_TEST(test_an_awake_car_is_left_alone);
+    RUN_TEST(test_a_car_that_stays_asleep_is_reported_after_a_few_looks);
+    RUN_TEST(test_a_refused_wake_says_why_and_is_not_repeated);
+    RUN_TEST(test_the_wake_needs_a_known_key_and_the_right_vin_and_a_listening_car);
+    RUN_TEST(test_a_wake_ignores_broadcasts);
     RUN_TEST(test_status_ignores_broadcasts_that_arrive_before_the_real_reply);
     RUN_TEST(test_a_charge_command_ignores_broadcasts_too);
     RUN_TEST(test_charge_commands_have_the_published_layout);

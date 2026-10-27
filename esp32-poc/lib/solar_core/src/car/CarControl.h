@@ -64,6 +64,13 @@ public:
     virtual CarResult startStart() = 0;
     virtual CarResult startStop() = 0;
     virtual CarResult startSetAmps(int amps) = 0;
+    /** Wakes a sleeping car (a command; the car stays awake a while and uses a little battery). Not every implementation can. */
+    virtual CarResult startWake() {
+        CarResult r;
+        r.ok = false;
+        r.message = "Waking the car is not available here.";
+        return r;
+    }
     virtual void cancel() = 0;
     /** True while the car is the one in command: the separate "watch" reads pause, the controller reads the car itself. */
     virtual void setControlled(bool) {}

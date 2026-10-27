@@ -135,5 +135,50 @@ private:
     ChargeState charge_;
 };
 
+/**
+ * Wakes a sleeping car. Looks first (an awake car is left alone), then opens a session with the security computer (the part that answers
+ * while the car sleeps), sends ONE signed wake command, and asks for the status every few seconds until the car says it is awake (about
+ * 20 seconds at most). It never sends the command twice. Driven like the other flows, plus poll() for the questions that wait their turn.
+ */
+class WakeFlow {
+public:
+    WakeFlow(Crypto& crypto, const Bytes& privateKey, const Bytes& publicKey65, const std::string& vin)
+        : c_(crypto), session_(crypto, privateKey, publicKey65, vin, kDomainVehicleSecurity) {}
+
+    Bytes start();
+    Bytes onMessage(const Bytes& routable, uint32_t nowMs);
+    /** Call every pass: returns the next status question when its time has come. */
+    Bytes poll(uint32_t nowMs);
+    void timedOut();
+
+    bool finished() const { return stage_ == Done; }
+    /** True when the car is awake at the end (already awake counts). */
+    bool ok() const { return ok_; }
+    const std::vector<std::string>& lines() const { return lines_; }
+
+    static constexpr uint32_t kReplyWaitMs = 2500;
+    static constexpr uint32_t kAskEveryMs = 3000;
+    static constexpr int kMaxLooks = 5;
+
+private:
+    enum Stage { AwaitStatus, AwaitSession, AwaitCommandReply, AwaitVerify, Done };
+    Bytes envelope(int domain, const Bytes& payload);
+    Bytes askStatus();
+    void fail(const std::string& why);
+    void succeed(const std::string& text);
+
+    Crypto& c_;
+    Session session_;
+    Bytes routing_;
+    Bytes requestTag_;
+    Stage stage_ = AwaitStatus;
+    bool ok_ = false;
+    bool asked_ = false;
+    int looks_ = 0;
+    uint32_t sentAt_ = 0;
+    uint32_t askAt_ = 0;
+    std::vector<std::string> lines_;
+};
+
 }  // namespace tesla
 }  // namespace solar

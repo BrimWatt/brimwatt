@@ -10,6 +10,8 @@ public:
     virtual void saveThrough(bool car) = 0;
     virtual int loadOnReturn() = 0;                 // CarOnReturn as a number
     virtual void saveOnReturn(int value) = 0;
+    virtual bool loadAllowWake() = 0;               // may WattSync wake a sleeping car? (off unless the owner switches it on)
+    virtual void saveAllowWake(bool on) = 0;
 };
 
 }  // namespace solar

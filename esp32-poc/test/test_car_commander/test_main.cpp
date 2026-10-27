@@ -33,7 +33,7 @@ public:
         if (snap.busy) { r.ok = false; r.busy = true; r.message = "busy"; return r; }
         jobs.push_back(what);
         snap.busy = true;
-        snap.job = what.rfind("read", 0) == 0 ? "status" : "charge";
+        snap.job = what.rfind("read", 0) == 0 ? "status" : what == "wake" ? "wake" : "charge";
         return r;
     }
     CarResult startPair(const std::string&) override { return begin("pair"); }
@@ -41,6 +41,7 @@ public:
     CarResult startQuietRefresh() override { quietReads = true; return begin("read"); }
     CarResult startStart() override { return begin("start"); }
     CarResult startStop() override { return begin("stop"); }
+    CarResult startWake() override { return begin("wake"); }
     CarResult startSetAmps(int amps) override { return begin("amps " + std::to_string(amps)); }
     void cancel() override {}
     void setWatch(bool) override {}
@@ -95,6 +96,19 @@ struct Rig {
         car.snap.readingAgeSeconds += car.snap.hasReading ? seconds : 0;
         commander.loop();
     }
+    /** A reading arrives (somebody pressed Check now, or a check finished): the car is in this state. */
+    void observe(int code, int request, int actual, int sleep = 1) {
+        car.setCar(code, request, actual, sleep);
+        car.snap.resultOk = true;
+        car.snap.resultSerial++;
+        commander.loop();
+    }
+    void observeAsleep() {
+        car.asleep();
+        car.snap.resultOk = true;
+        car.snap.resultSerial++;
+        commander.loop();
+    }
     /** Runs the job the commander just started to a successful end, with the car in the given state afterwards. */
     void complete(int code, int request, int actual) {
         car.setCar(code, request, actual);
@@ -109,7 +123,7 @@ struct Rig {
 
 // ---- what the commander does with the planner's wish ---------------------------------------------------------------------------------
 
-void test_with_no_reading_it_reads_the_car_first_and_sends_no_command() {
+void test_with_no_knowledge_it_looks_at_the_car_first_and_sends_no_command() {
     Rig r;
     r.commander.sendChargingLimit(12);
     r.tick();
@@ -120,7 +134,7 @@ void test_with_no_reading_it_reads_the_car_first_and_sends_no_command() {
 
 void test_a_charging_car_is_given_the_new_current() {
     Rig r;
-    r.car.setCar(5, 18, 18);
+    r.observe(5, 18, 18);
     r.commander.sendChargingLimit(12);
     r.tick();
     testing::check("amps 12", r.car.last());
@@ -131,7 +145,7 @@ void test_a_charging_car_is_given_the_new_current() {
 
 void test_nothing_is_sent_when_the_car_already_has_that_current() {
     Rig r;
-    r.car.setCar(5, 12, 12);
+    r.observe(5, 12, 12);
     r.commander.sendChargingLimit(12);
     r.tick();
     TEST_ASSERT_EQUAL(0, (int)r.car.jobs.size());
@@ -139,7 +153,7 @@ void test_nothing_is_sent_when_the_car_already_has_that_current() {
 
 void test_a_stop_request_stops_a_charging_car_and_leaves_a_stopped_one_alone() {
     Rig r;
-    r.car.setCar(5, 18, 18);
+    r.observe(5, 18, 18);
     r.commander.sendChargingLimit(0);
     r.tick();
     testing::check("stop", r.car.last());
@@ -153,7 +167,7 @@ void test_a_stop_request_stops_a_charging_car_and_leaves_a_stopped_one_alone() {
 
 void test_starting_a_stopped_car_sets_the_current_first_and_then_starts() {
     Rig r;
-    r.car.setCar(7, 16, 0);
+    r.observe(7, 16, 0);
     r.commander.sendChargingLimit(10);
     r.tick();
     testing::check("amps 10", r.car.last());
@@ -167,7 +181,7 @@ void test_starting_a_stopped_car_sets_the_current_first_and_then_starts() {
 
 void test_a_stopped_car_that_already_has_the_current_is_just_started() {
     Rig r;
-    r.car.setCar(7, 10, 0);
+    r.observe(7, 10, 0);
     r.commander.sendChargingLimit(10);
     r.tick();
     testing::check("start", r.car.last());
@@ -176,7 +190,7 @@ void test_a_stopped_car_that_already_has_the_current_is_just_started() {
 void test_an_unplugged_or_complete_car_is_left_alone() {
     for (int code : {2, 6, 3}) {
         Rig r;
-        r.car.setCar(code, 16, 0);
+        r.observe(code, 16, 0);
         r.commander.sendChargingLimit(10);
         r.tick();
         TEST_ASSERT_EQUAL_MESSAGE(0, (int)r.car.jobs.size(), "disconnected, complete or no power: do not start");
@@ -185,16 +199,17 @@ void test_an_unplugged_or_complete_car_is_left_alone() {
 
 void test_a_sleeping_car_is_not_commanded_and_the_state_says_so() {
     Rig r;
-    r.car.asleep();
+    r.observeAsleep();
     r.commander.sendChargingLimit(10);
     r.tick();
     TEST_ASSERT_EQUAL(0, (int)r.car.jobs.size());
     TEST_ASSERT_TRUE(r.commander.status().state.find("asleep") != std::string::npos);
+    TEST_ASSERT_TRUE(r.commander.status().state.find("waking is off") != std::string::npos);
 }
 
 void test_a_fixed_current_is_kept_in_force_and_beats_the_planner() {
     Rig r;
-    r.car.setCar(5, 18, 18);
+    r.observe(5, 18, 18);
     r.commander.holdFixedLimit(0, "paused by you");        // the kill switch
     r.commander.sendChargingLimit(16);                     // the planner still asks for 16
     r.tick();
@@ -206,19 +221,45 @@ void test_a_fixed_current_is_kept_in_force_and_beats_the_planner() {
     testing::check("amps 16", r.car.last());
 }
 
-void test_a_stale_reading_is_read_again_before_anything_is_decided() {
+void test_it_trusts_what_it_set_and_only_checks_the_car_every_ten_minutes() {
     Rig r;
-    r.car.setCar(5, 18, 18);
-    r.car.snap.readingAgeSeconds = 400;
-    r.commander.sendChargingLimit(12);
-    r.tick();
-    testing::check("read", r.car.last());
+    r.observe(5, 18, 18);
+    r.commander.sendChargingLimit(18);
+    for (int s = 0; s < 590; s++) r.tick();
+    TEST_ASSERT_EQUAL_MESSAGE(0, (int)r.car.jobs.size(), "no routine reads in between");
+    for (int s = 0; s < 20; s++) r.tick();
     TEST_ASSERT_EQUAL(1, (int)r.car.jobs.size());
+    testing::check("read", r.car.last());                  // the ten-minute check
+    r.complete(5, 18, 18);
+    for (int s = 0; s < 590; s++) r.tick();
+    TEST_ASSERT_EQUAL(1, (int)r.car.jobs.size());          // and the clock starts over
+}
+
+void test_the_check_finds_a_change_made_by_someone_else_and_puts_it_right() {
+    Rig r;
+    r.observe(5, 18, 18);
+    r.commander.sendChargingLimit(18);
+    for (int s = 0; s < 605; s++) r.tick();                // the check starts
+    r.complete(5, 10, 10);                                 // somebody lowered it to 10 A on the car
+    r.tick();
+    testing::check("amps 18", r.car.last());               // WattSync's value is set again
+}
+
+void test_the_check_notices_a_car_that_stopped_by_itself() {
+    Rig r;
+    r.observe(5, 18, 18);
+    r.commander.sendChargingLimit(18);
+    for (int s = 0; s < 605; s++) r.tick();
+    r.complete(6, 18, 0);                                  // it reached its charge limit
+    TEST_ASSERT_TRUE(*r.commander.primaryStatus() == ChargerStatus::Finishing);
+    TEST_ASSERT_EQUAL(0, (int)r.commander.currentDrawAmps());
+    r.tick();
+    TEST_ASSERT_EQUAL(1, (int)r.car.jobs.size());          // and it is not restarted
 }
 
 void test_the_commander_waits_while_a_job_is_running() {
     Rig r;
-    r.car.setCar(5, 18, 18);
+    r.observe(5, 18, 18);
     r.commander.sendChargingLimit(12);
     r.tick();
     r.commander.sendChargingLimit(10);                     // a new wish arrives mid-job
@@ -231,44 +272,58 @@ void test_the_commander_waits_while_a_job_is_running() {
 
 // ---- what the planner reads back ----------------------------------------------------------------------------------------------------
 
-void test_the_planner_sees_the_cars_current_limit_and_status() {
+void test_the_planner_is_told_what_wattsync_set_not_a_measurement() {
     Rig r;
-    TEST_ASSERT_FALSE(r.commander.primaryStatus().has_value());      // never read
+    TEST_ASSERT_FALSE(r.commander.primaryStatus().has_value());      // never looked
     TEST_ASSERT_FALSE(r.commander.currentLimitAmps().has_value());
-    r.car.setCar(5, 14, 13);
+    r.observe(5, 14, 13);                                            // the car says 14 A set, 13 A drawn
     TEST_ASSERT_TRUE(*r.commander.primaryStatus() == ChargerStatus::Charging);
     TEST_ASSERT_EQUAL(14, *r.commander.currentLimitAmps());
-    TEST_ASSERT_EQUAL(13, (int)r.commander.currentDrawAmps());
-    TEST_ASSERT_TRUE(r.commander.drawIsMeasured());
-    r.car.setCar(7, 14, 0);
+    TEST_ASSERT_EQUAL(14, (int)r.commander.currentDrawAmps());       // what was set: WattSync does not measure the car
+    TEST_ASSERT_FALSE(r.commander.drawIsMeasured());
+    r.observe(7, 14, 0);
     TEST_ASSERT_TRUE(*r.commander.primaryStatus() == ChargerStatus::SuspendedEV);
     TEST_ASSERT_FALSE(r.commander.currentLimitAmps().has_value());   // not charging: no limit in force
     TEST_ASSERT_EQUAL(0, (int)r.commander.currentDrawAmps());
-    r.car.setCar(2, 14, 0);
+    r.observe(2, 14, 0);
     TEST_ASSERT_TRUE(*r.commander.primaryStatus() == ChargerStatus::Available);
-    r.car.setCar(6, 14, 0);
+    r.observe(6, 14, 0);
     TEST_ASSERT_TRUE(*r.commander.primaryStatus() == ChargerStatus::Finishing);
 }
 
-void test_a_stale_reading_is_not_trusted_as_a_measurement() {
+void test_after_its_own_command_the_numbers_follow_without_another_read() {
     Rig r;
-    r.car.setCar(5, 14, 13);
-    r.car.snap.readingAgeSeconds = 400;
-    TEST_ASSERT_FALSE(r.commander.drawIsMeasured());
+    r.observe(5, 18, 18);
+    r.commander.sendChargingLimit(12);
+    r.tick();
+    r.car.snap.readingAgeSeconds = 100;                    // the read-back failed: only the command went through
+    r.car.finish(true, "Charging current set to 12 A.");
+    r.commander.loop();
+    TEST_ASSERT_EQUAL(12, *r.commander.currentLimitAmps());
+    TEST_ASSERT_EQUAL(12, (int)r.commander.currentDrawAmps());
+    r.tick();
+    TEST_ASSERT_EQUAL(1, (int)r.car.jobs.size());          // no extra read, no repeated command
+    r.commander.sendChargingLimit(0);
+    r.tick();
+    testing::check("stop", r.car.last());
+    r.car.snap.readingAgeSeconds = 100;
+    r.car.finish(true, "Charging stopped.");
+    r.commander.loop();
     TEST_ASSERT_EQUAL(0, (int)r.commander.currentDrawAmps());
+    TEST_ASSERT_TRUE(*r.commander.primaryStatus() == ChargerStatus::SuspendedEV);
 }
 
 void test_a_car_that_falls_asleep_keeps_its_last_known_plugged_in_state() {
     Rig r;
-    r.car.setCar(7, 14, 0);
-    (void)r.commander.primaryStatus();
-    r.car.asleep();
+    r.observe(7, 14, 0);
+    r.observeAsleep();
     TEST_ASSERT_TRUE(*r.commander.primaryStatus() == ChargerStatus::SuspendedEV);
+    TEST_ASSERT_EQUAL(0, (int)r.commander.currentDrawAmps());
 }
 
 void test_commands_are_recorded_in_the_activity_log_with_their_reason() {
     Rig r;
-    r.car.setCar(5, 18, 18);
+    r.observe(5, 18, 18);
     r.commander.setCommandContext("less solar left");
     r.commander.sendChargingLimit(12);
     r.commander.setCommandContext("");
@@ -278,6 +333,111 @@ void test_commands_are_recorded_in_the_activity_log_with_their_reason() {
     testing::check("Car: changed limit to 12 A: less solar left", r.lastEvent());
     testing::check("Car: changed limit to 12 A", r.commander.lastCommand());
     TEST_ASSERT_TRUE(r.commander.lastCommandAtSeconds() > 0);
+}
+
+void test_the_status_says_what_wattsync_set() {
+    Rig r;
+    r.observe(5, 16, 16);
+    TEST_ASSERT_TRUE(r.commander.status().state.find("Charging at 16 A, as set by WattSync") != std::string::npos);
+    r.observe(2, 16, 0);
+    TEST_ASSERT_TRUE(r.commander.status().state.find("not plugged in") != std::string::npos);
+}
+
+// ---- waking a sleeping car ------------------------------------------------------------------------------------------------------------
+
+void test_a_sleeping_car_is_woken_only_when_the_owner_allowed_it_and_charging_is_wanted() {
+    Rig r;
+    r.observe(7, 16, 0);
+    r.observeAsleep();
+    r.commander.sendChargingLimit(10);
+    r.tick();
+    TEST_ASSERT_EQUAL_MESSAGE(0, (int)r.car.jobs.size(), "waking is off by default");
+    r.commander.setAllowWake(true);
+    r.commander.sendChargingLimit(0);
+    r.tick();
+    TEST_ASSERT_EQUAL_MESSAGE(0, (int)r.car.jobs.size(), "nothing to charge, so no reason to wake it");
+    r.commander.sendChargingLimit(10);
+    r.tick();
+    testing::check("wake", r.car.last());
+    TEST_ASSERT_TRUE(r.lastEvent().find("waking the car") != std::string::npos);
+}
+
+void test_after_a_wake_the_car_is_looked_at_at_once_and_then_commanded() {
+    Rig r;
+    r.commander.setAllowWake(true);
+    r.observe(7, 16, 0);
+    r.observeAsleep();
+    r.commander.sendChargingLimit(10);
+    r.tick();
+    testing::check("wake", r.car.last());
+    r.car.snap.hasReading = true;
+    r.car.snap.readingAgeSeconds = 100;
+    r.car.finish(true, "The car is awake.");
+    r.commander.loop();
+    r.tick();
+    testing::check("read", r.car.last());                  // a look at the awake car
+    r.complete(7, 16, 0);
+    r.tick();
+    testing::check("amps 10", r.car.last());
+}
+
+void test_the_car_is_woken_at_most_once_every_thirty_minutes() {
+    Rig r;
+    r.commander.setAllowWake(true);
+    r.observe(7, 16, 0);
+    r.observeAsleep();
+    r.commander.sendChargingLimit(10);
+    r.tick();
+    testing::check("wake", r.car.last());
+    r.car.finish(false, "The car did not wake. It may take another try.");
+    r.commander.loop();
+    TEST_ASSERT_EQUAL(0, r.commander.status().unreachableSeconds);   // heard but sleepy: not an outage
+    size_t wakes = 0;
+    for (int s = 0; s < 1700; s++) {
+        r.tick();
+        if (r.car.snap.busy) {                                      // the ten-minute checks: the car is still asleep
+            r.car.asleep();
+            r.car.snap.hasResult = true;
+            r.car.finish(true, "asleep");
+            r.commander.loop();
+        }
+    }
+    for (const auto& j : r.car.jobs) wakes += j == "wake";
+    TEST_ASSERT_EQUAL_MESSAGE(1, (int)wakes, "still inside the thirty minutes");
+    for (int s = 0; s < 200; s++) {
+        r.tick();
+        if (r.car.snap.busy) { r.car.asleep(); r.car.finish(true, "asleep"); r.commander.loop(); }
+    }
+    wakes = 0;
+    for (const auto& j : r.car.jobs) wakes += j == "wake";
+    TEST_ASSERT_EQUAL(2, (int)wakes);
+}
+
+void test_a_car_known_to_be_unplugged_or_full_or_never_seen_awake_is_not_woken() {
+    for (int code : {2, 6}) {
+        Rig r;
+        r.commander.setAllowWake(true);
+        r.observe(code, 16, 0);
+        r.observeAsleep();
+        r.commander.sendChargingLimit(10);
+        r.tick();
+        TEST_ASSERT_EQUAL(0, (int)r.car.jobs.size());
+    }
+    Rig r;
+    r.commander.setAllowWake(true);
+    r.observeAsleep();                                      // first look: asleep, plug state unknown
+    r.commander.sendChargingLimit(10);
+    r.tick();
+    TEST_ASSERT_EQUAL(0, (int)r.car.jobs.size());
+}
+
+void test_a_sleeping_car_status_says_whether_waking_is_on() {
+    Rig r;
+    r.observeAsleep();
+    TEST_ASSERT_TRUE(r.commander.status().state.find("waking is off") != std::string::npos);
+    r.commander.setAllowWake(true);
+    TEST_ASSERT_TRUE(r.commander.status().state.find("will wake it when charging is wanted") != std::string::npos);
+    TEST_ASSERT_EQUAL(-1, r.commander.status().lastWakeAgeSeconds);
 }
 
 // ---- a car that cannot be reached -----------------------------------------------------------------------------------------------------
@@ -476,6 +636,9 @@ class MemoryCarSettings : public CarSettingsStore {
 public:
     bool through = false;
     int onReturn = 0;
+    bool allowWake = false;
+    bool loadAllowWake() override { return allowWake; }
+    void saveAllowWake(bool v) override { allowWake = v; }
     bool loadThrough() override { return through; }
     void saveThrough(bool v) override { through = v; }
     int loadOnReturn() override { return onReturn; }
@@ -554,11 +717,13 @@ void test_the_choice_and_the_policy_survive_a_restart_but_an_unpaired_car_never_
     MemoryCarSettings settings;
     settings.through = true;
     settings.onReturn = 2;
+    settings.allowWake = true;
     ChargeRouter router(wallbox, commander, car);
     router.setSettings(&settings);
     router.restore();
     TEST_ASSERT_TRUE(router.throughCar());
     TEST_ASSERT_TRUE(commander.onReturn() == CarOnReturn::Stop);
+    TEST_ASSERT_TRUE(commander.allowWake());
 
     ChargeRouter second(wallbox, commander, car);
     car.snap.paired = false;
@@ -597,9 +762,25 @@ void test_the_solar_controller_drives_the_car_through_the_router() {
     for (const auto& c : wallbox.calls) TEST_ASSERT_TRUE(c == "release" || c == "refresh");
 }
 
+void test_allowing_the_wake_is_saved_and_off_by_default() {
+    FakePlatform platform;
+    RecordingDevice wallbox;
+    FakeCar car;
+    CarCommander commander(platform, car);
+    MemoryCarSettings settings;
+    ChargeRouter router(wallbox, commander, car);
+    router.setSettings(&settings);
+    TEST_ASSERT_FALSE(commander.allowWake());
+    router.setAllowWake(true);
+    TEST_ASSERT_TRUE(commander.allowWake());
+    TEST_ASSERT_TRUE(settings.allowWake);
+    router.setAllowWake(false);
+    TEST_ASSERT_FALSE(settings.allowWake);
+}
+
 int main() {
     UNITY_BEGIN();
-    RUN_TEST(test_with_no_reading_it_reads_the_car_first_and_sends_no_command);
+    RUN_TEST(test_with_no_knowledge_it_looks_at_the_car_first_and_sends_no_command);
     RUN_TEST(test_a_charging_car_is_given_the_new_current);
     RUN_TEST(test_nothing_is_sent_when_the_car_already_has_that_current);
     RUN_TEST(test_a_stop_request_stops_a_charging_car_and_leaves_a_stopped_one_alone);
@@ -608,12 +789,20 @@ int main() {
     RUN_TEST(test_an_unplugged_or_complete_car_is_left_alone);
     RUN_TEST(test_a_sleeping_car_is_not_commanded_and_the_state_says_so);
     RUN_TEST(test_a_fixed_current_is_kept_in_force_and_beats_the_planner);
-    RUN_TEST(test_a_stale_reading_is_read_again_before_anything_is_decided);
+    RUN_TEST(test_it_trusts_what_it_set_and_only_checks_the_car_every_ten_minutes);
+    RUN_TEST(test_the_check_finds_a_change_made_by_someone_else_and_puts_it_right);
+    RUN_TEST(test_the_check_notices_a_car_that_stopped_by_itself);
     RUN_TEST(test_the_commander_waits_while_a_job_is_running);
-    RUN_TEST(test_the_planner_sees_the_cars_current_limit_and_status);
-    RUN_TEST(test_a_stale_reading_is_not_trusted_as_a_measurement);
+    RUN_TEST(test_the_planner_is_told_what_wattsync_set_not_a_measurement);
+    RUN_TEST(test_after_its_own_command_the_numbers_follow_without_another_read);
     RUN_TEST(test_a_car_that_falls_asleep_keeps_its_last_known_plugged_in_state);
     RUN_TEST(test_commands_are_recorded_in_the_activity_log_with_their_reason);
+    RUN_TEST(test_the_status_says_what_wattsync_set);
+    RUN_TEST(test_a_sleeping_car_is_woken_only_when_the_owner_allowed_it_and_charging_is_wanted);
+    RUN_TEST(test_after_a_wake_the_car_is_looked_at_at_once_and_then_commanded);
+    RUN_TEST(test_the_car_is_woken_at_most_once_every_thirty_minutes);
+    RUN_TEST(test_a_car_known_to_be_unplugged_or_full_or_never_seen_awake_is_not_woken);
+    RUN_TEST(test_a_sleeping_car_status_says_whether_waking_is_on);
     RUN_TEST(test_failed_jobs_are_retried_after_30_60_120_and_then_300_seconds);
     RUN_TEST(test_a_success_after_failures_starts_the_backoff_over);
     RUN_TEST(test_keep_last_setting_is_silent_about_an_outage);
@@ -626,6 +815,7 @@ int main() {
     RUN_TEST(test_an_unpaired_car_is_not_a_charger);
     RUN_TEST(test_the_router_sends_everything_to_the_wallbox_until_the_car_is_chosen);
     RUN_TEST(test_switching_to_the_car_releases_the_wallbox_and_hands_over_and_back);
+    RUN_TEST(test_allowing_the_wake_is_saved_and_off_by_default);
     RUN_TEST(test_the_car_cannot_be_chosen_unless_it_is_paired);
     RUN_TEST(test_the_choice_and_the_policy_survive_a_restart_but_an_unpaired_car_never_takes_command);
     RUN_TEST(test_the_solar_controller_drives_the_car_through_the_router);
