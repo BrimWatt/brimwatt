@@ -16,6 +16,7 @@ constexpr int kRoleDriver = 3;
 constexpr int kRoleChargingManager = 6;
 
 constexpr int kFormFactorCloudKey = 9;   // what a controller with its own key is closest to
+constexpr int kFormFactorAndroidDevice = 7;   // fallback some cars may need (how other open-source controllers pair)
 
 constexpr uint32_t kFlagEncryptResponse = 1u << 1;
 

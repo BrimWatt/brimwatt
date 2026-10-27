@@ -239,6 +239,42 @@ void test_pairing_ignores_noise_and_reports_a_message_fault() {
     TEST_ASSERT_TRUE(flow.text().find("role") != std::string::npos);
 }
 
+static Bytes faultMessage(int fault) {
+    Writer st;
+    st.varint(1, 2);
+    st.varint(2, static_cast<uint64_t>(fault));
+    Writer w;
+    w.message(12, st);
+    return w.data();
+}
+
+void test_pairing_retries_once_as_a_phone_key_when_the_car_cannot_read_the_request() {
+    Bytes pub(65, 4);
+    PairFlow flow(crypto, pub, kRoleChargingManager);
+    Bytes first = flow.request();
+    Routable r1;
+    TEST_ASSERT_TRUE(decodeRoutable(first, r1));
+    TEST_ASSERT_TRUE(r1.payload == vcsecAddKey(pub, kRoleChargingManager, kFormFactorCloudKey));
+    Bytes again = flow.onMessage(faultMessage(10));
+    TEST_ASSERT_FALSE(again.empty());
+    TEST_ASSERT_EQUAL(PairFlow::Ready, flow.state());
+    Routable r2;
+    TEST_ASSERT_TRUE(decodeRoutable(again, r2));
+    TEST_ASSERT_TRUE(r2.payload == vcsecAddKey(pub, kRoleChargingManager, kFormFactorAndroidDevice));
+    // a second failure is final, and shows the fault number
+    Bytes none = flow.onMessage(faultMessage(10));
+    TEST_ASSERT_TRUE(none.empty());
+    TEST_ASSERT_EQUAL(PairFlow::Refused, flow.state());
+    TEST_ASSERT_TRUE(flow.text().find("fault 10") != std::string::npos);
+}
+
+void test_other_faults_are_not_retried() {
+    PairFlow flow(crypto, Bytes(65, 4), kRoleChargingManager);
+    flow.request();
+    TEST_ASSERT_TRUE(flow.onMessage(faultMessage(7)).empty());
+    TEST_ASSERT_EQUAL(PairFlow::Refused, flow.state());
+}
+
 // ---- a pretend car ------------------------------------------------------------------------------------------------------------
 
 class FakeCar {
@@ -641,6 +677,8 @@ int main() {
     RUN_TEST(test_pairing_explains_a_refusal);
     RUN_TEST(test_pairing_again_with_the_same_key_counts_as_paired);
     RUN_TEST(test_pairing_ignores_noise_and_reports_a_message_fault);
+    RUN_TEST(test_pairing_retries_once_as_a_phone_key_when_the_car_cannot_read_the_request);
+    RUN_TEST(test_other_faults_are_not_retried);
     RUN_TEST(test_status_reads_the_charge_state_from_an_awake_car);
     RUN_TEST(test_status_does_not_wake_a_sleeping_car);
     RUN_TEST(test_status_says_so_when_the_car_does_not_know_our_key);

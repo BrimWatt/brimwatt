@@ -21,9 +21,13 @@ public:
 
     /** The one message to send to the car (a RoutableMessage, not yet framed). */
     Bytes request();
-    void onMessage(const Bytes& routable);
+    /** Handles one message from the car; returns a message to send, or empty. (One retry as a phone key if the car cannot read the first request.) */
+    Bytes onMessage(const Bytes& routable);
 
     State state() const { return state_; }
+    /** The form factor the last request asked for (9 cloud key, 7 phone key after the retry). */
+    int formFactor() const { return formFactor_; }
+    int lastFault() const { return lastFault_; }
     /** One plain sentence about where things stand or why it was refused. */
     const std::string& text() const { return text_; }
     /** The car refused because this key is already on its list (a repeat pairing): that is as good as accepted. */
@@ -31,6 +35,9 @@ public:
 
 private:
     bool alreadyOnCar_ = false;
+    int formFactor_ = kFormFactorCloudKey;
+    bool retried_ = false;
+    int lastFault_ = 0;
     Crypto& c_;
     Bytes pub_;
     int role_;

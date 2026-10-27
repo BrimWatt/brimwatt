@@ -11,25 +11,33 @@ Bytes PairFlow::request() {
     r.toDomain = kDomainVehicleSecurity;
     r.fromRouting = routing_;
     r.hasPayload = true;
-    r.payload = vcsecAddKey(pub_, role_, kFormFactorCloudKey);
+    r.payload = vcsecAddKey(pub_, role_, formFactor_);
     r.uuid = c_.randomBytes(16);
     state_ = Ready;
     text_ = "Request sent. Tap your key card on the centre console now.";
     return encodeRoutable(r);
 }
 
-void PairFlow::onMessage(const Bytes& routable) {
-    if (state_ == Accepted || state_ == Refused) return;
+Bytes PairFlow::onMessage(const Bytes& routable) {
+    if (state_ == Accepted || state_ == Refused) return Bytes();
     Routable r;
-    if (!decodeRoutable(routable, r)) return;
+    if (!decodeRoutable(routable, r)) return Bytes();
     if (r.hasStatus && r.statusFault != 0) {
+        lastFault_ = r.statusFault;
+        if (r.statusFault == 10 && !retried_) {       // "could not read the message": try once as a phone key
+            retried_ = true;
+            formFactor_ = kFormFactorAndroidDevice;
+            Bytes again = request();
+            text_ = "The car could not read the first request; trying again as a phone key. Tap your key card when asked.";
+            return again;
+        }
         state_ = Refused;
-        text_ = std::string("The car refused: ") + messageFaultText(r.statusFault) + ".";
-        return;
+        text_ = std::string("The car refused: ") + messageFaultText(r.statusFault) + " (fault " + std::to_string(r.statusFault) + ").";
+        return Bytes();
     }
-    if (!r.hasPayload) return;
+    if (!r.hasPayload) return Bytes();
     VcsecReply v;
-    if (!decodeVcsecReply(r.payload, v) || !v.isCommandStatus) return;
+    if (!decodeVcsecReply(r.payload, v) || !v.isCommandStatus) return Bytes();
     if (v.hasWhitelistStatus && v.whitelistInfo != 0) {
         state_ = Refused;
         alreadyOnCar_ = v.whitelistInfo == 13;
@@ -44,6 +52,7 @@ void PairFlow::onMessage(const Bytes& routable) {
         state_ = Accepted;
         text_ = "The car accepted our key.";
     }
+    return Bytes();
 }
 
 // ---- status -----------------------------------------------------------------------------------------------------------------
