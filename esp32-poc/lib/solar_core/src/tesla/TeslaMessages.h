@@ -94,6 +94,11 @@ std::string whitelistInfoText(int info);
 /** Action { vehicleAction { getVehicleData { getChargeState } } }: reads, changes nothing. */
 Bytes carGetChargeState();
 
+/** Action { vehicleAction { chargingStartStopAction { start | stop } } }: starts or stops the charge (the car must be plugged in and awake). */
+Bytes carChargingStartStop(bool start);
+/** Action { vehicleAction { setChargingAmpsAction { charging_amps } } }: the current the car asks the charger for. */
+Bytes carSetChargingAmps(int amps);
+
 struct ChargeState {
     bool valid = false;
     int chargingState = 0;            // 1 unknown, 2 disconnected, 3 no power, 4 starting, 5 charging, 6 complete, 7 stopped, 8 calibrating

@@ -78,20 +78,23 @@ void StatusFlow::timedOut() {
                                                                                                   : "The car did not answer the charge-state request.");
 }
 
-void StatusFlow::addCharge(const ChargeState& s) {
-    charge_ = s;
-    std::string a = std::string("Charging: ") + chargingStateText(s.chargingState) + ".";
-    lines_.push_back(a);
-    if (s.hasBatteryLevel) lines_.push_back("Battery: " + std::to_string(s.batteryLevel) + " %" + (s.hasChargeLimit ? ", charge limit " + std::to_string(s.chargeLimit) + " %." : "."));
+void describeCharge(const ChargeState& s, std::vector<std::string>& lines) {
+    lines.push_back(std::string("Charging: ") + chargingStateText(s.chargingState) + ".");
+    if (s.hasBatteryLevel) lines.push_back("Battery: " + std::to_string(s.batteryLevel) + " %" + (s.hasChargeLimit ? ", charge limit " + std::to_string(s.chargeLimit) + " %." : "."));
     if (s.hasActualCurrent || s.hasCurrentRequest) {
         std::string c = "Current:";
         if (s.hasActualCurrent) c += " drawing " + std::to_string(s.actualCurrent) + " A";
         if (s.hasCurrentRequest) c += (s.hasActualCurrent ? "," : "") + std::string(" set to ") + std::to_string(s.currentRequest) + " A";
         if (s.hasCurrentRequestMax) c += " (up to " + std::to_string(s.currentRequestMax) + " A)";
         if (s.hasVoltage) c += " at " + std::to_string(s.voltage) + " V";
-        lines_.push_back(c + ".");
+        lines.push_back(c + ".");
     }
-    if (s.hasPower) lines_.push_back("Charger power: " + std::to_string(s.power) + " kW.");
+    if (s.hasPower) lines.push_back("Charger power: " + std::to_string(s.power) + " kW.");
+}
+
+void StatusFlow::addCharge(const ChargeState& s) {
+    charge_ = s;
+    describeCharge(s, lines_);
 }
 
 Bytes StatusFlow::onMessage(const Bytes& routable, uint32_t nowMs) {
@@ -160,6 +163,147 @@ Bytes StatusFlow::onMessage(const Bytes& routable, uint32_t nowMs) {
     }
     addCharge(reply.charge);
     ok_ = true;
+    stage_ = Done;
+    return Bytes();
+}
+
+// ---- charge commands --------------------------------------------------------------------------------------------------------
+
+Bytes ChargeCommandFlow::envelope(int domain, const Bytes& payload) {
+    Routable r;
+    r.toDomain = domain;
+    r.fromRouting = routing_;
+    r.hasPayload = true;
+    r.payload = payload;
+    r.uuid = c_.randomBytes(16);
+    return encodeRoutable(r);
+}
+
+void ChargeCommandFlow::fail(const std::string& why) {
+    lines_.push_back(why);
+    ok_ = false;
+    stage_ = Done;
+}
+
+std::string ChargeCommandFlow::doneText() const {
+    switch (command_) {
+        case Start: return "Charging started.";
+        case Stop: return "Charging stopped.";
+        default: return "Charging current set to " + std::to_string(amps_) + " A.";
+    }
+}
+
+Bytes ChargeCommandFlow::start() {
+    lines_.clear();
+    ok_ = false;
+    if (command_ == SetAmps && (amps_ < kMinAmps || amps_ > kMaxAmps)) {
+        fail("The current must be between " + std::to_string(kMinAmps) + " and " + std::to_string(kMaxAmps) + " A. Nothing was sent.");
+        return Bytes();
+    }
+    routing_ = c_.randomBytes(16);
+    stage_ = AwaitStatus;
+    return envelope(kDomainVehicleSecurity, vcsecGetStatus());
+}
+
+Bytes ChargeCommandFlow::sendCar(const Bytes& payload, uint32_t nowMs) {
+    Routable cmd = session_.command(payload, kFlagEncryptResponse, 10, nowMs, requestTag_);
+    cmd.fromRouting = routing_;
+    return encodeRoutable(cmd);
+}
+
+void ChargeCommandFlow::timedOut() {
+    if (stage_ == Done) return;
+    switch (stage_) {
+        case AwaitStatus: fail("The car did not answer. Is it in range? Nothing was changed."); break;
+        case AwaitSession: fail("The car's main computer did not answer (it may be falling asleep). Nothing was changed."); break;
+        case AwaitCommand: fail("The car did not answer after the command: it may or may not have been applied. Check with: tesla status."); break;
+        default:
+            lines_.push_back("Could not read the charge state back. Check with: tesla status.");
+            stage_ = Done;
+            break;
+    }
+}
+
+Bytes ChargeCommandFlow::onMessage(const Bytes& routable, uint32_t nowMs) {
+    if (stage_ == Done) return Bytes();
+    Routable r;
+    if (!decodeRoutable(routable, r)) return Bytes();
+
+    if (stage_ == AwaitStatus) {
+        if (r.hasStatus && r.statusFault != 0) {
+            fail(std::string("The car refused: ") + messageFaultText(r.statusFault) + ". Nothing was changed.");
+            return Bytes();
+        }
+        VcsecReply v;
+        if (!r.hasPayload || !decodeVcsecReply(r.payload, v) || !v.isVehicleStatus) return Bytes();
+        if (v.sleepStatus == 2) {
+            fail("The car is asleep, so the command was not sent. Waking it is not done here; wake it from the Tesla app and try again.");
+            return Bytes();
+        }
+        stage_ = AwaitSession;
+        Routable h = session_.handshakeRequest();
+        h.fromRouting = routing_;
+        return encodeRoutable(h);
+    }
+
+    if (stage_ == AwaitSession) {
+        if (r.sessionInfo.empty() && !(r.hasStatus && r.statusFault != 0)) return Bytes();
+        std::string error;
+        if (!session_.acceptSessionInfo(r, nowMs, error)) {
+            fail(session_.keyUnknown() ? "The car does not have our key. Pair again (tesla pair). Nothing was changed."
+                                       : "Could not start a session: " + error + ". Nothing was changed.");
+            return Bytes();
+        }
+        stage_ = AwaitCommand;
+        Bytes payload = command_ == SetAmps ? carSetChargingAmps(amps_) : carChargingStartStop(command_ == Start);
+        return sendCar(payload, nowMs);
+    }
+
+    // AwaitCommand and AwaitVerify both get an encrypted reply.
+    if (r.hasStatus && r.statusFault != 0) {
+        if (stage_ == AwaitCommand) fail(std::string("The car refused the command: ") + messageFaultText(r.statusFault) + ".");
+        else {
+            lines_.push_back("Could not read the charge state back. Check with: tesla status.");
+            stage_ = Done;
+        }
+        return Bytes();
+    }
+    if (!r.hasPayload) return Bytes();
+    Bytes plain;
+    std::string error;
+    if (!session_.openReply(r, requestTag_, plain, error)) {
+        if (stage_ == AwaitCommand) fail("Could not read the car's reply (" + error + "): the command may or may not have been applied. Check with: tesla status.");
+        else {
+            lines_.push_back("Could not read the charge state back. Check with: tesla status.");
+            stage_ = Done;
+        }
+        return Bytes();
+    }
+    CarReply reply;
+    bool parsed = decodeCarReply(plain, reply);
+
+    if (stage_ == AwaitCommand) {
+        if (!parsed) {
+            fail("The car's reply could not be understood: the command may or may not have been applied. Check with: tesla status.");
+            return Bytes();
+        }
+        if (!reply.ok) {
+            fail("The car said no: " + (reply.reasonText.empty() ? std::string("no reason given") : reply.reasonText) + ".");
+            return Bytes();
+        }
+        ok_ = true;
+        lines_.push_back(doneText());
+        stage_ = AwaitVerify;
+        return sendCar(carGetChargeState(), nowMs);
+    }
+
+    // AwaitVerify
+    if (parsed && reply.ok && reply.charge.valid) {
+        charge_ = reply.charge;
+        describeCharge(reply.charge, lines_);
+    } else {
+        lines_.push_back("Could not read the charge state back. Check with: tesla status.");
+    }
     stage_ = Done;
     return Bytes();
 }

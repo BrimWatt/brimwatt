@@ -277,6 +277,26 @@ Bytes carGetChargeState() {
     return action.data();
 }
 
+static Bytes vehicleActionEnvelope(int field, const Writer& inner) {
+    Writer vehicleAction;
+    vehicleAction.message(field, inner);             // VehicleAction.<one action>
+    Writer action;
+    action.message(2, vehicleAction);                // Action.vehicleAction
+    return action.data();
+}
+
+Bytes carChargingStartStop(bool start) {
+    Writer s;
+    s.message(start ? 2 : 5, Writer());              // ChargingStartStopAction.start = 2, .stop = 5 (a Void each)
+    return vehicleActionEnvelope(6, s);              // VehicleAction.chargingStartStopAction
+}
+
+Bytes carSetChargingAmps(int amps) {
+    Writer s;
+    s.varint(1, static_cast<uint64_t>(amps));        // SetChargingAmpsAction.charging_amps
+    return vehicleActionEnvelope(43, s);             // VehicleAction.setChargingAmpsAction
+}
+
 static void decodeChargeState(const uint8_t* p, size_t n, ChargeState& c) {
     c.valid = true;
     Reader in(p, n);

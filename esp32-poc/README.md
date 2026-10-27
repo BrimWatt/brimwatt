@@ -190,6 +190,8 @@ The wallbox can talk to only one controller, so while testing the ESP32 the Pi m
 | `tesla pair <VIN>` | **Changes the car's key list.** Makes this controller's own key (first time only), connects to the car with that VIN, asks to add the key with the *Charging Manager* role, and waits up to 2 minutes while you **tap your key card on the centre console** (and confirm on the screen if asked). On success the VIN is saved on the board. Only the masked VIN is ever printed. Needs the car in range and awake-ish; the key shows in the car under Controls > Locks, where you can rename or delete it |
 | `tesla status` | Read-only: asks the car's security computer (works asleep), and if the car is awake opens a session and reads battery, charge limit, charging state and current. **Never wakes the car and sends no charge command.** This is the compatibility test for a model and year |
 | `tesla key` / `tesla forget` | Shows the key's short fingerprint and whether a car is paired / deletes the key and VIN from the board (remove the key in the car too) |
+| `tesla charge start` / `tesla charge stop` | **Changes the car.** Starts or stops its charge over Bluetooth, then reads the charge state back. Never wakes a sleeping car (it says so and sends nothing). The car must be paired, plugged in and awake. Do not use while the real wallbox is in control |
+| `tesla charge amps <6-40>` | **Changes the car.** Sets the charging current the car asks for, then reads it back. Same rules as above |
 | `tesla selftest` | Runs Tesla's published example values (key agreement, message check, one encrypted command) through the board's own cryptography. No car needed |
 | `help` | The list |
 

@@ -47,10 +47,12 @@ void SerialConsole::printHelp() {
     Serial.println("  tesla scan <VIN> [seconds]   listen for your own car only; nothing is sent to the car");
     Serial.println("  tesla pair <VIN>    add this controller's own key to your car (you tap your key card in the car); VIN is never printed");
     Serial.println("  tesla status        read-only: is the car awake, battery, charge limit, charging current (changes nothing, does not wake it)");
+    Serial.println("  tesla charge start|stop       start or stop the car's charge (CHANGES the car; never wakes it)");
+    Serial.println("  tesla charge amps <6-40>      set the car's charging current (CHANGES the car; never wakes it)");
     Serial.println("  tesla key           show this controller's key fingerprint and whether a car is paired");
     Serial.println("  tesla forget        delete the key and car from this board (then remove the key in the car: Controls > Locks)");
     Serial.println("  tesla selftest      check this board's cryptography against Tesla's published example values");
-    Serial.println("  tesla stop        end a scan, pairing or status early");
+    Serial.println("  tesla stop        end a scan, pairing, status or charge command early");
     Serial.println("  help              this list");
 }
 
@@ -134,6 +136,24 @@ void SerialConsole::run(const std::string& line) {
         } else {
             std::string err = teslaCar_->startStatus();
             if (!err.empty()) LOG_WARN("Tesla status: %s", err.c_str());
+        }
+    } else if (line == "tesla charge start" || line == "tesla charge stop" || line == "tesla charge amps" || line.rfind("tesla charge amps ", 0) == 0) {
+        if (!teslaCar_) {
+            LOG_WARN("Console: Tesla control is not available.");
+        } else if (teslaScan_ && teslaScan_->running()) {
+            LOG_WARN("Tesla: a scan is running. Type \"tesla stop\" first.");
+        } else {
+            using Cmd = solar::tesla::ChargeCommandFlow;
+            Cmd::Command command = line == "tesla charge start" ? Cmd::Start : line == "tesla charge stop" ? Cmd::Stop : Cmd::SetAmps;
+            int amps = 0;
+            bool valid = true;
+            if (command == Cmd::SetAmps) {
+                std::string n = line.size() > 18 ? line.substr(18) : "";
+                valid = !n.empty() && n.size() <= 3 && n.find_first_not_of("0123456789") == std::string::npos;
+                if (valid) amps = std::atoi(n.c_str());
+            }
+            std::string err = valid ? teslaCar_->startCharge(command, amps) : "Give the current in whole amps, 6 to 40: tesla charge amps 16";
+            if (!err.empty()) LOG_WARN("Tesla charge: %s", err.c_str());
         }
     } else if (line == "tesla key") {
         if (!teslaCar_) {
