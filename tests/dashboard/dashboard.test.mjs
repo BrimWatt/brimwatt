@@ -206,3 +206,58 @@ test('energy can be shown as kWh or as estimated miles, and the goal always goes
     miles(false);
     assert.equal(page.goalProgress({ doneKwh: 4, kwh: 13 }), '4 of 13 kWh');
 });
+
+// ---- the Tesla tile and settings ----
+
+test('the Tesla tile says what the car reported, how old it is, and compares with the charger', () => {
+    const c = { watch: true, reading: { ageSeconds: 120, battery: 46, limit: 80, charging: 'charging', amps: 18, volts: 239 } };
+    const v = page.carView(c, { connected: true, amps: 17.9 });
+    assert.equal(v.main, '46%');
+    assert.match(v.state, /Charging · 18 A · 4\.30 kW · limit 80%/);
+    assert.match(v.note, /Read 2m ago/);
+    assert.match(v.note, /charger shows 17\.9 A/);
+    assert.equal(v.pct, 46);
+    assert.equal(v.limit, 80);
+    assert.equal(v.stale, false);
+});
+
+test('an old reading is marked stale and a sleeping car is not shown as charging', () => {
+    const old = page.carView({ reading: { ageSeconds: 3600, battery: 50, charging: 'stopped' } }, null);
+    assert.equal(old.stale, true);
+    assert.match(old.note, /^Last read /);
+    const asleep = page.carView({ reading: { ageSeconds: 30, sleep: 2 } }, null);
+    assert.equal(asleep.main, 'Asleep');
+});
+
+test('before any reading the tile explains why, and a failed read says the car was not reachable', () => {
+    assert.match(page.carView({ watch: true }, null).note, /within a minute/);
+    assert.match(page.carView({ watch: false }, null).note, /Check now/);
+    const failed = page.carView({ watch: true, result: { job: 'status', ok: false, ageSeconds: 5, lines: ['The car was not heard. Move the board closer.'] } }, null);
+    assert.equal(failed.state, 'Not reachable');
+    assert.match(failed.note, /not heard/);
+    assert.match(page.carView({ busy: true, job: 'status' }, null).note, /Reading/);
+});
+
+test('pairing progress tells the owner when to tap the key card', () => {
+    assert.match(page.carProgressText({ busy: true, job: 'pair', pair: { state: 'finding' } }), /Looking for your car/);
+    const waiting = page.carProgressText({ busy: true, job: 'pair', pair: { state: 'waiting', text: 'Tap your key card now.', secondsLeft: 87 } });
+    assert.match(waiting, /Tap your key card now\. \(87 s left\)/);
+    assert.equal(page.carProgressText({ busy: false }), '');
+    assert.match(page.carProgressText({ busy: true, job: 'charge' }), /Sending the command/);
+});
+
+test('the VIN is checked in the page the same way as on the board, and travels in the body, not the address', () => {
+    const cleanVin = read('cleanVin'), VIN_OK = read('VIN_OK');   // top-level consts are not properties of the context
+    assert.equal(cleanVin(' 5yj-ygdee2 mf284667 '), '5YJYGDEE2MF284667');
+    assert.ok(VIN_OK.test('5YJYGDEE2MF284667'));
+    for (const bad of ['', '5YJYGDEE2MF28466', '5YJYGDEE2MF28466O', '5YJYGDEE2MF28466I', '5YJYGDEE2MF28466Q', '5YJYGDEE2MF28466!']) assert.ok(!VIN_OK.test(bad), bad);
+    assert.ok(!/api\/car\/pair\?/.test(html), 'the VIN must never be put in a URL');
+    assert.match(script, /carStart\('\/api\/car\/pair', \{ vin \}/);
+    assert.match(script, /fields \? await postForm\(url, fields\)/, 'fields go through the body helper');
+});
+
+test('every Tesla test button asks before it changes the car', () => {
+    const body = name => script.match(new RegExp('async function ' + name + '\\([^)]*\\) \\{([\\s\\S]*?)\\n\\}'))[1];
+    for (const name of ['carTest', 'carSetAmps', 'carForget']) assert.match(body(name), /confirm\(/, name + ' must ask first');
+    assert.match(body('carRestore'), /carSetAmps\(n\)/, 'restoring goes through the same question');
+});

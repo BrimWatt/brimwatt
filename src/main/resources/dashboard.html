@@ -159,6 +159,17 @@
         .field input[type=time] { min-height: 40px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; font-size: 16px; font-weight: 600; }
         .smallbtn { min-height: 40px; padding: 0 14px; background: var(--blue, #2a78d6); color: #fff; font-weight: 600; }
         .smallbtn:disabled { opacity: 0.45; }
+        .smallbtn.danger { background: #b91c1c; }
+        .carmain { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+        .carmain b { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+        .carmain .st { color: var(--muted); font-size: 0.9rem; flex: 1 1 auto; min-width: 0; }
+        .carbar { position: relative; height: 6px; margin: 9px 0 3px; border-radius: 3px; background: #e2e8f0; }
+        .carbar i { display: block; height: 100%; border-radius: 3px; background: var(--green); }
+        .carbar u { position: absolute; top: -3px; width: 2px; height: 12px; background: var(--ink); opacity: 0.55; }
+        .carbar[hidden] { display: none; }
+        .carbox { margin: 8px 0; padding: 10px 12px; border-radius: 10px; background: #eef2ff; font-size: 0.9rem; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .carbox[hidden], #car-paired[hidden], #car-setup[hidden] { display: none; }
+        #car-result { white-space: pre-line; }
         .edit { display: inline-flex; align-items: center; gap: 6px; }
         .savebtn { min-width: 40px; min-height: 40px; padding: 0; background: var(--green); color: #fff; font-size: 1.15rem; line-height: 1; }
         .savebtn:hover:not(:disabled) { background: #065f46; }
@@ -201,8 +212,8 @@
 
         /* on a phone the two stacks dissolve into one list, in this order */
         .stack { display: contents; }
-        #hero { order: 1; } #flow { order: 2; } #stats { order: 3; } #modes { order: 4; } #chartcard { order: 5; }
-        #feedcard { order: 6; } #sessions { order: 7; }
+        #hero { order: 1; } #flow { order: 2; } #stats { order: 3; } #modes { order: 4; } #carcard { order: 5; } #chartcard { order: 6; }
+        #feedcard { order: 7; } #sessions { order: 8; }
 
         /* wider screens: two stacks on top and the graph beside the sessions below, so both sides end on the same line */
         @media (min-width: 900px) {
@@ -268,6 +279,12 @@
                 <p class="hint" id="allowance-status">Grid power the car may add to the solar.</p>
             </div>
         </section>
+        <section class="tile" id="carcard" hidden>
+            <h2>Tesla</h2>
+            <div class="carmain"><b id="car-main">–</b><span class="st" id="car-state">&nbsp;</span><button type="button" class="info" data-tip="car" aria-label="What is the Tesla tile?">i</button></div>
+            <div class="carbar" id="car-bar" hidden><i id="car-bar-fill"></i><u id="car-bar-limit"></u></div>
+            <p class="hint" id="car-note">&nbsp;</p>
+        </section>
         <section class="tile" id="feedcard">
             <h2>Activity</h2>
             <ul class="feed" id="feed"><li><span class="t"></span>Nothing yet today.</li></ul>
@@ -326,6 +343,27 @@
             <div class="field"><span><label for="notify-url">Messages to (web address)</label><button type="button" class="info" data-tip="notify" aria-label="What are messages for?">i</button></span><span class="edit"><input type="url" id="notify-url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="not set" maxlength="200" aria-label="Web address to send messages to"><button id="notify-save" class="savebtn" hidden aria-label="Save message address" title="Save" onclick="sendNotify()">✓</button></span></div>
             <div class="field"><label for="notify-test">Send a test message</label><button type="button" id="notify-test" class="smallbtn" onclick="testNotify()">Send test</button></div>
 </details>
+<details class="more opt" id="car-group"><summary>Tesla<span class="hint">optional</span></summary>
+            <p class="hint" id="car-unsupported" hidden>Car control needs the ESP32 board.</p>
+            <div id="car-setup">
+                <div class="field"><span><label for="car-vin">Car VIN</label><button type="button" class="info" data-tip="carvin" aria-label="Where do I find the VIN?">i</button></span><span class="edit"><input type="text" id="car-vin" maxlength="23" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="17 characters"><button id="car-pair-btn" class="smallbtn" onclick="carPair()">Pair</button></span></div>
+                <p class="hint">Pairing adds this controller's own key to the car. You tap your key card on the car's centre console to allow it.</p>
+            </div>
+            <div class="carbox" id="car-progress" hidden><span id="car-progress-text">&nbsp;</span><button type="button" class="smallbtn" onclick="carCancel()">Stop</button></div>
+            <div id="car-paired" hidden>
+                <div class="field"><span>Paired car</span><b id="car-vin-masked">–</b></div>
+                <label class="check"><input type="checkbox" id="car-watch" onchange="carWatch(this)"><span>Read the car every few minutes</span></label>
+                <div class="field"><label for="car-refresh">Read the car now</label><button type="button" id="car-refresh" class="smallbtn" onclick="carRefresh()">Check now</button></div>
+                <div class="field"><label for="car-forget">Remove this car</label><button type="button" id="car-forget" class="smallbtn danger" onclick="carForget()">Forget car</button></div>
+                <details class="more"><summary>For testing</summary>
+                    <p class="hint">These buttons change how the car charges. The controller never uses them by itself.</p>
+                    <div class="field"><span>Charging</span><span class="edit"><button type="button" class="smallbtn" onclick="carTest('start')">Start</button><button type="button" class="smallbtn" onclick="carTest('stop')">Stop</button></span></div>
+                    <div class="field"><label for="car-amps">Current (A)</label><span class="edit"><input type="number" id="car-amps" inputmode="numeric" min="6" max="40" step="1" value="16"><button type="button" id="car-amps-btn" class="smallbtn" onclick="carSetAmps()">Set</button></span></div>
+                    <div class="field" id="car-restore-row" hidden><span id="car-restore-label">Put the setting back</span><button type="button" class="smallbtn" onclick="carRestore()">Put back</button></div>
+                </details>
+            </div>
+            <p class="hint" id="car-result"></p>
+</details>
 <details class="more" id="diag"><summary>Diagnostics</summary><dl class="rows" id="diag-rows"><div class="row"><dt>Loading…</dt><dd></dd></div></dl></details>
 <button type="button" class="gotit" id="settings-close">Done</button></div></div>
 
@@ -346,6 +384,8 @@ const TIPS = {
     saved: ['Saved today', ['The money you saved today by charging the car from the sun instead of the grid.', 'It uses the electricity price in Settings (the gear icon at the top).']],
     share: ['From the sun', ['How much of the car\'s energy today came from your solar panels instead of the grid. 100% means all of it.']],
     hours: ['Solar hours', ['Eco and Max solar only work during the day: from a little after sunrise until a little before sunset. Outside these hours they do nothing.', 'You can change how many minutes after sunrise it starts, and before sunset it stops, in the two boxes below.', 'Custom works at any time.']],
+    car: ['Tesla', ['WattSync reads your Tesla over Bluetooth: the battery, the charge limit and the charging current. It only reads. The buttons under For testing in Settings are the only things that change the car, and only when you press them.', 'The controller must be near the car. If the car cannot be reached the numbers stay as they were, with their age.']],
+    carvin: ['Car VIN', ['The VIN is the 17-character number on the sticker inside the driver door, at the lower corner of the windshield, and in the Tesla app under Software.', 'It is kept on the controller only, shown with the middle hidden, and never sent anywhere. You can remove the car and the key at any time: Forget car here, and Controls > Locks in the car.']],
     notify: ['Messages', ['WattSync can post a short message to a web address when charging ends, the solar meter is lost, or the charger disconnects. Paste a webhook address from Slack, Discord, Home Assistant, IFTTT or Zapier.', 'The address is kept on the controller and never shown back in full. Clear the box and save to turn messages off.']],
     goal: ['Charge by morning', ['Say how much energy you want and by when, for example 20 kWh by 7:00 am. Until time gets short, charging works as normal, from the sun.', 'When the time left is only just enough, WattSync charges at the lowest speed that still gets there, using the grid if needed, even at night.', 'Only while a car is plugged in, never while paused or in Custom mode. Set 0 to turn it off.']],
     maxamps: ['Maximum current', ['The most current the charger is ever asked for, in any mode. Set it to what your wiring and breaker can safely carry for charging, for example 16 A on a small circuit.', 'Eco and Max solar also stop at 32 A. The Custom slider cannot go above this number.']],
@@ -652,6 +692,131 @@ async function sendPeak() {
     } else toast("Couldn't save", 'err', result.text);
 }
 function minutesToTime(m) { return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+// ---- Tesla (ESP32 board only): read-only watch, pairing, and the test buttons ----
+let carPollTimer = null, carUserJob = false, carWasBusy = false;
+async function postForm(url, fields) {   // for secrets (the VIN): they travel in the body, never in the address
+    try {
+        const res = await fetch(url, { method: 'POST', headers: { 'X-WattSync': '1', 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(fields).toString() });
+        const text = (await res.text()).trim();
+        return { ok: res.ok, text: res.ok ? text : (text || 'Something went wrong.') };
+    } catch (e) { return { ok: false, text: "Can't reach the controller." }; }
+}
+const cleanVin = v => String(v).replace(/[\s-]/g, '').toUpperCase();
+const VIN_OK = /^[A-HJ-NPR-Z0-9]{17}$/;
+const carChargingName = t => t ? t.charAt(0).toUpperCase() + t.slice(1) : '';
+/** What the Tesla tile shows, from the telemetry's car block (and the charger's own amps, for comparison). Pure, so it can be tested. */
+function carView(c, charger) {
+    const v = { main: '–', state: '', note: '', pct: null, limit: null, stale: false };
+    const r = c && c.reading;
+    const last = c && c.result && c.result.job === 'status' ? c.result : null;
+    if (!r) {
+        v.main = 'Not read yet';
+        if (c && c.busy && c.job === 'status') v.note = 'Reading the car…';
+        else if (last && !last.ok) { v.state = 'Not reachable'; v.note = (last.lines && last.lines.length ? last.lines[last.lines.length - 1] : 'The car did not answer.'); }
+        else v.note = c && c.watch ? 'The first read comes within a minute.' : 'Reading is off. Use Check now in Settings.';
+        return v;
+    }
+    if (r.sleep === 2 && !r.charging) { v.main = 'Asleep'; v.state = 'Details come when it wakes'; }
+    else {
+        v.main = r.battery !== undefined ? r.battery + '%' : '–';
+        const parts = [];
+        if (r.charging) parts.push(carChargingName(r.charging));
+        if (r.amps) parts.push(r.amps + ' A' + (r.volts ? ' · ' + fmtPower(r.amps * r.volts) : ''));
+        v.state = parts.join(' · ');
+        if (r.battery !== undefined) { v.pct = r.battery; if (r.limit !== undefined) { v.limit = r.limit; v.state += (v.state ? ' · ' : '') + 'limit ' + r.limit + '%'; } }
+    }
+    v.stale = r.ageSeconds > 900;
+    v.note = (v.stale ? 'Last read ' : 'Read ') + fmtAge(r.ageSeconds) + ' ago';
+    if (last && !last.ok && last.ageSeconds < r.ageSeconds) v.note += ' · not reachable since';
+    if (charger && charger.connected && r.amps && charger.amps > 0) v.note += ' · charger shows ' + charger.amps.toFixed(1) + ' A';
+    return v;
+}
+/** The words for the pairing box and the busy states, from the car block. */
+function carProgressText(c) {
+    if (!c.busy) return '';
+    if (c.job === 'pair') {
+        if (c.pair && c.pair.state === 'waiting') return (c.pair.text || 'Tap your key card on the car\'s centre console now.') + ' (' + c.pair.secondsLeft + ' s left)';
+        return 'Looking for your car… Stay close to it so Bluetooth reaches.';
+    }
+    return c.job === 'charge' ? 'Sending the command to the car…' : 'Reading the car…';
+}
+function renderCar(data) {
+    const c = data.car || { supported: false };
+    const supported = c.supported === true, paired = supported && c.paired === true;
+    el('car-unsupported').hidden = supported;
+    el('car-setup').hidden = !supported || paired || c.busy === true;
+    el('car-paired').hidden = !paired;
+    el('carcard').hidden = !paired;
+    const box = el('car-progress');
+    box.hidden = !supported || !c.busy;
+    if (supported && c.busy) el('car-progress-text').textContent = carProgressText(c);
+    if (supported && c.busy && carPollTimer === null) carPollTimer = setInterval(refresh, 1500);   // follow a job closely while it runs
+    if ((!supported || !c.busy) && carPollTimer !== null) { clearInterval(carPollTimer); carPollTimer = null; }
+    if (carWasBusy && !c.busy && carUserJob && c.result) {
+        carUserJob = false;
+        toast(c.result.ok ? (c.result.job === 'pair' ? 'Paired' : 'Done') : "Didn't work", c.result.ok ? 'ok' : 'err', c.result.lines.join(' '));
+    }
+    carWasBusy = supported && c.busy === true;
+    if (!paired) { el('car-result').textContent = ''; return; }
+    el('car-vin-masked').textContent = c.vin || '';
+    if (document.activeElement !== el('car-watch')) el('car-watch').checked = c.watch === true;
+    const view = carView(c, data.charger);
+    el('car-main').textContent = view.main;
+    el('car-state').textContent = view.state || '\u00a0';
+    setText('car-note', view.note || '\u00a0', view.stale ? 'warn' : '');
+    const bar = el('car-bar');
+    bar.hidden = view.pct === null;
+    if (view.pct !== null) { el('car-bar-fill').style.width = Math.max(0, Math.min(100, view.pct)) + '%'; el('car-bar-limit').style.left = view.limit === null ? '100%' : Math.max(0, Math.min(100, view.limit)) + '%'; }
+    const restore = c.restoreAmps || 0;
+    el('car-restore-row').hidden = restore === 0;
+    if (restore) el('car-restore-label').textContent = 'Put the setting back to ' + restore + ' A';
+    const shown = c.result && c.result.job !== 'status' && c.result.ageSeconds < 900 ? c.result : null;
+    el('car-result').textContent = shown ? (shown.ok ? '' : "Didn't work: ") + shown.lines.join('\n') : '';
+}
+async function carStart(url, fields, failTitle) {
+    carUserJob = true;
+    const result = fields ? await postForm(url, fields) : await post(url);
+    if (!result.ok) { carUserJob = false; toast(failTitle, 'err', result.text); return false; }
+    refresh();
+    return true;
+}
+async function carPair() {
+    const input = el('car-vin'), vin = cleanVin(input.value);
+    if (!VIN_OK.test(vin)) { toast('Check the VIN', 'err', '17 letters and digits, no I, O or Q.'); return; }
+    const button = el('car-pair-btn');
+    button.disabled = true;
+    const started = await carStart('/api/car/pair', { vin }, "Couldn't start pairing");
+    button.disabled = false;
+    if (started) input.value = '';   // do not leave the VIN sitting in the page
+}
+async function carCancel() { await post('/api/car/cancel'); refresh(); }
+async function carRefresh() { await carStart('/api/car/refresh', null, "Couldn't read the car"); }
+async function carWatch(box) {
+    const result = await post('/api/car/watch?enabled=' + box.checked);
+    if (!result.ok) { box.checked = !box.checked; toast("Couldn't change that", 'err', result.text); }
+    else refresh();
+}
+function carName() { return lastData && lastData.car && lastData.car.vin ? 'your Tesla (' + lastData.car.vin + ')' : 'your Tesla'; }
+async function carForget() {
+    if (!confirm('Forget ' + carName() + '? This deletes the key and the VIN from the controller. The key stays in the car until you remove it there (Controls > Locks).')) return;
+    const result = await post('/api/car/forget');
+    if (result.ok) { toast('Car forgotten', 'ok'); refresh(); } else toast("Couldn't forget the car", 'err', result.text);
+}
+async function carTest(action) {
+    const what = action === 'start' ? 'Start charging' : 'Stop charging';
+    if (!confirm(what + ' on ' + carName() + '? This changes how the car charges.')) return;
+    await carStart('/api/car/test?action=' + action, null, "Couldn't send that");
+}
+async function carSetAmps(amps) {
+    const input = el('car-amps'), n = amps === undefined ? Number(input.value.trim()) : amps;
+    if ((amps === undefined && input.value.trim() === '') || !Number.isInteger(n) || n < 6 || n > 40) { toast('Enter 6 to 40 amps', 'err'); return; }
+    if (!confirm('Set the charging current to ' + n + ' A on ' + carName() + '? The car keeps this setting until it is changed again.')) return;
+    await carStart('/api/car/test?action=amps&amps=' + n, null, "Couldn't send that");
+}
+async function carRestore() {
+    const n = lastData && lastData.car ? lastData.car.restoreAmps : 0;
+    if (n) await carSetAmps(n);
+}
 async function sendNotify() {
     const input = el('notify-url'), url = input.value.trim();
     if (url !== '' && !/^https?:\/\/[^\s\/]+/i.test(url)) { toast('Enter a web address starting with https://', 'err'); return; }
@@ -1229,7 +1394,7 @@ async function refresh() {
         if (!marginsEdited && document.activeElement !== el('dl-start') && document.activeElement !== el('dl-end')) {
             el('dl-start').value = data.daylight.startMinutes; el('dl-end').value = data.daylight.endMinutes;
         }
-        renderHeadline(data); renderFlow(data); renderStats(); renderNotice(data, true); renderPill(data);
+        renderHeadline(data); renderFlow(data); renderStats(); renderCar(data); renderNotice(data, true); renderPill(data);
     } catch (e) {
         failedPolls++;
         if (failedPolls >= 2) { wasOffline = true; renderConnection(false); renderNotice(lastData, false); renderOfflineHeadline(); }
