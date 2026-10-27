@@ -10,7 +10,7 @@
 #include "daylight/DaylightSchedule.h"
 #include "web/Diagnostics.h"
 #include "history/HistoryService.h"
-#include "wallbox/WallboxController.h"
+#include "wallbox/ChargeDevice.h"
 
 namespace solar {
 
@@ -50,7 +50,7 @@ class ApiHandler {
 public:
     using Params = std::map<std::string, std::string>;
 
-    ApiHandler(const Platform& platform, SolarController& controller, WallboxController& wallbox,
+    ApiHandler(const Platform& platform, SolarController& controller, ChargeDevice& wallbox,
                const DaylightSchedule& schedule)
         : platform_(platform), controller_(controller), wallbox_(wallbox), schedule_(schedule) {}
 
@@ -88,7 +88,7 @@ private:
 
     const Platform& platform_;
     SolarController& controller_;
-    WallboxController& wallbox_;
+    ChargeDevice& wallbox_;
     const DaylightSchedule& schedule_;
     const HistoryService* history_ = nullptr;
     const DiagnosticsSource* diagnostics_ = nullptr;

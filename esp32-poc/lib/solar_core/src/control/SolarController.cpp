@@ -12,7 +12,7 @@
 
 namespace solar {
 
-SolarController::SolarController(Platform& platform, SystemState& state, WallboxController& wallbox,
+SolarController::SolarController(Platform& platform, SystemState& state, ChargeDevice& wallbox,
                                  DaylightSchedule& schedule, SettingsStore& store)
     : platform_(platform), state_(state), wallbox_(wallbox), schedule_(schedule), store_(store) {
     planners_.emplace(ChargingMode::Eco, ChargingPlanner(ChargingPolicy::eco()));
@@ -214,6 +214,13 @@ bool SolarController::setRateCents(int cents) {
     LOG_INFO("[RATE] Electricity price set to %d cents per kWh", cents);
     event("Price set to " + std::to_string(cents) + "¢ per kWh");
     return true;
+}
+
+void SolarController::onCommanderChanged() {
+    plannedMode_.reset();
+    failingSince_.reset();
+    goalForcing_ = false;
+    applyHold();
 }
 
 void SolarController::stopNow() {

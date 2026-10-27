@@ -8,6 +8,7 @@
 #include "history/HistoryService.h"
 #include "wallbox/ChargerRegistry.h"
 #include "web/ApiHandler.h"
+#include "wallbox/WallboxController.h"
 
 using namespace solar;
 using testing::FakeLink;
