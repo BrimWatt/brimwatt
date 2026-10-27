@@ -274,7 +274,7 @@ Bytes ChargeCommandFlow::onMessage(const Bytes& routable, uint32_t nowMs) {
     if (r.hasStatus && r.statusFault != 0) {
         if (stage_ == AwaitCommand) fail(std::string("The car refused the command: ") + messageFaultText(r.statusFault) + ".");
         else {
-            lines_.push_back("Could not read the charge state back. Check with: tesla status.");
+            lines_.push_back(std::string("Could not read the charge state back (the car said: ") + messageFaultText(r.statusFault) + "). Check with: tesla status.");
             stage_ = Done;
         }
         return Bytes();
@@ -285,7 +285,7 @@ Bytes ChargeCommandFlow::onMessage(const Bytes& routable, uint32_t nowMs) {
     if (!session_.openReply(r, requestTag_, plain, error)) {
         if (stage_ == AwaitCommand) fail("Could not read the car's reply (" + error + "): the command may or may not have been applied. Check with: tesla status.");
         else {
-            lines_.push_back("Could not read the charge state back. Check with: tesla status.");
+            lines_.push_back("Could not read the charge state back (" + error + "). Check with: tesla status.");
             stage_ = Done;
         }
         return Bytes();
@@ -313,7 +313,7 @@ Bytes ChargeCommandFlow::onMessage(const Bytes& routable, uint32_t nowMs) {
         charge_ = reply.charge;
         describeCharge(reply.charge, lines_);
     } else {
-        lines_.push_back("Could not read the charge state back. Check with: tesla status.");
+        lines_.push_back(std::string("Could not read the charge state back (") + (!parsed ? "the reply could not be understood" : !reply.ok ? "the car said no: " + (reply.reasonText.empty() ? std::string("no reason") : reply.reasonText) : "no charge information in the reply") + "). Check with: tesla status.");
     }
     stage_ = Done;
     return Bytes();
