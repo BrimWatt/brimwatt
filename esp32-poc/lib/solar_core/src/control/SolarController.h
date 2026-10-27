@@ -12,7 +12,7 @@
 #include "planner/ChargingPlanner.h"
 #include "state/SettingsStore.h"
 #include "state/SystemState.h"
-#include "wallbox/WallboxController.h"
+#include "wallbox/ChargeDevice.h"
 
 namespace solar {
 
@@ -35,7 +35,7 @@ public:
         std::string error;
     };
 
-    SolarController(Platform& platform, SystemState& state, WallboxController& wallbox,
+    SolarController(Platform& platform, SystemState& state, ChargeDevice& wallbox,
                     DaylightSchedule& schedule, SettingsStore& store);
 
     /** Where to keep the minute-by-minute history and the activity log. Optional. */
@@ -76,6 +76,9 @@ public:
     /** The normal price and an optional peak price (0 = none) with its hours. False, changing nothing, if any is out of range. */
     bool setPrices(int cents, int peakCents, int startHour, int endHour);
 
+    /** Call after the device in command changed (wallbox <-> car): the planner starts from scratch and a fixed current is re-applied. */
+    void onCommanderChanged();
+
     /** Stops the charge now. In ECO and MAX_SOLAR the planner may start it again by its normal rules. */
     void stopNow();
 
@@ -114,7 +117,7 @@ private:
 
     Platform& platform_;
     SystemState& state_;
-    WallboxController& wallbox_;
+    ChargeDevice& wallbox_;   // the wallbox, or the car: whichever is in command (see ChargeRouter)
     DaylightSchedule& schedule_;
     SettingsStore& store_;
 

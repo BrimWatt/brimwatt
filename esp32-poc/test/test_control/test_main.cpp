@@ -7,6 +7,7 @@
 #include "daylight/DaylightSchedule.h"
 #include "history/HistoryService.h"
 #include "wallbox/ChargerRegistry.h"
+#include "wallbox/WallboxController.h"
 
 using namespace solar;
 using testing::FakeLink;
