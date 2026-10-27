@@ -78,5 +78,51 @@ private:
     ChargeState charge_;
 };
 
+/** Plain-words lines for a charge state (shared by status and the charge commands). */
+void describeCharge(const ChargeState& s, std::vector<std::string>& lines);
+
+/**
+ * One charge command (start, stop, or set the current). Unlike StatusFlow this CHANGES the car. It never wakes a sleeping car, sends
+ * nothing when the amps are out of range, sends exactly one command, and then reads the charge state back so the owner sees what
+ * the car now says. A refusal or a silence is reported plainly; after silence the outcome is unknown and the text says so.
+ */
+class ChargeCommandFlow {
+public:
+    enum Command { Start, Stop, SetAmps };
+    static constexpr int kMinAmps = 6, kMaxAmps = 40;
+
+    ChargeCommandFlow(Crypto& crypto, const Bytes& privateKey, const Bytes& publicKey65, const std::string& vin, Command command, int amps)
+        : c_(crypto), session_(crypto, privateKey, publicKey65, vin, kDomainInfotainment), command_(command), amps_(amps) {}
+
+    /** The first message to send, or empty when the request was refused up front (see lines()). */
+    Bytes start();
+    Bytes onMessage(const Bytes& routable, uint32_t nowMs);
+    void timedOut();
+
+    bool finished() const { return stage_ == Done; }
+    /** True when the car accepted the command (a failed read-back afterwards does not change that). */
+    bool ok() const { return ok_; }
+    const std::vector<std::string>& lines() const { return lines_; }
+    const ChargeState& charge() const { return charge_; }
+
+private:
+    enum Stage { AwaitStatus, AwaitSession, AwaitCommand, AwaitVerify, Done };
+    Bytes envelope(int domain, const Bytes& payload);
+    Bytes sendCar(const Bytes& payload, uint32_t nowMs);
+    std::string doneText() const;
+    void fail(const std::string& why);
+
+    Crypto& c_;
+    Session session_;
+    Command command_;
+    int amps_;
+    Bytes routing_;
+    Bytes requestTag_;
+    Stage stage_ = AwaitStatus;
+    bool ok_ = false;
+    std::vector<std::string> lines_;
+    ChargeState charge_;
+};
+
 }  // namespace tesla
 }  // namespace solar

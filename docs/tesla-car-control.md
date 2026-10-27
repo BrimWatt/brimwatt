@@ -1,6 +1,6 @@
 # Tesla car control
 
-> **Status:** built (2026-10-27, **not yet tried on a real car**): `tesla pair <VIN>`, read-only `tesla status`, `tesla key|forget|selftest` (section "First connecting step: what was built"). Before that: design and research (below), plus the Phase 0 range test (built, host-tested, builds as firmware, run once on the board (2026-10-26): one Tesla heard, weak signal (-80 dBm, 4 sightings in 60 s) from where the board sat; closer placement and the car-asleep case not yet tried). The screens in `ui-drafts/` are proposals and use the word "charger".
+> **Status:** built (2026-10-27, **not yet tried on a real car**): `tesla pair <VIN>`, read-only `tesla status`, `tesla charge start|stop|amps <n>`, `tesla key|forget|selftest` (section "First connecting step: what was built"). Before that: design and research (below), plus the Phase 0 range test (built, host-tested, builds as firmware, run once on the board (2026-10-26): one Tesla heard, weak signal (-80 dBm, 4 sightings in 60 s) from where the board sat; closer placement and the car-asleep case not yet tried). The screens in `ui-drafts/` are proposals and use the word "charger".
 
 ## Decisions so far (2026-10-26)
 
@@ -83,7 +83,7 @@ Goal: prove the whole chain on one real car with the smallest, safest step, and 
 
 ## First connecting step: what was built (2026-10-27)
 
-Console commands on the ESP32 (see `esp32-poc/README.md`): `tesla pair <VIN>`, `tesla status`, `tesla key`, `tesla forget`, `tesla selftest`. Nothing here changes how the car charges; `tesla pair` is the only command that changes anything (the car's key list) and it needs the owner's key card.
+Console commands on the ESP32 (see `esp32-poc/README.md`): `tesla pair <VIN>`, `tesla status`, `tesla charge start|stop|amps <6-40>`, `tesla key`, `tesla forget`, `tesla selftest`. `tesla pair` changes the car's key list (it needs the owner's key card); `tesla charge ...` (added later the same day, see below) is the only thing that changes how the car charges. `tesla status` changes nothing.
 
 **Code map**
 
@@ -92,15 +92,39 @@ Console commands on the ESP32 (see `esp32-poc/README.md`): `tesla pair <VIN>`, `
 | Protobuf writer/reader (just what we need) | `lib/solar_core/src/tesla/Proto.h` |
 | Messages to build and read (add key, status, charge state, the envelope) | `TeslaMessages.*` |
 | Secure session: handshake check, signed prefix, encrypted command, reply check | `TeslaSession.*` |
-| Pairing and status as step-by-step logic with no radio | `TeslaFlows.*` (`PairFlow`, `StatusFlow`) |
+| Pairing, status and charge commands as step-by-step logic with no radio | `TeslaFlows.*` (`PairFlow`, `StatusFlow`, `ChargeCommandFlow`) |
 | Crypto interface; mbedTLS on the board, OpenSSL in host tests | `TeslaCrypto.h`, `src/ble/MbedTeslaCrypto.*`, `test/support/OpenSslCrypto.h` |
 | Tesla's published example values, runnable on the board | `TeslaSelfTest.*` (`tesla selftest`) |
 | Bluetooth link, one job at a time, radio released after | `src/ble/TeslaCar.*` |
 | Key and VIN in flash (namespace `tesla`) | `src/platform/NvsTeslaStore.*` |
 
-**What is verified (on the computer):** the message layouts byte for byte, Tesla's example key agreement, session-info check, signed-data prefix and AES-GCM command (all match the published values), pairing and status against a pretend car (asleep car is not woken, unknown key, wrong VIN, damaged reply, silent car). 19 tests in `test/test_tesla_protocol`.
+**What is verified (on the computer):** the message layouts byte for byte, Tesla's example key agreement, session-info check, signed-data prefix and AES-GCM command (all match the published values), pairing and status against a pretend car (asleep car is not woken, unknown key, wrong VIN, damaged reply, silent car). 29 tests in `test/test_tesla_protocol` (19 for pairing and status, 10 for the charge commands).
 
 **What is NOT verified (needs a real car):** the car's actual replies; that the add-key request is accepted with the Charging Manager role (the fallback to Driver is not built yet); the Bluetooth connection, indications, fragmenting and MTU on the S3; the **reply decryption** (the protocol description has no example for it, so the code follows the written rules: signature type 9, domain, VIN, counter, flags, request hash = 0x05 + our tag, fault; if the car disagrees, `tesla status` will say "the car's reply could not be verified" and shows nothing); `tesla selftest` on the board's mbedTLS; Bluetooth next to Wi-Fi; range.
+
+### Charge commands: start, stop, set amps (built 2026-10-27, not tried on a real car)
+
+`tesla charge start`, `tesla charge stop`, `tesla charge amps <6-40>` (typing the command is the confirmation; nothing else asks). Each runs one `ChargeCommandFlow`:
+security computer status first, then a session with the main computer, then **exactly one** command, then a read-only charge-state read-back so the result is printed from the car's own answer.
+
+| Command | What is sent (CarServer `VehicleAction`) | Wire bytes |
+|---|---|---|
+| start | `chargingStartStopAction` (field 6) with `start` (2) | `120432021200` |
+| stop | `chargingStartStopAction` (6) with `stop` (5) | `120432022a00` |
+| amps N | `setChargingAmpsAction` (43) with `charging_amps` (1) | N=16: `1205da02020810` |
+
+Field numbers read from Tesla's `car_server.proto` (vehicle-command repo) on 2026-10-27; the byte layouts are pinned in host tests.
+
+Safety rules in the code (all host-tested):
+- Amps outside 6-40 send nothing (checked in the console, in `TeslaCar` and again in the flow).
+- A sleeping car is **not woken** and gets no command; the text says to wake it from the Tesla app. (Waking is a separate command, not built.)
+- An unknown key, a wrong VIN or a failed session send nothing.
+- A refusal (for example not plugged in) is shown with the car's own reason, and no read-back follows.
+- Silence after the command went out says "may or may not have been applied, check with `tesla status`". `tesla stop` during a command says the same.
+- A failed read-back never turns an accepted command into a failure.
+- One job at a time; a scan or another Tesla job must be stopped first.
+
+Not verified: all of it on a real car (the car's replies, whether the Charging Manager role may start/stop and set amps over Bluetooth, and the encrypted reply, as for status). Not built: wake, charge limit, the "Control through: Charger | Car" switch, the Pi, any automatic use by the controller. These commands are manual console tests only; the controller does not call them.
 
 **Decision changed: the VIN is stored on the board.** Earlier notes said "never store a VIN". Signing needs it (the VIN is part of what is signed), so after a successful pairing the full VIN is kept in the board's flash, beside the key. It is never printed (only `5YJ**********1234`), logged, shown in the API or dashboard, or put in the repository. The flash is not encrypted: someone holding the board could read it. `tesla forget` deletes it.
 
@@ -111,8 +135,9 @@ Console commands on the ESP32 (see `esp32-poc/README.md`): `tesla pair <VIN>`, `
 2. `tesla scan` with the car where it will park; check the signal.
 3. In the car, with your key card in hand: `tesla pair <VIN>`; tap the card on the centre console when told, confirm on the screen. Then Controls > Locks should list a new key.
 4. `tesla status` with the car awake (open a door, or the car just driven); then again asleep: expect "asleep" and no charge data.
-5. Write the model, year and result in the table below.
+5. Only then, with the car plugged in and awake and the real wallbox NOT in charge (one commander at a time): `tesla charge amps 8`, check the car's screen and `tesla status`; `tesla charge stop`; `tesla charge start`. Compare with what the car and the Tesla app show.
+6. Write the model, year and result in the table below.
 
-| Model / year / firmware | Pair | Status | Notes |
-|---|---|---|---|
-| (none tried yet) | | | |
+| Model / year / firmware | Pair | Status | Charge cmds | Notes |
+|---|---|---|---|---|
+| (none tried yet) | | | | |

@@ -255,6 +255,9 @@ public:
     uint32_t clock = 1000;
     uint32_t replyCounter = 0;
     int commandsSeen = 0;
+    int currentRequest = 32;
+    bool refuseCommands = false;        // answer charge commands with an error and a reason
+    int chargeCommandsSeen = 0;
     Bytes lastPlain;
 
     FakeCar() { crypto.generateKeyPair(priv, pub); }
@@ -308,18 +311,35 @@ public:
             lastPlain = plain;
             if (in.gcmCounter <= counter) return Bytes();
             counter = in.gcmCounter;
-            Writer cs, charging, data, response;
-            charging.message(static_cast<int>(chargeState), Writer());
-            cs.message(1, charging);
-            cs.varint(114, 76);
-            cs.varint(104, 80);
-            cs.varint(121, 24);
-            cs.varint(137, 32);
-            response.message(2, data);
-            data.message(3, cs);
-            Writer response2;
-            response2.message(2, data);
-            Bytes body = response2.data();
+            Bytes body;
+            if (plain == carGetChargeState()) {
+                Writer cs, charging, data, response2;
+                charging.message(static_cast<int>(chargeState), Writer());
+                cs.message(1, charging);
+                cs.varint(114, 76);
+                cs.varint(104, 80);
+                cs.varint(121, 24);
+                cs.varint(137, static_cast<uint64_t>(currentRequest));
+                data.message(3, cs);
+                response2.message(2, data);
+                body = response2.data();
+            } else {
+                chargeCommandsSeen++;
+                Writer status, reason, response2;
+                if (refuseCommands) {
+                    status.varint(1, 1);
+                    reason.text(1, "the car is not plugged in");
+                    status.message(2, reason);
+                } else if (plain == carChargingStartStop(true)) {
+                    chargeState = 5;
+                } else if (plain == carChargingStartStop(false)) {
+                    chargeState = 7;
+                } else {
+                    for (int a = 5; a <= 48; a++) if (plain == carSetChargingAmps(a)) currentRequest = a;
+                }
+                response2.message(1, status);
+                body = response2.data();
+            }
             replyCounter++;
             Metadata rm;
             rm.addByte(kTagSignatureType, kSigAesGcmResponse);
@@ -445,8 +465,169 @@ void test_a_reply_that_fails_its_check_is_not_shown() {
     TEST_ASSERT_EQUAL(0, flow.charge().batteryLevel);
 }
 
+// ---- charge commands --------------------------------------------------------------------------------------------------------
+
+void test_charge_commands_have_the_published_layout() {
+    TEST_ASSERT_EQUAL_STRING("120432021200", hex(carChargingStartStop(true)).c_str());
+    TEST_ASSERT_EQUAL_STRING("120432022a00", hex(carChargingStartStop(false)).c_str());
+    TEST_ASSERT_EQUAL_STRING("1205da02020810", hex(carSetChargingAmps(16)).c_str());
+}
+
+template <typename Flow>
+static void driveCommand(Flow& flow, FakeCar& car) {
+    Bytes msg = flow.start();
+    uint32_t now = 10000;
+    for (int guard = 0; guard < 10 && !msg.empty() && !flow.finished(); guard++) {
+        Bytes reply = car.answer(msg);
+        if (reply.empty()) return;
+        msg = flow.onMessage(reply, now += 200);
+    }
+}
+
+static std::string joined(const std::vector<std::string>& lines) {
+    std::string all;
+    for (auto& l : lines) all += l + "\n";
+    return all;
+}
+
+void test_start_sends_one_start_command_and_reads_back() {
+    FakeCar car;
+    car.chargeState = 7;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    ChargeCommandFlow flow(crypto, priv, pub, car.vin, ChargeCommandFlow::Start, 0);
+    driveCommand(flow, car);
+    std::string all = joined(flow.lines());
+    TEST_ASSERT_TRUE_MESSAGE(flow.finished(), all.c_str());
+    TEST_ASSERT_TRUE_MESSAGE(flow.ok(), all.c_str());
+    TEST_ASSERT_EQUAL(1, car.chargeCommandsSeen);
+    TEST_ASSERT_EQUAL(5, car.chargeState);
+    TEST_ASSERT_TRUE(all.find("started") != std::string::npos);
+    TEST_ASSERT_TRUE(all.find("Charging:") != std::string::npos);     // the read-back
+}
+
+void test_stop_sends_one_stop_command() {
+    FakeCar car;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    ChargeCommandFlow flow(crypto, priv, pub, car.vin, ChargeCommandFlow::Stop, 0);
+    driveCommand(flow, car);
+    TEST_ASSERT_TRUE_MESSAGE(flow.ok(), joined(flow.lines()).c_str());
+    TEST_ASSERT_EQUAL(1, car.chargeCommandsSeen);
+    TEST_ASSERT_EQUAL(7, car.chargeState);
+    TEST_ASSERT_TRUE(joined(flow.lines()).find("stopped") != std::string::npos);
+}
+
+void test_set_amps_sends_the_amps_and_shows_what_the_car_now_says() {
+    FakeCar car;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    ChargeCommandFlow flow(crypto, priv, pub, car.vin, ChargeCommandFlow::SetAmps, 12);
+    driveCommand(flow, car);
+    std::string all = joined(flow.lines());
+    TEST_ASSERT_TRUE_MESSAGE(flow.ok(), all.c_str());
+    TEST_ASSERT_EQUAL(12, car.currentRequest);
+    TEST_ASSERT_TRUE(all.find("12 A") != std::string::npos);
+    TEST_ASSERT_EQUAL(12, flow.charge().currentRequest);
+}
+
+void test_amps_outside_the_allowed_range_send_nothing() {
+    FakeCar car;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    for (int amps : {0, 5, 41, 200, -3}) {
+        ChargeCommandFlow flow(crypto, priv, pub, car.vin, ChargeCommandFlow::SetAmps, amps);
+        TEST_ASSERT_TRUE(flow.start().empty());
+        TEST_ASSERT_TRUE(flow.finished());
+        TEST_ASSERT_FALSE(flow.ok());
+        TEST_ASSERT_TRUE(joined(flow.lines()).find("6 and 40") != std::string::npos);
+    }
+    TEST_ASSERT_EQUAL(0, car.commandsSeen);
+}
+
+void test_a_sleeping_car_gets_no_command_and_is_not_woken() {
+    FakeCar car;
+    car.sleep = 2;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    ChargeCommandFlow flow(crypto, priv, pub, car.vin, ChargeCommandFlow::Start, 0);
+    driveCommand(flow, car);
+    TEST_ASSERT_TRUE(flow.finished());
+    TEST_ASSERT_FALSE(flow.ok());
+    TEST_ASSERT_EQUAL(0, car.commandsSeen);
+    TEST_ASSERT_EQUAL(0, (int)car.key.size());
+    TEST_ASSERT_TRUE(joined(flow.lines()).find("asleep") != std::string::npos);
+}
+
+void test_a_refusal_from_the_car_is_reported_with_its_reason() {
+    FakeCar car;
+    car.refuseCommands = true;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    ChargeCommandFlow flow(crypto, priv, pub, car.vin, ChargeCommandFlow::Start, 0);
+    driveCommand(flow, car);
+    std::string all = joined(flow.lines());
+    TEST_ASSERT_TRUE(flow.finished());
+    TEST_ASSERT_FALSE(flow.ok());
+    TEST_ASSERT_TRUE(all.find("not plugged in") != std::string::npos);
+    TEST_ASSERT_EQUAL(1, car.commandsSeen);                     // no read-back after a refusal
+}
+
+void test_an_unknown_key_sends_no_command() {
+    FakeCar car;
+    car.knowsKey = false;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    ChargeCommandFlow flow(crypto, priv, pub, car.vin, ChargeCommandFlow::Stop, 0);
+    driveCommand(flow, car);
+    TEST_ASSERT_FALSE(flow.ok());
+    TEST_ASSERT_EQUAL(0, car.commandsSeen);
+    TEST_ASSERT_TRUE(joined(flow.lines()).find("Pair again") != std::string::npos);
+}
+
+void test_silence_after_the_command_says_the_outcome_is_unknown() {
+    FakeCar car;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    ChargeCommandFlow flow(crypto, priv, pub, car.vin, ChargeCommandFlow::Stop, 0);
+    Bytes msg = flow.start();
+    msg = flow.onMessage(car.answer(msg), 10000);
+    msg = flow.onMessage(car.answer(msg), 10200);               // the command is now out
+    TEST_ASSERT_FALSE(msg.empty());
+    flow.timedOut();
+    TEST_ASSERT_TRUE(flow.finished());
+    TEST_ASSERT_FALSE(flow.ok());
+    TEST_ASSERT_TRUE(joined(flow.lines()).find("may or may not") != std::string::npos);
+}
+
+void test_a_failed_read_back_does_not_undo_a_good_command() {
+    FakeCar car;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    ChargeCommandFlow flow(crypto, priv, pub, car.vin, ChargeCommandFlow::Stop, 0);
+    Bytes msg = flow.start();
+    msg = flow.onMessage(car.answer(msg), 10000);
+    msg = flow.onMessage(car.answer(msg), 10200);
+    msg = flow.onMessage(car.answer(msg), 10400);               // command accepted -> read-back request
+    TEST_ASSERT_FALSE(msg.empty());
+    flow.timedOut();                                            // the read-back never comes
+    TEST_ASSERT_TRUE(flow.finished());
+    TEST_ASSERT_TRUE(flow.ok());
+    TEST_ASSERT_TRUE(joined(flow.lines()).find("stopped") != std::string::npos);
+}
+
 int main() {
     UNITY_BEGIN();
+    RUN_TEST(test_charge_commands_have_the_published_layout);
+    RUN_TEST(test_start_sends_one_start_command_and_reads_back);
+    RUN_TEST(test_stop_sends_one_stop_command);
+    RUN_TEST(test_set_amps_sends_the_amps_and_shows_what_the_car_now_says);
+    RUN_TEST(test_amps_outside_the_allowed_range_send_nothing);
+    RUN_TEST(test_a_sleeping_car_gets_no_command_and_is_not_woken);
+    RUN_TEST(test_a_refusal_from_the_car_is_reported_with_its_reason);
+    RUN_TEST(test_an_unknown_key_sends_no_command);
+    RUN_TEST(test_silence_after_the_command_says_the_outcome_is_unknown);
+    RUN_TEST(test_a_failed_read_back_does_not_undo_a_good_command);
     RUN_TEST(test_varints_and_fields_round_trip);
     RUN_TEST(test_damaged_bytes_are_reported_not_crashed_on);
     RUN_TEST(test_the_add_key_message_has_the_published_layout);

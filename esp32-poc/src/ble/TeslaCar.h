@@ -14,13 +14,13 @@ class BLEClient;
 namespace device {
 
 /**
- * Talks to one Tesla over Bluetooth, one job at a time: pair (add our key; the owner taps their key card) or read the status
- * (read-only). Started from the console, advanced from the main loop, never blocks for long, and gives the radio back when done.
+ * Talks to one Tesla over Bluetooth, one job at a time: pair (add our key; the owner taps their key card), read the status
+ * (read-only), or send one charge command (start, stop, set amps). Started from the console, advanced from the main loop, never blocks for long, and gives the radio back when done.
  * The first connection step is the only one that blocks (a few seconds).
  */
 class TeslaCar {
 public:
-    enum class Job { None, Pair, Status };
+    enum class Job { None, Pair, Status, Charge };
 
     explicit TeslaCar(NvsTeslaStore& store) : store_(store) {}
 
@@ -28,6 +28,11 @@ public:
     std::string startPair(const std::string& vin);
     /** Starts the read-only status for the paired car. Returns an error text, or empty when it started. */
     std::string startStatus();
+    /**
+     * Starts one charge command for the paired car (start, stop, or set the current). This CHANGES the car. Returns an error text, or empty
+     * when it started. The amps are checked here, before anything is sent.
+     */
+    std::string startCharge(solar::tesla::ChargeCommandFlow::Command command, int amps);
     void loop();
     void cancel();
     bool busy() const { return job_ != Job::None; }
@@ -69,6 +74,8 @@ private:
     std::string rx_;
     std::unique_ptr<solar::tesla::PairFlow> pair_;
     std::unique_ptr<solar::tesla::StatusFlow> status_;
+    std::unique_ptr<solar::tesla::ChargeCommandFlow> charge_;
+    std::string chargeWhat_;
     int lastPairState_ = -1;
 };
 

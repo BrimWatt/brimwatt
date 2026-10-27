@@ -115,6 +115,24 @@ std::string TeslaCar::startStatus() {
     return "";
 }
 
+std::string TeslaCar::startCharge(solar::tesla::ChargeCommandFlow::Command command, int amps) {
+    using solar::tesla::ChargeCommandFlow;
+    if (busy()) return "A Tesla job is already running. Type \"tesla stop\" to end it.";
+    if (command == ChargeCommandFlow::SetAmps && (amps < ChargeCommandFlow::kMinAmps || amps > ChargeCommandFlow::kMaxAmps))
+        return "The current must be between 6 and 40 A.";
+    if (!store_.loadKey(priv_) || !crypto_.publicKeyFor(priv_, pub_)) return "No key yet. Pair first: tesla pair <VIN>.";
+    vin_ = store_.loadVin();
+    if (vin_.empty()) return "No car paired yet. Pair first: tesla pair <VIN>.";
+    name_ = solar::tesla::advertisedName(vin_);
+    charge_.reset(new ChargeCommandFlow(crypto_, priv_, pub_, vin_, command, amps));
+    chargeWhat_ = command == ChargeCommandFlow::Start ? "start charging" : command == ChargeCommandFlow::Stop ? "stop charging" : "set the charging current to " + std::to_string(amps) + " A";
+    pair_.reset();
+    status_.reset();
+    begin(Job::Charge);
+    LOG_INFO("Tesla charge: looking for car %s to %s. This CHANGES the car's charging; it does not wake a sleeping car.", solar::tesla::maskVin(vin_).c_str(), chargeWhat_.c_str());
+    return "";
+}
+
 void TeslaCar::begin(Job job) {
     job_ = job;
     stage_ = Stage::Finding;
@@ -140,7 +158,10 @@ void TeslaCar::begin(Job job) {
 }
 
 void TeslaCar::cancel() {
-    if (busy()) finish("Stopped.");
+    if (!busy()) return;
+    // A command that is already out may have been applied: say so rather than just "stopped".
+    if (job_ == Job::Charge && charge_ && stage_ == Stage::Running && !charge_->finished()) charge_->timedOut();
+    finish("Stopped.");
 }
 
 void TeslaCar::finish(const std::string& why) {
@@ -163,11 +184,18 @@ void TeslaCar::finish(const std::string& why) {
         for (const auto& line : status_->lines()) LOG_INFO("Tesla status: %s", line.c_str());
         if (!status_->ok() && status_->lines().empty()) LOG_WARN("Tesla status: %s", why.c_str());
         LOG_INFO("Tesla status: read-only; nothing was sent that changes the car.");
+    } else if (job_ == Job::Charge && charge_) {
+        for (const auto& line : charge_->lines()) {
+            if (charge_->ok()) LOG_INFO("Tesla charge: %s", line.c_str());
+            else LOG_WARN("Tesla charge: %s", line.c_str());
+        }
+        if (charge_->lines().empty()) LOG_WARN("Tesla charge: %s", why.empty() ? "no answer." : why.c_str());
     }
     job_ = Job::None;
     stage_ = Stage::Idle;
     pair_.reset();
     status_.reset();
+    charge_.reset();
     vin_.clear();
     BLEDevice::deinit(true);
     radioOn_ = false;
@@ -242,6 +270,9 @@ void TeslaCar::handleFrames() {
         } else if (job_ == Job::Status && status_) {
             Bytes next = status_->onMessage(message, millis());
             if (!next.empty()) sendMessage(next);
+        } else if (job_ == Job::Charge && charge_) {
+            Bytes next = charge_->onMessage(message, millis());
+            if (!next.empty()) sendMessage(next);
         }
     }
 }
@@ -264,7 +295,15 @@ void TeslaCar::loop() {
             stage_ = Stage::Running;
             lastActivity_ = millis();
             if (job_ == Job::Pair) sendMessage(pair_->request());
-            else sendMessage(status_->start());
+            else if (job_ == Job::Status) sendMessage(status_->start());
+            else {
+                Bytes first = charge_->start();
+                if (first.empty()) {
+                    finish("");
+                    return;
+                }
+                sendMessage(first);
+            }
             return;
         }
         if (now - startedAt_ > (kFindSeconds + 1) * 1000UL) {
@@ -308,8 +347,21 @@ void TeslaCar::loop() {
             finish("");
             return;
         }
+    } else if (job_ == Job::Charge && charge_) {
+        if (charge_->finished()) {
+            finish("");
+            return;
+        }
+        if (now - lastActivity_ > 8000) {
+            charge_->timedOut();
+            finish("");
+            return;
+        }
     }
-    if (gone) finish("The car dropped the connection.");
+    if (gone) {
+        if (job_ == Job::Charge && charge_ && !charge_->finished()) charge_->timedOut();
+        finish("The car dropped the connection.");
+    }
 }
 
 }  // namespace device
