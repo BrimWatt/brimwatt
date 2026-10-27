@@ -292,3 +292,16 @@ test('the test buttons are switched off while the car is in command', () => {
     assert.match(script, /#car-testing button, #car-testing input/);
     assert.match(script, /b\.disabled = inCommand/);
 });
+
+// ---- waking the car ----
+
+test('waking is off until switched on, goes through the API, and manual wakes ask first', () => {
+    assert.match(script, /async function carAllowWake/);
+    assert.match(script, /\/api\/car\/allowwake\?enabled=/);
+    const wake = script.match(/async function carWake\([^)]*\) \{([\s\S]*?)\n\}/)[1];
+    assert.match(wake, /confirm\(/);
+    assert.match(wake, /carName\(\)/);
+    assert.match(page.carProgressText({ busy: true, job: 'wake' }), /Waking the car/);
+    assert.match(html, /id="car-allowwake"/);
+    assert.ok(!/id="car-allowwake"[^>]*checked/.test(html), 'it must not start switched on');
+});

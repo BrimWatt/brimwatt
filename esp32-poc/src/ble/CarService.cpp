@@ -125,6 +125,12 @@ CarResult CarService::startStop() {
     return started(car_.startCharge(solar::tesla::ChargeCommandFlow::Stop, 0));
 }
 
+CarResult CarService::startWake() {
+    CarResult blocked = blockedBy();
+    if (!blocked.ok) return blocked;
+    return started(car_.startWake());
+}
+
 void CarService::rememberRestore() {
     const TeslaCar::Reading& reading = car_.lastReading();
     if (restoreAmps_ == 0 && reading.have && reading.charge.valid && reading.charge.hasCurrentRequest && reading.charge.currentRequest > 0) {

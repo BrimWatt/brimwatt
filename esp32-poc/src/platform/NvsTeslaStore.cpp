@@ -85,6 +85,21 @@ void NvsTeslaStore::saveOnReturn(int value) {
     prefs.end();
 }
 
+bool NvsTeslaStore::loadAllowWake() {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return false;
+    bool on = prefs.getBool("allowwake", false);
+    prefs.end();
+    return on;
+}
+
+void NvsTeslaStore::saveAllowWake(bool on) {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return;
+    prefs.putBool("allowwake", on);
+    prefs.end();
+}
+
 void NvsTeslaStore::clear() {
     Preferences prefs;
     if (!prefs.begin(kNamespace, /*readOnly=*/false)) return;

@@ -45,6 +45,8 @@ struct HttpResponse {
  *   POST /api/car/test?action=start|stop|amps[&amps=6-40]   test commands: these CHANGE the car
  *   POST /api/car/through?mode=charger|car[&confirm=yes]   who is in command of the charge (the car needs confirm=yes and a paired car)
  *   POST /api/car/policy?onReturn=keep|tell|stop   what to do when the car is back after 10+ minutes out of reach
+ *   POST /api/car/wake                       wakes a sleeping car now (a test command; the car stays awake a while and uses a little battery)
+ *   POST /api/car/allowwake?enabled=true|false   may WattSync wake a sleeping car when charging is wanted (off by default)
  *   POST /api/car/cancel                     ends a pairing or test early
  *   POST /api/car/forget                     deletes our key and the car from this controller
  *   (the car's state is part of /api/telemetry as "car")

@@ -41,6 +41,8 @@ void WebServerAdapter::begin() {
     server_.on("/api/car/forget", HTTP_POST, [this] { serveApi(); });
     server_.on("/api/car/through", HTTP_POST, [this] { serveApi(); });
     server_.on("/api/car/policy", HTTP_POST, [this] { serveApi(); });
+    server_.on("/api/car/wake", HTTP_POST, [this] { serveApi(); });
+    server_.on("/api/car/allowwake", HTTP_POST, [this] { serveApi(); });
     server_.on("/api/history", HTTP_GET, [this] { serveApi(); });
     server_.on("/api/days", HTTP_GET, [this] { serveApi(); });
     server_.on("/api/sessions", HTTP_GET, [this] { serveApi(); });

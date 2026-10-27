@@ -355,11 +355,13 @@
                 <div class="field"><span>Paired car</span><b id="car-vin-masked">–</b></div>
                 <div class="field" id="car-through-row"><span><label for="car-through">Control through</label><button type="button" class="info" data-tip="carthrough" aria-label="What does control through mean?">i</button></span><span class="edit"><select id="car-through" onchange="carThrough(this)"><option value="charger">Charger</option><option value="car">Car</option></select></span></div>
                 <div class="field" id="car-onreturn-row" hidden><label for="car-onreturn">If the car can't be reached</label><span class="edit"><select id="car-onreturn" onchange="carOnReturn(this)"><option value="keep">Keep its setting</option><option value="tell">Just tell me</option><option value="stop">Stop when it is back</option></select></span></div>
+                <label class="check" id="car-allowwake-row" hidden><input type="checkbox" id="car-allowwake" onchange="carAllowWake(this)"><span>Allow WattSync to wake the car when charging is wanted<button type="button" class="info" data-tip="carwake" aria-label="What does waking the car do?">i</button></span></label>
                 <label class="check"><input type="checkbox" id="car-watch" onchange="carWatch(this)"><span>Read the car every few minutes</span></label>
                 <div class="field"><label for="car-refresh">Read the car now</label><button type="button" id="car-refresh" class="smallbtn" onclick="carRefresh()">Check now</button></div>
                 <div class="field"><label for="car-forget">Remove this car</label><button type="button" id="car-forget" class="smallbtn danger" onclick="carForget()">Forget car</button></div>
                 <details class="more" id="car-testing"><summary>For testing</summary>
                     <p class="hint" id="car-testing-note">These buttons change how the car charges. The controller never uses them by itself.</p>
+                    <div class="field"><span>Wake the car</span><span class="edit"><button type="button" class="smallbtn" onclick="carWake()">Wake now</button></span></div>
                     <div class="field"><span>Charging</span><span class="edit"><button type="button" class="smallbtn" onclick="carTest('start')">Start</button><button type="button" class="smallbtn" onclick="carTest('stop')">Stop</button></span></div>
                     <div class="field"><label for="car-amps">Current (A)</label><span class="edit"><input type="number" id="car-amps" inputmode="numeric" min="6" max="40" step="1" value="16"><button type="button" id="car-amps-btn" class="smallbtn" onclick="carSetAmps()">Set</button></span></div>
                     <div class="field" id="car-restore-row" hidden><span id="car-restore-label">Put the setting back</span><button type="button" class="smallbtn" onclick="carRestore()">Put back</button></div>
@@ -389,6 +391,7 @@ const TIPS = {
     hours: ['Solar hours', ['Eco and Max solar only work during the day: from a little after sunrise until a little before sunset. Outside these hours they do nothing.', 'You can change how many minutes after sunrise it starts, and before sunset it stops, in the two boxes below.', 'Custom works at any time.']],
     car: ['Tesla', ['WattSync reads your Tesla over Bluetooth: the battery, the charge limit and the charging current. It only reads. The buttons under For testing in Settings are the only things that change the car, and only when you press them.', 'The controller must be near the car. If the car cannot be reached the numbers stay as they were, with their age.']],
     carthrough: ['Control through', ['Charger: WattSync sets the speed on your wall charger, as before. Car: it sets the speed on the car itself over Bluetooth, and starts and stops its charging, with the same Eco, Max solar and Custom rules.', 'Only one is in command at a time. The car must be near the controller. A sleeping car is not woken from here: WattSync waits until it wakes. You can switch back any time.']],
+    carwake: ['Waking the car', ['A car that has been idle for a while goes to sleep and then cannot be told to start or change its charging. With this switched on, WattSync wakes it, but only when charging is wanted and the car was last seen plugged in.', 'A wake keeps the car awake for about 10 to 15 minutes and uses a little battery. WattSync wakes it at most once every 30 minutes. It is off unless you switch it on.']],
     carvin: ['Car VIN', ['The VIN is the 17-character number on the sticker inside the driver door, at the lower corner of the windshield, and in the Tesla app under Software.', 'It is kept on the controller only, shown with the middle hidden, and never sent anywhere. You can remove the car and the key at any time: Forget car here, and Controls > Locks in the car.']],
     notify: ['Messages', ['WattSync can post a short message to a web address when charging ends, the solar meter is lost, or the charger disconnects. Paste a webhook address from Slack, Discord, Home Assistant, IFTTT or Zapier.', 'The address is kept on the controller and never shown back in full. Clear the box and save to turn messages off.']],
     goal: ['Charge by morning', ['Say how much energy you want and by when, for example 20 kWh by 7:00 am. Until time gets short, charging works as normal, from the sun.', 'When the time left is only just enough, WattSync charges at the lowest speed that still gets there, using the grid if needed, even at night.', 'Only while a car is plugged in, never while paused or in Custom mode. Set 0 to turn it off.']],
@@ -747,7 +750,7 @@ function carProgressText(c) {
         if (c.pair && c.pair.state === 'waiting') return (c.pair.text || 'Tap your key card on the car\'s centre console now.') + ' (' + c.pair.secondsLeft + ' s left)';
         return 'Looking for your car… Stay close to it so Bluetooth reaches.';
     }
-    return c.job === 'charge' ? 'Sending the command to the car…' : 'Reading the car…';
+    return c.job === 'charge' ? 'Sending the command to the car…' : c.job === 'wake' ? 'Waking the car… this can take about 20 seconds.' : 'Reading the car…';
 }
 function renderCar(data) {
     const c = data.car || { supported: false };
@@ -770,6 +773,8 @@ function renderCar(data) {
     el('car-vin-masked').textContent = c.vin || '';
     const ctl = c.control || null, inCommand = !!(ctl && ctl.through);
     el('car-through-row').hidden = !ctl;
+    el('car-allowwake-row').hidden = !ctl;
+    if (ctl && document.activeElement !== el('car-allowwake')) el('car-allowwake').checked = ctl.allowWake === true;
     el('car-onreturn-row').hidden = !inCommand;
     if (ctl && document.activeElement !== el('car-through')) el('car-through').value = inCommand ? 'car' : 'charger';
     if (ctl && document.activeElement !== el('car-onreturn')) el('car-onreturn').value = ctl.onReturn || 'keep';
@@ -832,6 +837,16 @@ async function carThrough(select) {
 async function carOnReturn(select) {
     const result = await post('/api/car/policy?onReturn=' + select.value);
     if (!result.ok) toast("Couldn't save that", 'err', result.text); else refresh();
+}
+async function carAllowWake(box) {
+    const result = await post('/api/car/allowwake?enabled=' + box.checked);
+    if (!result.ok) { box.checked = !box.checked; toast("Couldn't save that", 'err', result.text); return; }
+    toast(box.checked ? 'WattSync may wake the car' : 'WattSync will not wake the car', 'ok');
+    refresh();
+}
+async function carWake() {
+    if (!confirm('Wake ' + carName() + '? It stays awake for about 10 to 15 minutes and uses a little battery.')) return;
+    await carStart('/api/car/wake', null, "Couldn't wake the car");
 }
 async function carTest(action) {
     const what = action === 'start' ? 'Start charging' : 'Stop charging';

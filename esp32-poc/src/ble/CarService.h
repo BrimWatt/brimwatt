@@ -25,6 +25,7 @@ public:
     solar::CarResult startQuietRefresh() override;
     solar::CarResult startStart() override;
     solar::CarResult startStop() override;
+    solar::CarResult startWake() override;
     solar::CarResult startSetAmps(int amps) override;
     void cancel() override { car_.cancel(); }
     void setControlled(bool on) override { controlled_ = on; nextReadSet_ = false; }

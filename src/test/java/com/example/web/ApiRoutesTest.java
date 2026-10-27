@@ -33,7 +33,7 @@ class ApiRoutesTest {
 
     @Test
     void theCarRoutesExistOnThePiButSayTheyNeedTheEsp32() {
-        assertEquals(8, ApiRoutes.CAR_ROUTES.length);
+        assertEquals(10, ApiRoutes.CAR_ROUTES.length);
         for (String route : ApiRoutes.CAR_ROUTES) assertTrue(route.startsWith("/api/car/"), route);
         assertTrue(ApiRoutes.CAR_UNSUPPORTED.contains("ESP32"));
     }

@@ -21,7 +21,7 @@ namespace device {
  */
 class TeslaCar {
 public:
-    enum class Job { None, Pair, Status, Charge };
+    enum class Job { None, Pair, Status, Charge, Wake };
 
     /** How the last finished job went (any job, including the quiet watch reads). */
     struct Result {
@@ -51,13 +51,15 @@ public:
      * when it started. The amps are checked here, before anything is sent.
      */
     std::string startCharge(solar::tesla::ChargeCommandFlow::Command command, int amps);
+    /** Wakes a sleeping car (the owner's call; it stays awake a while). Returns an error text, or empty when it started. */
+    std::string startWake();
     void loop();
     void cancel();
     /** Prints every message to and from the car as hex (no secrets in them). Off by default; for trying a new car model. */
     void setDebug(bool on) { debug_ = on; }
     bool debug() const { return debug_; }
     bool busy() const { return job_ != Job::None; }
-    const char* jobName() const { return job_ == Job::Pair ? "pair" : job_ == Job::Status ? "status" : job_ == Job::Charge ? "charge" : ""; }
+    const char* jobName() const { return job_ == Job::Pair ? "pair" : job_ == Job::Status ? "status" : job_ == Job::Charge ? "charge" : job_ == Job::Wake ? "wake" : ""; }
     const Result& lastResult() const { return result_; }
     /** How many jobs have finished since start-up (so a listener can tell a new result from an old one). */
     uint32_t finishedCount() const { return finished_; }
@@ -111,6 +113,7 @@ private:
     std::unique_ptr<solar::tesla::PairFlow> pair_;
     std::unique_ptr<solar::tesla::StatusFlow> status_;
     std::unique_ptr<solar::tesla::ChargeCommandFlow> charge_;
+    std::unique_ptr<solar::tesla::WakeFlow> wake_;
     std::string chargeWhat_;
     int lastPairState_ = -1;
 };

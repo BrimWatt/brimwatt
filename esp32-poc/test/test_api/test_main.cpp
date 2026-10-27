@@ -680,6 +680,7 @@ public:
     CarResult startRefresh() override { return done("refresh"); }
     CarResult startStart() override { return done("start"); }
     CarResult startStop() override { return done("stop"); }
+    CarResult startWake() override { return done("wake"); }
     CarResult startSetAmps(int amps) override { lastAmps = amps; return done("amps"); }
     void cancel() override { lastCall = "cancel"; }
     void setWatch(bool on) override { lastCall = on ? "watch-on" : "watch-off"; snap.watch = on; }
@@ -864,6 +865,33 @@ void test_the_unreachable_policy_is_validated_and_shown() {
     testing::check("stop", t["car"]["control"]["onReturn"] | "");
 }
 
+void test_waking_the_car_needs_a_paired_car_and_the_allow_switch_is_validated_and_shown() {
+    Rig r;
+    FakeCar car;
+    r.api.setCar(&car);
+    CarCommander commander(r.platform, car);
+    ChargeRouter router(r.wallbox, commander, car);
+    r.api.setRouter(&router);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/wake", {}).status);                       // not paired
+    car.snap.paired = true;
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/wake", {}).status);
+    testing::check("wake", car.lastCall);
+    car.refuseBusy = true;
+    TEST_ASSERT_EQUAL(409, r.post("/api/car/wake", {}).status);
+    {
+        JsonDocument t = r.telemetry();
+        TEST_ASSERT_FALSE(t["car"]["control"]["allowWake"].as<bool>());                // off by default
+        TEST_ASSERT_EQUAL(-1, t["car"]["control"]["lastWakeAgeSeconds"].as<int>());
+    }
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/allowwake", {{"enabled", "true"}}).status);
+    TEST_ASSERT_TRUE(commander.allowWake());
+    TEST_ASSERT_TRUE(r.telemetry()["car"]["control"]["allowWake"].as<bool>());
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/allowwake", {{"enabled", "maybe"}}).status);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/allowwake", {}).status);
+    TEST_ASSERT_EQUAL(403, r.api.handle("POST", "/api/car/wake", {}, false).status);
+    TEST_ASSERT_EQUAL(403, r.api.handle("POST", "/api/car/allowwake", {{"enabled", "true"}}, false).status);
+}
+
 void test_without_a_router_the_choice_endpoints_say_the_car_needs_the_esp32() {
     Rig r;
     FakeCar car;
@@ -878,6 +906,7 @@ int main() {
     UNITY_BEGIN();
     RUN_TEST(test_the_choice_of_who_is_in_command_is_validated_confirmed_and_shown);
     RUN_TEST(test_the_unreachable_policy_is_validated_and_shown);
+    RUN_TEST(test_waking_the_car_needs_a_paired_car_and_the_allow_switch_is_validated_and_shown);
     RUN_TEST(test_without_a_router_the_choice_endpoints_say_the_car_needs_the_esp32);
     RUN_TEST(test_car_endpoints_say_not_supported_without_a_car_link);
     RUN_TEST(test_telemetry_shows_the_car_without_the_vin_or_key);
