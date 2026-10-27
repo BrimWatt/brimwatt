@@ -104,7 +104,7 @@ Console commands on the ESP32 (see `esp32-poc/README.md`): `tesla pair <VIN>`, `
 
 ### First real-car finding (2026-10-26, 2021 Model Y): the security-computer payload is a bare `UnsignedMessage`
 
-The first `tesla pair` reached the car over Bluetooth (found, connected, request sent, car answered in under a second) but the car refused with fault 10 ("could not decode"), twice. Cause: add-key, status and key-lookup messages were wrapped in `ToVCSECMessage { signedMessage { ... } }`, the older non-routable format. Tesla's protocol notes say `RoutableMessage.protobuf_message_as_bytes` for the security domain parses as a bare `vcsec.UnsignedMessage`. Fixed in `TeslaMessages.cpp` (`vcsecPayload`); add-key is now `82010e 2a08 ... 2006 3202 0809`, status is `0a00`. Not yet re-tried on the car. The pair log also prints the raw request and reply bytes (public data only) while this is being proven; remove them once pairing works. A one-time retry as a phone key (form factor 7) after fault 10 stays in as a fallback.
+The first `tesla pair` reached the car over Bluetooth (found, connected, request sent, car answered in under a second) but the car refused with fault 10 ("could not decode"), twice. Cause: add-key, status and key-lookup messages were wrapped in `ToVCSECMessage { signedMessage { ... } }`, the older non-routable format. Tesla's protocol notes say `RoutableMessage.protobuf_message_as_bytes` for the security domain parses as a bare `vcsec.UnsignedMessage`. Fixed in `TeslaMessages.cpp` (`vcsecPayload`); add-key is now `82010e 2a08 ... 2006 3202 0809`, status is `0a00`. Re-tried the same evening: **pairing worked** (the car sent several "waiting" broadcasts, then a final whitelist status with no error, which the board treats as accepted). The pair log also prints the raw request and reply bytes (public data only) while this is being proven; remove them once pairing works. A one-time retry as a phone key (form factor 7) after fault 10 stays in as a fallback.
 
 ### Charge commands: start, stop, set amps (built 2026-10-27, not tried on a real car)
 
@@ -144,4 +144,4 @@ Not verified: all of it on a real car (the car's replies, whether the Charging M
 
 | Model / year / firmware | Pair | Status | Charge cmds | Notes |
 |---|---|---|---|---|
-| (none tried yet) | | | | |
+| 2021 Model Y, firmware not recorded | **OK 2026-10-26** (Charging Manager role, cloud-key form factor, key card tap; about 7 s from request to accept; board ~-77 dBm, car in garage) | not tried yet | not tried yet | Needed the bare-`UnsignedMessage` fix first (see "First real-car finding"). Confirm the key shows in the car under Controls > Locks. |
