@@ -42,6 +42,8 @@ public class ApiRoutes {
 
     /** Name of the header every changing request must carry. A web page on another site cannot add it without our permission. */
     public static final String SAFE_HEADER = "X-WattSync";
+    public static final String CAR_UNSUPPORTED = "Car control needs the ESP32 board.";
+    static final String[] CAR_ROUTES = {"/api/car/pair", "/api/car/refresh", "/api/car/watch", "/api/car/test", "/api/car/cancel", "/api/car/forget"};
 
     /** Changing requests (POST) are allowed only with the safe header; reading is always allowed. */
     static boolean isAllowed(String method, String headerValue) {
@@ -71,6 +73,8 @@ public class ApiRoutes {
         app.post("/api/goal", this::updateGoal);
         app.post("/api/notify", this::updateNotify);
         app.post("/api/notify/test", this::testNotify);
+        // The car link (Bluetooth) exists on the ESP32 board only; the Pi answers the same routes so the dashboard behaves the same.
+        for (String carRoute : CAR_ROUTES) app.post(carRoute, ctx -> ctx.status(400).result(CAR_UNSUPPORTED));
         app.get("/api/history", this::history);
         app.get("/api/days", this::days);
         app.get("/api/sessions", this::sessions);
@@ -613,6 +617,7 @@ public class ApiRoutes {
         controller.put("pollSeconds", AppConfig.POLL_INTERVAL_SECONDS);
 
         Map<String, Object> body = new LinkedHashMap<>();
+        body.put("car", Map.of("supported", false));
         body.put("currentMode", state.mode().name());
         body.put("paused", state.paused());
         body.put("rateCents", state.rateCents());

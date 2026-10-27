@@ -32,6 +32,13 @@ class ApiRoutesTest {
     }
 
     @Test
+    void theCarRoutesExistOnThePiButSayTheyNeedTheEsp32() {
+        assertEquals(6, ApiRoutes.CAR_ROUTES.length);
+        for (String route : ApiRoutes.CAR_ROUTES) assertTrue(route.startsWith("/api/car/"), route);
+        assertTrue(ApiRoutes.CAR_UNSUPPORTED.contains("ESP32"));
+    }
+
+    @Test
     void theOldBalancedNameStillMeansMaxSolar() {
         assertEquals(com.example.model.ChargingMode.MAX_SOLAR, com.example.model.ChargingMode.parse("BALANCED").orElseThrow());
         assertEquals(com.example.model.ChargingMode.MAX_SOLAR, com.example.model.ChargingMode.parse("balanced").orElseThrow());
