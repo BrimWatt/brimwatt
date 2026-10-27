@@ -229,7 +229,6 @@ HttpResponse ApiHandler::history(const Params& query) {
     doc["now"] = now;
     doc["daysAgo"] = daysAgo;
     doc["today"] = history_ ? history_->localDay(now) : 0;
-    JsonArray samples = doc["samples"].to<JsonArray>();
     JsonObject totals = doc["totals"].to<JsonObject>();
     totals["solarKwh"] = 0;
     totals["carKwh"] = 0;
@@ -239,6 +238,7 @@ HttpResponse ApiHandler::history(const Params& query) {
     totals["savedDollars"] = 0;
 
     int64_t dayStart = now;
+    std::string samplesJson;
     if (history_) {
         // A past day is found by stepping back whole days from the middle of today (so daylight saving cannot slip a day).
         int64_t todayStart = history_->startOfLocalDay(now);
@@ -246,15 +246,15 @@ HttpResponse ApiHandler::history(const Params& query) {
         dayStart = history_->startOfLocalDay(target);
         int64_t dayEnd = daysAgo == 0 ? INT64_MAX : dayStart + 86399;
         int step = daysAgo <= 29 ? 300 : 3600;   // after 30 days only hourly records remain
+        // Written straight into the reply text: a JSON document of about 300 rows needs far more memory than the text does,
+        // and the board's largest free block is small once Bluetooth is in the build.
+        samplesJson.reserve(20000);
         for (const HistorySample& s : history_->seriesRange(dayStart, dayEnd, step)) {
-            JsonArray row = samples.add<JsonArray>();
-            row.add(s.t);
-            row.add(s.solar);
-            row.add(s.home);
-            row.add(s.grid);
-            row.add(s.car);
-            row.add(s.mode);
-            row.add(s.flags);
+            if (!samplesJson.empty()) samplesJson += ',';
+            samplesJson += '[';
+            samplesJson += std::to_string(s.t) + ',' + std::to_string(s.solar) + ',' + std::to_string(s.home) + ',' + std::to_string(s.grid) + ',' +
+                           std::to_string(s.car) + ',' + std::to_string(s.mode) + ',' + std::to_string(s.flags);
+            samplesJson += ']';
         }
         DayTotals day = history_->totalsForDay(history_->localDay(target));
         totals["solarKwh"] = kwh(day.solarWh);
@@ -276,6 +276,9 @@ HttpResponse ApiHandler::history(const Params& query) {
     HttpResponse response;
     response.contentType = "application/json";
     serializeJson(doc, response.body);
+    // The document ends with "}": put the samples in before it.
+    response.body.pop_back();
+    response.body += ",\"samples\":[" + samplesJson + "]}";
     return response;
 }
 
