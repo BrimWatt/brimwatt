@@ -240,6 +240,9 @@ bool TeslaCar::connect() {
 void TeslaCar::sendMessage(const Bytes& routable) {
     auto* write = static_cast<BLERemoteCharacteristic*>(write_);
     if (!write || !client_) return;
+    // First-connection diagnostics, every job: what goes out and what comes back. Nothing secret is in these bytes (public key, challenge,
+    // routing ids and encrypted data; the VIN is never sent in the clear).
+    LOG_INFO("Tesla >> %u bytes: %s", (unsigned)routable.size(), solar::tesla::toHex(routable).c_str());
     Bytes frame;
     frame.push_back(static_cast<uint8_t>(routable.size() >> 8));
     frame.push_back(static_cast<uint8_t>(routable.size()));
@@ -265,14 +268,10 @@ void TeslaCar::handleFrames() {
         Bytes message(rx_.begin() + 2, rx_.begin() + 2 + n);
         rx_.erase(0, 2 + n);
         lastActivity_ = millis();
+        LOG_INFO("Tesla << %u bytes: %s", (unsigned)message.size(), solar::tesla::toHex(message).c_str());
         if (job_ == Job::Pair && pair_) {
-            // first-connection diagnostics: the car's raw reply holds no secret
-            LOG_INFO("Tesla pair: car replied (%u bytes): %s", (unsigned)message.size(), solar::tesla::toHex(message).c_str());
             Bytes next = pair_->onMessage(message);
-            if (!next.empty()) {
-                LOG_INFO("Tesla pair: sending again (%u bytes): %s", (unsigned)next.size(), solar::tesla::toHex(next).c_str());
-                sendMessage(next);
-            }
+            if (!next.empty()) sendMessage(next);
         } else if (job_ == Job::Status && status_) {
             Bytes next = status_->onMessage(message, millis());
             if (!next.empty()) sendMessage(next);
@@ -305,9 +304,7 @@ void TeslaCar::loop() {
             stage_ = Stage::Running;
             lastActivity_ = millis();
             if (job_ == Job::Pair) {
-                Bytes first = pair_->request();
-                LOG_INFO("Tesla pair: sending request (%u bytes): %s", (unsigned)first.size(), solar::tesla::toHex(first).c_str());
-                sendMessage(first);
+                sendMessage(pair_->request());
             }
             else if (job_ == Job::Status) sendMessage(status_->start());
             else {
@@ -332,6 +329,7 @@ void TeslaCar::loop() {
     gone = disconnected;
     portEXIT_CRITICAL(&lock);
     handleFrames();
+    now = millis();   // handleFrames may have sent a message (a slow, blocking write): an older `now` makes now - lastActivity_ wrap around to a huge number
 
     if (job_ == Job::Pair && pair_) {
         int state = static_cast<int>(pair_->state());
@@ -356,7 +354,7 @@ void TeslaCar::loop() {
             finish("");
             return;
         }
-        if (now - lastActivity_ > 8000) {
+        if (static_cast<int32_t>(now - lastActivity_) > 8000) {
             status_->timedOut();
             finish("");
             return;
@@ -366,7 +364,7 @@ void TeslaCar::loop() {
             finish("");
             return;
         }
-        if (now - lastActivity_ > 8000) {
+        if (static_cast<int32_t>(now - lastActivity_) > 8000) {
             charge_->timedOut();
             finish("");
             return;
