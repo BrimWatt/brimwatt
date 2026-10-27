@@ -206,9 +206,8 @@ static void startControl() {
     LOG_INFO("[DAYLIGHT] Today's window: %s", controller.daylightText().c_str());
     ocpp::registerCoreHandlers(router, platform, [](Charger& charger) { wallbox.onChargerChanged(charger); }, &history);
     ocppServer.begin();
-    LOG_INFO("Point the wallbox at ws://%s:%u/ocpp/wallbox/<chargerId>  (or ws://%s.local:%u/...)",
-             WiFi.localIP().toString().c_str(), (unsigned)config::kOcppPort, device::kHostname,
-             (unsigned)config::kOcppPort);
+    LOG_INFO("Point the wallbox at ws://%s.local:%u/pair  (or ws://%s:%u/pair); it adds its own id",
+             device::kHostname, (unsigned)config::kOcppPort, WiFi.localIP().toString().c_str(), (unsigned)config::kOcppPort);
     meterPoller.start();
     // First control cycle a few seconds from now, then every poll interval.
     lastCycle = millis() - device::kPollIntervalMillis + 5000;

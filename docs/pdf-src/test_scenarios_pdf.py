@@ -174,7 +174,7 @@ S += section("J. Dashboard feedback", [
      "The card shows that day's curve (solar, car, home, grid import) under the day's name, then the chip returns you to the bars. Days older than 30 days still show a curve, at lower detail.", False),
     (43, "History survives a restart", "Restart the app (or press RESET on the board, or cut its power for a minute). Open Today and 30 days.",
      "Today's curve, the activity list and the daily bars are still there. After a power cut or a hard kill (<font face='Courier'>sudo systemctl kill -s SIGKILL solar-charger</font> on the Pi) at most the last minute is missing: both save a small journal every minute and a full copy every 30 minutes.", True),
-    (44, "Export", "Open /api/export.csv (for example http://wattsyncesp.local/api/export.csv) in a browser.",
+    (44, "Export", "Open /api/export.csv (for example http://wattsync.local/api/export.csv) in a browser.",
      "A spreadsheet file downloads with one line per day: date, solar, car, car from the sun, grid import and grid export in kWh.", False),
     (52, "Pull down to refresh", "Open the page from its Home Screen icon, then pull the page down from the very top and let go.",
      "The WattSync logo slides down in a small round badge, growing as you pull while its sync arrows turn; the bolt pops and glows once you have pulled far enough. Letting go reloads the page and the arrows spin around the bolt while it loads. A short pull springs back without reloading. No text appears. It does nothing in a normal Safari tab (Safari has its own) and does not start from a slider.", False),

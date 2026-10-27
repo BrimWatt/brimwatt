@@ -15,7 +15,7 @@
 namespace device {
 
 /**
- * The WebSocket endpoint the wallbox connects to: ws://<board>:8080/ocpp/wallbox/<chargerId>.
+ * The WebSocket endpoint the wallbox connects to: ws://<board>:8080/pair (the wallbox adds its id; the older /ocpp/wallbox/<chargerId> also works).
  * This is only the transport. Reading frames, replying and tracking the charger are done by the portable core.
  */
 class OcppServer {

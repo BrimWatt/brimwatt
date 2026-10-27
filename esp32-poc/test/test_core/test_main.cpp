@@ -371,6 +371,11 @@ void test_scheduler_runs_tasks_when_due_and_only_once() {
 }
 
 void test_charger_id_comes_from_the_path_the_query_or_the_default() {
+    check("mywallbox", ocpp::chargerIdFromUrl("/pair/mywallbox"));
+    check("mywallbox/wattsyncpi", ocpp::chargerIdFromUrl("/pair/mywallbox/wattsyncpi/"));
+    check(config::kDefaultChargerId, ocpp::chargerIdFromUrl("/pair"));
+    check(config::kDefaultChargerId, ocpp::chargerIdFromUrl("/pair/"));
+    check("abc", ocpp::chargerIdFromUrl("/pair?chargerId=abc"));
     check("mywallbox", ocpp::chargerIdFromUrl("/ocpp/wallbox/mywallbox"));
     check("mywallbox", ocpp::chargerIdFromUrl("/ocpp/wallbox/mywallbox/"));
     check("mywallbox", ocpp::chargerIdFromUrl("/ocpp/wallbox/mywallbox?x=1"));

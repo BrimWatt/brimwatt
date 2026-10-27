@@ -125,7 +125,7 @@ All `POST` calls need the header `X-WattSync: 1`, for example `curl -X POST -H '
 
 ## OCPP
 
-The wallbox connects to `ws://<host>:8080/ocpp/wallbox/<chargerId>` (the id may also be given as `?chargerId=`; default `DEFAULT_BOX`). Subprotocol `ocpp1.6` is echoed by Javalin.
+Enter `ws://<host>:8080/pair` in the wallbox (it adds its own charger id, so `/pair/<chargerId>` is what actually arrives; the id may also be given as `?chargerId=`; default `DEFAULT_BOX`). The older `/ocpp/wallbox/<chargerId>` still works. Subprotocol `ocpp1.6` is echoed by Javalin.
 
 - **Handled from the charger:** BootNotification (heartbeat interval 60), Heartbeat, StatusNotification, Authorize, StartTransaction, StopTransaction, MeterValues. Anything else gets a `NotImplemented` error.
 - **Sent to the charger:** `RemoteStartTransaction` (with the profile inside), `SetChargingProfile` (TxProfile on connector 1), `RemoteStopTransaction`, `TriggerMessage` (StatusNotification and MeterValues).
@@ -174,7 +174,7 @@ Deploy with `scp` of the jar to the Pi and `sudo systemctl restart solar-charger
 
 ## ESP32-S3 firmware (in progress)
 
-[esp32-poc/](esp32-poc/README.md) is a port of this controller to an ESP32-S3 board: Envoy reader, OCPP 1.6J server, the ECO / Max solar / Custom planner with the same rules, the daylight window, the outage fail-safe and saved settings, and a **setup network** (`WattSync-Setup`) from which a phone can choose the Wi-Fi and paste the Enphase details. The logic lives in a portable core that is unit-tested on the computer (174 tests, including frame-for-frame checks against this app's OCPP output). It serves this app's dashboard page at `http://wattsyncesp.local/` (the page is copied from `src/main/resources/dashboard.html` at build time, so there is one source), and can also be controlled from the serial monitor. Over-the-air updates over Wi-Fi are supported (see the board's README). The board announces itself as `wattsyncesp`. Setup, flashing and the wallbox test plan are in its README. Only one of the Pi and the board can be connected to the wallbox at a time.
+[esp32-poc/](esp32-poc/README.md) is a port of this controller to an ESP32-S3 board: Envoy reader, OCPP 1.6J server, the ECO / Max solar / Custom planner with the same rules, the daylight window, the outage fail-safe and saved settings, and a **setup network** (`WattSync-Setup`) from which a phone can choose the Wi-Fi and paste the Enphase details. The logic lives in a portable core that is unit-tested on the computer (174 tests, including frame-for-frame checks against this app's OCPP output). It serves this app's dashboard page at `http://wattsync.local/` (the page is copied from `src/main/resources/dashboard.html` at build time, so there is one source), and can also be controlled from the serial monitor. Over-the-air updates over Wi-Fi are supported (see the board's README). The board announces itself as `wattsync`. Setup, flashing and the wallbox test plan are in its README. Only one of the Pi and the board can be connected to the wallbox at a time.
 
 ## Documentation
 

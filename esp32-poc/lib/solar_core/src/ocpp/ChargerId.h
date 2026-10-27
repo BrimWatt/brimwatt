@@ -7,8 +7,8 @@
 namespace solar::ocpp {
 
 /**
- * Works out which charger is connecting from the WebSocket URL: /ocpp/wallbox/<id>, or ?chargerId=<id>, or the
- * default id when neither is given.
+ * Works out which charger is connecting from the WebSocket URL: /pair/<id> (what owners enter is just /pair; the wallbox
+ * adds its own id), the older /ocpp/wallbox/<id>, or ?chargerId=<id>, or the default id when none is given.
  */
 inline std::string chargerIdFromUrl(const std::string& url) {
     std::string path = url;
@@ -19,11 +19,13 @@ inline std::string chargerIdFromUrl(const std::string& url) {
         query = url.substr(q + 1);
     }
 
-    const std::string prefix = "/ocpp/wallbox/";
-    if (path.compare(0, prefix.size(), prefix) == 0) {
-        std::string id = path.substr(prefix.size());
-        while (!id.empty() && id.back() == '/') id.pop_back();
-        if (!id.empty()) return id;
+    for (const char* prefix : {"/pair/", "/ocpp/wallbox/"}) {
+        const std::string p = prefix;
+        if (path.compare(0, p.size(), p) == 0) {
+            std::string id = path.substr(p.size());
+            while (!id.empty() && id.back() == '/') id.pop_back();
+            if (!id.empty()) return id;
+        }
     }
 
     const std::string key = "chargerId=";

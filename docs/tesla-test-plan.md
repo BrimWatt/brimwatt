@@ -9,7 +9,7 @@ Status key: `[ ]` not run, `[x]` passed, `[!]` failed (say what happened), `[-]`
 
 - [ ] The car belongs to a friend: tell them what will happen (a key is already in the car under Controls > Locks; WattSync will change its charging current and may wake it).
 - [ ] The car is near the board (Bluetooth), **plugged in and awake**. Open a door, or use the Tesla app, to wake it.
-- [ ] The board is on Wi-Fi and `http://wattsyncesp.local/` loads. Settings > Tesla shows the paired car (masked VIN).
+- [ ] The board is on Wi-Fi and `http://wattsync.local/` loads. Settings > Tesla shows the paired car (masked VIN).
 - [ ] Note the car's current setting now (Tesla screen, or Settings > Tesla > Check now): ______ A. Put it back at the end (H).
 - [ ] Decide where the wallbox stands: if the car is **not** charged from your wallbox, nothing else is affected. If it is, switching to "Car" stops WattSync commanding the wallbox.
 - [ ] Optional but useful: a serial monitor on the cable (`pio device monitor`) for the board's own log lines, and `tesla debug on` to see raw messages.

@@ -2,7 +2,7 @@
 
 The ESP32-S3 side of the solar charger. It does what the Java app does:
 
-- joins Wi-Fi under a recognisable name (**`wattsyncesp`**, shown in the router's device list like `wattsyncpi`)
+- joins Wi-Fi under a recognisable name (**`wattsync`**, shown in the router's device list like `wattsyncpi`)
 - reads the Enphase Envoy meters over HTTPS every minute
 - acts as the **OCPP 1.6J server** the wallbox connects to, with the same behaviour as the Java app
 - has a **pause (kill switch)** that stops charging whatever the mode and survives restarts
@@ -10,7 +10,7 @@ The ESP32-S3 side of the solar charger. It does what the Java app does:
 - pauses ECO and Max solar outside the **daylight window** (sunrise + 30 min to sunset - 1 h by default, both margins adjustable from the dashboard, calculated on the board for Lathrop, CA)
 - stops both solar modes if the Envoy is silent for 150 s (**fail-safe**)
 - **remembers its settings** (mode, Custom current, allowance, daylight toggle) in flash across restarts
-- serves the **same web dashboard** as the Pi, at `http://wattsyncesp.local/`: tiles, today's graph, an activity feed, charging sessions and savings (see the main README)
+- serves the **same web dashboard** as the Pi, at `http://wattsync.local/`: tiles, today's graph, an activity feed, charging sessions and savings (see the main README)
 - keeps **a year of history** at lower detail the older it gets: every minute for 2 days, every 5 minutes for 30 days, every hour for a year, plus daily energy totals for a year and the activity log. Saved to flash every minute in a small journal, folded into a full save every 30 minutes, so a power cut loses at most a minute. The whole year takes about 0.4 MB of the 3.4 MB the board has; the dashboard's 7 days, 30 days and Year tabs and the CSV export read from it
 
 - **remembers each charger** (status, transaction id, the limit it set) in flash, so after a restart or a power cut a charge in progress is picked up again straight away and shows on the dashboard; saved state older than an hour is ignored
@@ -59,7 +59,7 @@ open -e src/secrets.h
 
 Since the setup network exists, these values are only **defaults**: anything saved from the setup page (section 1b) wins over `secrets.h`, field by field. You can still flash with real values in `secrets.h` and never use the setup page. With the placeholders left in, the board simply fails to join, and after 3 minutes the setup network opens.
 
-The device name is `kHostname` in `src/config/DeviceConfig.h` (letters, digits and hyphens, 24 characters at most). It is both the DHCP name the router lists and the mDNS name (`wattsyncesp.local`). Until you flash this version the board shows under the default name `esp32s3-XXXXXX`.
+The device name is `kHostname` in `src/config/DeviceConfig.h` (letters, digits and hyphens, 24 characters at most). It is both the DHCP name the router lists and the mDNS name (`wattsync.local`). Until you flash this version the board shows under the default name `esp32s3-XXXXXX`.
 
 ## 1b. The setup network (change Wi-Fi and the Enphase details from a phone)
 
@@ -77,7 +77,7 @@ The board can open a temporary Wi-Fi network of its own, **`WattSync-Setup`** (p
 1. Join the Wi-Fi **WattSync-Setup**, password `wattsync`. The phone usually opens the page by itself; if it does not, open `http://192.168.4.1/setup` in Safari.
 2. The page lists the networks the board can see, strongest first (names repeated by a mesh or repeater appear once). Tap yours and type its password. Hidden networks cannot be listed: use *My network is not listed* and type the name. **Scan again** looks again; the page may stall for a few seconds while the board scans.
 3. Paste the **Enphase token** (spaces, quotes and a leading `Bearer` are cleaned off), the **Envoy address** (empty = find it as `envoy.local`) and an **update password** (8 to 64 characters, for `pio run -e esp32s3-ota`).
-4. **Save and restart.** Rejoin your usual Wi-Fi and open `http://wattsyncesp.local`.
+4. **Save and restart.** Rejoin your usual Wi-Fi and open `http://wattsync.local`.
 
 Leaving a secret field empty **keeps** what is saved: the page never shows a saved token or password, it only says one is saved. To change only the token, paste it and leave the rest.
 
@@ -110,12 +110,12 @@ What you should see after boot:
 
 ```
 === ESP32-S3 solar charger ===
-Name:   wattsyncesp
-INFO  Wi-Fi: connected in 2300 ms, IP 192.168.1.42, signal -41 dBm, device name "wattsyncesp"
+Name:   wattsync
+INFO  Wi-Fi: connected in 2300 ms, IP 192.168.1.42, signal -41 dBm, device name "wattsync"
 INFO  Time: 2026-10-14 22:06:49 PDT
-INFO  mDNS: this board is wattsyncesp.local
+INFO  mDNS: this board is wattsync.local
 INFO  OCPP: listening on port 8080 (subprotocol ocpp1.6)
-INFO  Point the wallbox at ws://192.168.1.42:8080/ocpp/wallbox/<chargerId>  (or ws://wattsyncesp.local:8080/...)
+INFO  Point the wallbox at ws://wattsync.local:8080/pair  (or ws://192.168.1.42:8080/pair); it adds its own id
 INFO  Settings: none saved yet, starting with defaults (ECO, 32 A custom, 1000 W allowance).
 INFO  [DAYLIGHT] Today's window: 07:24 to 17:55
 INFO  Envoy: envoy.local is 192.168.1.112 (312 ms)
@@ -143,11 +143,11 @@ What to know:
 - **Nothing recent is lost.** Just before the update starts the board saves its history to flash.
 - **A bad image does not take over.** The new firmware is checked before the board switches to it, and a failed or interrupted transfer leaves the current firmware running (`OTA: update failed: ...` in the log). There is no automatic roll-back if a verified image misbehaves after it starts; for that, flash by cable.
 - **The password is never printed or typed.** `scripts/ota_auth.py` reads it from `src/secrets.h` and passes it to the uploader.
-- If `wattsyncesp.local` does not resolve from the Mac, put the board's IP address in `upload_port` in `platformio.ini`.
+- If `wattsync.local` does not resolve from the Mac, put the board's IP address in `upload_port` in `platformio.ini`.
 
 ## 3. The dashboard
 
-Open **`http://wattsyncesp.local/`** (or `http://<the board's IP>/`, printed at boot) from any device on the network. It is the same page as the Pi's dashboard: live solar, grid, charger and home power, the controller's state and reason, the mode buttons, the Custom current, the grid allowance slider and the daylight window toggle.
+Open **`http://wattsync.local/`** (or `http://<the board's IP>/`, printed at boot) from any device on the network. It is the same page as the Pi's dashboard: live solar, grid, charger and home power, the controller's state and reason, the mode buttons, the Custom current, the grid allowance slider and the daylight window toggle.
 
 - The page is the Java app's `src/main/resources/dashboard.html`, copied in before every firmware build and embedded in the binary, so the two dashboards cannot drift apart. Change the page in one place and rebuild.
 - The endpoints are the same as the Pi's (`GET /api/telemetry`, `POST /api/mode`, `/api/allowance`, `/api/daylight`) with the same messages and checks.
@@ -158,14 +158,14 @@ Open **`http://wattsyncesp.local/`** (or `http://<the board's IP>/`, printed at 
 - **Control through: Car (experimental, board only; the default stays Charger).** Settings > Tesla > *Control through* moves the command from the wall charger to the car: the planner (Eco, Max solar, Custom, Pause, departure goal, daylight window, fail-safe) then sets the car's current over Bluetooth and starts/stops its charging, and the charger is no longer commanded (only one is in command at a time). Switching to Car asks for confirmation in the page and needs `confirm=yes` in the API, and only works for a paired car; the choice is saved (NVS `tesla`: `through`, `onreturn`) and is dropped if the car is forgotten. *If the car can't be reached*: **Keep its setting** (default, silent), **Just tell me** (a message after 10 minutes out of reach, and when it is back) or **Stop when it is back** (also stops the charge once after a 10+ minute outage). Failed jobs retry after 30 s, 60 s, 2 min, then every 5 min; meanwhile the car keeps its last setting (it cannot be stepped down to the minimum first: nothing can be sent). **WattSync does not measure the car:** it is the only thing setting the current, so the draw it tells the planner is what it last set (the dashboard says "set to N A" rather than "charging at"). The car is read only to check that: after each command (the read-back), when WattSync takes command or after an outage, and **every 10 minutes** (a read pauses the main loop for a few seconds). If the check finds the car stopped by itself (charge limit, unplugged) or its current changed by someone else, the next decision corrects it. **Waking a sleeping car** is off until you tick "Allow WattSync to wake the car when charging is wanted" (Settings > Tesla): then it wakes the car only when charging is wanted and the car was last seen plugged in, at most once every 30 minutes (a wake keeps the car awake 10-15 minutes and uses a little battery). Without it a sleeping car is left alone and the tile says so. The test buttons (including **Wake now**) switch off while the car is in command. Console: `tesla wake`.
 - Messages go out from a short background task so the main loop never waits. Secure (https) addresses are not certificate-checked, because the board holds no certificate list; messages are short status lines, never a password.
 - **Start-up with no internet.** The board connects to Wi-Fi, starts the dashboard, mDNS and OTA at once, and gets the time in the background (pool.ntp.org, time.google.com, then the router). Charging control (OCPP server and meter polling) starts as soon as the clock is valid; until then the dashboard says so and *Diagnostics* shows the clock. Nothing waits on the internet at boot.
-- If `wattsyncesp.local` does not resolve on your computer, use the IP address.
+- If `wattsync.local` does not resolve on your computer, use the IP address.
 
 ## 4. Testing with the real wallbox
 
 The wallbox can talk to only one controller, so while testing the ESP32 the Pi must not be controlling it.
 
 1. Stop the Pi app: `ssh wattsync@wattsyncpi.local "sudo systemctl stop solar-charger"`
-2. In the wallbox's settings, change the OCPP server URL to `ws://wattsyncesp.local:8080/ocpp/wallbox/<chargerId>` (use the same charger id as before; if `.local` names do not work in the wallbox, use the IP address printed at boot).
+2. In the wallbox's settings, change the OCPP server URL to `ws://wattsync.local:8080/pair` (the wallbox adds its charger id itself; the older `/ocpp/wallbox/<chargerId>` URL also still works; if `.local` names do not work in the wallbox, use the IP address printed at boot).
 3. Reboot the wallbox, or wait for it to reconnect. The monitor should show `Wallbox connected -> ID: ...`, then `BootNotification`, `StatusNotification`, and a status resync after 5 s.
 4. Try the console commands below.
 5. **When finished, change the wallbox URL back to the Pi and restart it:** `ssh wattsync@wattsyncpi.local "sudo systemctl start solar-charger"`.
@@ -217,7 +217,7 @@ Settings changed here are saved to flash at once.
 | Saved settings | Change mode and allowance, press RESET: the boot log says `Settings: restored ...` |
 | Restart mid-charge | While the car charges, press RESET on the board: after the wallbox reconnects the log says `Restored last known state of charger ...`, the dashboard keeps showing the charge (Car: Charging, Charging at the right limit), and ECO/BALANCED/Custom carry on without stopping the car |
 | Kill switch | Press **Pause charging** on the dashboard (or type `pause`) while the car charges: it stops within a second and the banner says charging is paused. Press RESET on the board: it comes back still paused and does not restart the car. **Resume charging** returns to the earlier mode |
-| Dashboard | `http://wattsyncesp.local/` loads, shows live values and updates every few seconds; switching mode, moving the allowance slider and the daylight toggle show a confirmation and match `status` in the console |
+| Dashboard | `http://wattsync.local/` loads, shows live values and updates every few seconds; switching mode, moving the allowance slider and the daylight toggle show a confirmation and match `status` in the console |
 | Measured current | The `status` line shows `n A measured` if the wallbox reports it (same as the Java app's `measured` label) |
 | Reconnect | Power-cycle the wallbox: it reconnects, a status resync follows, no duplicate sessions |
 | Setup by hand | Hold BOOT for 5 s (or type `setup`): the log says `Setup: ... the setup network is open`; `WattSync-Setup` appears on the phone; the page lists networks within a few seconds and lists yours |
@@ -261,7 +261,7 @@ CPLUS_INCLUDE_PATH=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/inclu
 
 - **Boot loop or `PSRAM ID read error`:** the board does not have octal PSRAM. In `platformio.ini` change `board_build.arduino.memory_type` to `qio_qspi` and remove `-DBOARD_HAS_PSRAM`.
 - **Boot lines only, nothing from the program:** the log goes to the UART/COM port with the default build (`esp32s3`). If the cable is in the other, native USB port, use `-e esp32s3-usb` for both upload and monitor.
-- **The dashboard does not load:** check the boot log for `Dashboard: http://wattsyncesp.local/`; try the IP address; make sure the computer is on the same network.
+- **The dashboard does not load:** check the boot log for `Dashboard: http://wattsync.local/`; try the IP address; make sure the computer is on the same network.
 - **Wi-Fi fails to connect:** the log says why (`wrong password` or `network not found`, the board only joins 2.4 GHz networks). After 3 minutes the setup network opens (section 1b); fix the details there.
 - **`envoy.local` not found:** enter the Envoy address on the setup page (or set `ENVOY_IP` in `src/secrets.h`).
 - **The setup page says "Setup is off":** the setup network is closed. Hold BOOT for 5 seconds or type `setup`.

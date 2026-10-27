@@ -16,14 +16,17 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * WebSocket endpoint chargers connect to. The charger id can be given in the path
- * ({@code /ocpp/wallbox/{chargerId}}) or as {@code ?chargerId=}. Javalin echoes the
+ * WebSocket endpoint chargers connect to: {@code /pair} (the wallbox adds its id) or the older
+ * {@code /ocpp/wallbox}. The charger id can be given in the path
+ * ({@code /pair/<chargerId>}, {@code /ocpp/wallbox/{chargerId}}) or as {@code ?chargerId=}. Javalin echoes the
  * requested subprotocol (e.g. {@code ocpp1.6}) back during the handshake.
  */
 public class WallboxWebSocket {
 
     private static final Logger logger = LoggerFactory.getLogger(WallboxWebSocket.class);
     private static final String BASE_PATH = "/ocpp/wallbox";
+    /** What owners enter in the wallbox: ws://host:8080/pair (the wallbox adds its own id; may contain a slash). */
+    private static final String PAIR_PATH = "/pair";
 
     private final WallboxController wallbox;
     private final WallboxSessionRegistry sessions;
@@ -50,6 +53,8 @@ public class WallboxWebSocket {
     public void register(Javalin app) {
         app.ws(BASE_PATH, this::configure);
         app.ws(BASE_PATH + "/{chargerId}", this::configure);
+        app.ws(PAIR_PATH, this::configure);
+        app.ws(PAIR_PATH + "/<chargerId>", this::configure);
     }
 
     /** Asks the charger for its real state later, unless it has already told us. */

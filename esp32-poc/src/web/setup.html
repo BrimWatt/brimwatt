@@ -289,11 +289,11 @@
             $('form').hidden = true;
             $('done').hidden = false;
             $('doneText').textContent = info.wifiChanged
-                ? 'WattSync is restarting and will join "' + info.ssid + '". Reconnect your phone to your usual Wi-Fi, then open http://wattsyncesp.local. '
+                ? 'WattSync is restarting and will join "' + info.ssid + '". Reconnect your phone to your usual Wi-Fi, then open http://wattsync.local. '
                   + 'If it cannot join, the WattSync-Setup network comes back in about a minute and says why.'
-                : 'WattSync is restarting. Reconnect your phone to your usual Wi-Fi, then open http://wattsyncesp.local.';
+                : 'WattSync is restarting. Reconnect your phone to your usual Wi-Fi, then open http://wattsync.local.';
         } catch (e) {
-            showError('Lost the connection. If the board has restarted, reconnect to your usual Wi-Fi and open http://wattsyncesp.local.');
+            showError('Lost the connection. If the board has restarted, reconnect to your usual Wi-Fi and open http://wattsync.local.');
             $('save').disabled = false;
             $('save').textContent = 'Save and restart';
         }

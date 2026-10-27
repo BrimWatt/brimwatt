@@ -109,7 +109,7 @@ S.append(side(shot("top", caption="Charging from the sun (sample data)"), [
       "so the car drinks the spare sunshine instead of buying it from the power company."),
     P("<b>What you do.</b> Open the dashboard on your phone, pick a way to charge, and leave it. You can pause any time, set a goal for the morning, and see how much the sun saved you."),
     P("<b>Where it lives.</b> A small controller in your home (a Raspberry Pi or an ESP32 board) talks to your solar gateway and to your charger. The dashboard is a web page it serves to your phone. "
-      "Open <font face='Courier'>http://wattsyncesp.local</font> (the board) or <font face='Courier'>http://wattsyncpi.local:8080</font> (the Pi)."),
+      "Open <font face='Courier'>http://wattsync.local</font> (the board) or <font face='Courier'>http://wattsyncpi.local:8080</font> (the Pi)."),
     P("<b>Tip.</b> On an iPhone, open the page in Safari, tap Share, then Add to Home Screen. It then opens like an app, and pulling down at the top refreshes it."),
 ]))
 
