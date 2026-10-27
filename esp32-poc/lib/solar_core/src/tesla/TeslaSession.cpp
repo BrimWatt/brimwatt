@@ -79,7 +79,6 @@ bool Session::acceptSessionInfo(const Routable& reply, uint32_t nowMs, std::stri
     keyUnknown_ = info.status == 1;
     counter_ = info.counter;
     infoAtMs_ = nowMs;
-    lastReplyCounter_ = 0;
     ready_ = !keyUnknown_;
     if (keyUnknown_) error = "the car does not have our key: pair again";
     return ready_;
@@ -130,10 +129,8 @@ bool Session::openReply(const Routable& reply, const Bytes& requestTag, Bytes& p
         error = "the car's reply was not encrypted as expected";
         return false;
     }
-    if (reply.respCounter <= lastReplyCounter_) {
-        error = "the car's reply repeated an old counter";
-        return false;
-    }
+    // No "counter must increase" rule here: on a real car the reply counter does not rise across replies (it was 1 for two different replies
+    // in one session). Replay protection comes from the request hash in the signed data: a reply only verifies against the exact request it answers.
     Metadata m;
     m.addByte(kTagSignatureType, kSigAesGcmResponse);
     m.addByte(kTagDomain, domain_);
@@ -150,7 +147,6 @@ bool Session::openReply(const Routable& reply, const Bytes& requestTag, Bytes& p
         error = "the car's reply could not be verified";
         return false;
     }
-    lastReplyCounter_ = reply.respCounter;
     return true;
 }
 
