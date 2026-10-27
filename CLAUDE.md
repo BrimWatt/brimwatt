@@ -165,7 +165,7 @@ role; the owner taps their key card), read-only `tesla status` (never wakes the 
 Code: `lib/solar_core/src/tesla/` (`Proto.h`, `TeslaMessages`, `TeslaSession`, `TeslaFlows` (`PairFlow`, `StatusFlow`, `ChargeCommandFlow`), `TeslaSelfTest`, `TeslaBle`), `src/ble/` (`TeslaScan`, `TeslaCar`, `MbedTeslaCrypto`),
 `src/platform/NvsTeslaStore`, `src/ble/CarService` (dashboard link: results, readings, 5-minute read-only watch, restore note; `car/CarControl.h` is the portable interface the ApiHandler uses). Host tests: `test/test_tesla` and `test/test_tesla_protocol` (the latter needs OpenSSL; `scripts/native_openssl.py` finds Homebrew's).
 Pre-2021 Model S/X are not supported by the protocol; Model 3/Y and 2021+ S/X are expected to work but **paired and read (`tesla pair`, `tesla status`) on a real 2021 Model Y on 2026-10-26, including the encrypted reply**; the charge commands (`tesla charge amps|stop|start`) were reported working on the same car the same day. `tesla debug on` dumps the raw messages. **The full VIN is stored on the board** (NVS `tesla`, needed for signing) but never printed, logged, served or committed; the private key too.
-Never echo the typed pair line. Details, code map, test plan and the results table: `docs/tesla-car-control.md`.
+Never echo the typed pair line. Details, code map and the results table: `docs/tesla-car-control.md`; the checklist to run at the car: `docs/tesla-test-plan.md` (update it when results come in).
 
 ### Control through: Car (built 2026-10-27, not yet tried on a real car; default Charger)
 
@@ -189,6 +189,7 @@ Tests: `test/test_car_commander` (39), wake in `test/test_tesla_protocol`, API t
 | Scenarios to try on the real house | `docs/test-scenarios.pdf` |
 | The owner's user guide (PDF) and the demo GIF | `docs/user-guide.pdf`, `docs/demo/` (MP4 + GIF; rebuild with `docs/demo-src/make_demo.py` then `docs/pdf-src/user_guide_pdf.py`; sample data, see `docs/README.md`) |
 | Tesla car control: decisions and the range test | `docs/tesla-car-control.md` |
+| Tesla tests to run at the car (checklist; tick as results come in) | `docs/tesla-test-plan.md` |
 | Index of all of the above | `docs/README.md` |
 
 When a feature or rule changes, update the matching file in the same change and say so briefly in the summary.
