@@ -67,6 +67,9 @@ public:
     bool ok() const { return ok_; }
     const std::vector<std::string>& lines() const { return lines_; }
     const ChargeState& charge() const { return charge_; }
+    /** From the security computer's answer: 0 unknown, 1 awake, 2 asleep; lock state -1 unknown. */
+    int sleepStatus() const { return sleep_; }
+    int lockState() const { return lock_; }
 
 private:
     enum Stage { AwaitStatus, AwaitSession, AwaitReply, Done };
@@ -81,6 +84,7 @@ private:
     Stage stage_ = AwaitStatus;
     bool ok_ = false;
     int sleep_ = 0;
+    int lock_ = -1;
     std::vector<std::string> lines_;
     ChargeState charge_;
 };

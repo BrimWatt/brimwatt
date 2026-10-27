@@ -40,6 +40,21 @@ void NvsTeslaStore::saveVin(const std::string& vin) {
     prefs.end();
 }
 
+bool NvsTeslaStore::loadWatch() {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return true;
+    bool on = prefs.getBool("watch", true);
+    prefs.end();
+    return on;
+}
+
+void NvsTeslaStore::saveWatch(bool on) {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return;
+    prefs.putBool("watch", on);
+    prefs.end();
+}
+
 void NvsTeslaStore::clear() {
     Preferences prefs;
     if (!prefs.begin(kNamespace, /*readOnly=*/false)) return;

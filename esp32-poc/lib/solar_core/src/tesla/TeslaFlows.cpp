@@ -120,6 +120,7 @@ Bytes StatusFlow::onMessage(const Bytes& routable, uint32_t nowMs) {
         VcsecReply v;
         if (!r.hasPayload || !decodeVcsecReply(r.payload, v) || !v.isVehicleStatus) return Bytes();
         sleep_ = v.sleepStatus;
+        lock_ = v.lockState;
         lines_.push_back(std::string("Car is ") + sleepText(v.sleepStatus) + ", " + lockText(v.lockState) + (v.userPresence == 2 ? ", someone is nearby." : "."));
         if (v.sleepStatus == 2) {
             lines_.push_back("The car is asleep, so its charge state is not available. Waking it is a command, so it is not done here.");

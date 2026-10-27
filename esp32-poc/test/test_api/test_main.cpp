@@ -657,8 +657,171 @@ void test_unknown_paths_and_wrong_methods_are_not_found() {
 void setUp() {}
 void tearDown() {}
 
+// ---- the car (Tesla) endpoints ---------------------------------------------------------------------------------------------------
+
+class FakeCar : public CarControl {
+public:
+    CarSnapshot snap;
+    std::string lastCall;
+    std::string lastVin;
+    int lastAmps = 0;
+    bool refuseBusy = false;
+    CarSnapshot snapshot() const override { return snap; }
+    CarResult done(const std::string& what) {
+        lastCall = what;
+        CarResult r;
+        if (refuseBusy) { r.ok = false; r.busy = true; r.message = "A car job is already running."; }
+        return r;
+    }
+    CarResult startPair(const std::string& vin) override { lastVin = vin; return done("pair"); }
+    CarResult startRefresh() override { return done("refresh"); }
+    CarResult startStart() override { return done("start"); }
+    CarResult startStop() override { return done("stop"); }
+    CarResult startSetAmps(int amps) override { lastAmps = amps; return done("amps"); }
+    void cancel() override { lastCall = "cancel"; }
+    void setWatch(bool on) override { lastCall = on ? "watch-on" : "watch-off"; snap.watch = on; }
+    void forget() override { lastCall = "forget"; snap.paired = false; }
+};
+
+void test_car_endpoints_say_not_supported_without_a_car_link() {
+    Rig r;
+    TEST_ASSERT_FALSE(r.telemetry()["car"]["supported"].as<bool>());
+    HttpResponse reply = r.post("/api/car/pair", {{"vin", "5YJYGDEE2MF284667"}});
+    TEST_ASSERT_EQUAL(400, reply.status);
+    TEST_ASSERT_TRUE(reply.body.find("ESP32") != std::string::npos);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/test", {{"action", "stop"}}).status);
+}
+
+void test_telemetry_shows_the_car_without_the_vin_or_key() {
+    Rig r;
+    FakeCar car;
+    r.api.setCar(&car);
+    car.snap.paired = true;
+    car.snap.vin = "5YJ**********4667";
+    car.snap.key = "9b4593c7";
+    car.snap.hasReading = true;
+    car.snap.readingAgeSeconds = 42;
+    car.snap.sleep = 1;
+    car.snap.charge.valid = true;
+    car.snap.charge.chargingState = 5;
+    car.snap.charge.hasBatteryLevel = true; car.snap.charge.batteryLevel = 46;
+    car.snap.charge.hasChargeLimit = true; car.snap.charge.chargeLimit = 80;
+    car.snap.charge.hasActualCurrent = true; car.snap.charge.actualCurrent = 18;
+    car.snap.charge.hasCurrentRequest = true; car.snap.charge.currentRequest = 18;
+    car.snap.charge.hasVoltage = true; car.snap.charge.voltage = 239;
+    car.snap.restoreAmps = 18;
+    JsonDocument t = r.telemetry();
+    JsonObject c = t["car"];
+    TEST_ASSERT_TRUE(c["supported"].as<bool>());
+    TEST_ASSERT_TRUE(c["paired"].as<bool>());
+    testing::check("5YJ**********4667", c["vin"] | "");
+    testing::check("charging", c["reading"]["charging"] | "");
+    TEST_ASSERT_EQUAL(46, c["reading"]["battery"].as<int>());
+    TEST_ASSERT_EQUAL(80, c["reading"]["limit"].as<int>());
+    TEST_ASSERT_EQUAL(18, c["reading"]["amps"].as<int>());
+    TEST_ASSERT_EQUAL(239, c["reading"]["volts"].as<int>());
+    TEST_ASSERT_EQUAL(42, c["reading"]["ageSeconds"].as<int>());
+    TEST_ASSERT_EQUAL(18, c["restoreAmps"].as<int>());
+    TEST_ASSERT_TRUE(c["pair"].isNull());                       // only while pairing
+    HttpResponse raw = r.api.handle("GET", "/api/telemetry", {});
+    TEST_ASSERT_TRUE(raw.body.find("5YJYGDEE") == std::string::npos);   // the whole VIN never appears
+}
+
+void test_pairing_progress_and_the_last_result_are_in_telemetry() {
+    Rig r;
+    FakeCar car;
+    r.api.setCar(&car);
+    car.snap.busy = true;
+    car.snap.job = "pair";
+    car.snap.pairState = "waiting";
+    car.snap.pairText = "Tap your key card.";
+    car.snap.pairSecondsLeft = 90;
+    car.snap.hasResult = true;
+    car.snap.resultJob = "charge";
+    car.snap.resultOk = true;
+    car.snap.resultAgeSeconds = 5;
+    car.snap.resultLines = {"Charging current set to 16 A."};
+    JsonDocument t = r.telemetry();   // keep the document alive: JsonObject only refers to it
+    JsonObject c = t["car"];
+    testing::check("waiting", c["pair"]["state"] | "");
+    TEST_ASSERT_EQUAL(90, c["pair"]["secondsLeft"].as<int>());
+    TEST_ASSERT_TRUE(c["result"]["ok"].as<bool>());
+    testing::check("Charging current set to 16 A.", c["result"]["lines"][0] | "");
+}
+
+void test_pairing_cleans_and_checks_the_vin_and_never_echoes_it() {
+    Rig r;
+    FakeCar car;
+    r.api.setCar(&car);
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/pair", {{"vin", " 5yj-ygdee2 mf284667 "}}).status);
+    testing::check("5YJYGDEE2MF284667", car.lastVin);          // spaces and dashes dropped, capitals
+    testing::check("pair", car.lastCall);
+    car.lastCall.clear();
+    for (const char* bad : {"", "5YJYGDEE2MF28466", "5YJYGDEE2MF2846677", "5YJYGDEE2MF28466O", "5YJYGDEE2MF28466!"}) {
+        HttpResponse reply = r.post("/api/car/pair", {{"vin", bad}});
+        TEST_ASSERT_EQUAL(400, reply.status);
+        TEST_ASSERT_TRUE(reply.body.find(bad[0] ? bad : "@@") == std::string::npos);   // not echoed
+    }
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/pair", {}).status);
+    testing::check("", car.lastCall);                           // nothing started
+    car.refuseBusy = true;
+    TEST_ASSERT_EQUAL(409, r.post("/api/car/pair", {{"vin", "5YJYGDEE2MF284667"}}).status);
+}
+
+void test_the_test_commands_need_a_paired_car_and_check_their_values() {
+    Rig r;
+    FakeCar car;
+    r.api.setCar(&car);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/test", {{"action", "stop"}}).status);     // not paired
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/refresh", {}).status);
+    car.snap.paired = true;
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/test", {{"action", "start"}}).status);
+    testing::check("start", car.lastCall);
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/test", {{"action", "stop"}}).status);
+    testing::check("stop", car.lastCall);
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/test", {{"action", "amps"}, {"amps", "16"}}).status);
+    TEST_ASSERT_EQUAL(16, car.lastAmps);
+    car.lastCall.clear();
+    for (const char* bad : {"5", "41", "abc", "", "-1"}) TEST_ASSERT_EQUAL(400, r.post("/api/car/test", {{"action", "amps"}, {"amps", bad}}).status);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/test", {{"action", "amps"}}).status);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/test", {{"action", "explode"}}).status);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/test", {}).status);
+    testing::check("", car.lastCall);                           // none of the bad ones reached the car
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/refresh", {}).status);
+    testing::check("refresh", car.lastCall);
+}
+
+void test_watch_cancel_and_forget_work_and_car_posts_need_the_safe_header() {
+    Rig r;
+    FakeCar car;
+    r.api.setCar(&car);
+    car.snap.paired = true;
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/watch", {{"enabled", "false"}}).status);
+    testing::check("watch-off", car.lastCall);
+    TEST_ASSERT_FALSE(r.telemetry()["car"]["watch"].as<bool>());
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/watch", {{"enabled", "maybe"}}).status);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/watch", {}).status);
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/cancel", {}).status);
+    testing::check("cancel", car.lastCall);
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/forget", {}).status);
+    testing::check("forget", car.lastCall);
+    car.lastCall.clear();
+    car.snap.paired = true;
+    for (const char* path : {"/api/car/forget", "/api/car/test", "/api/car/pair", "/api/car/cancel", "/api/car/watch", "/api/car/refresh"}) {
+        TEST_ASSERT_EQUAL(403, r.api.handle("POST", path, {{"action", "stop"}, {"vin", "5YJYGDEE2MF284667"}, {"enabled", "true"}}, false).status);
+    }
+    testing::check("", car.lastCall);
+    TEST_ASSERT_EQUAL(404, r.api.handle("GET", "/api/car/forget", {}).status);          // wrong method
+}
+
 int main() {
     UNITY_BEGIN();
+    RUN_TEST(test_car_endpoints_say_not_supported_without_a_car_link);
+    RUN_TEST(test_telemetry_shows_the_car_without_the_vin_or_key);
+    RUN_TEST(test_pairing_progress_and_the_last_result_are_in_telemetry);
+    RUN_TEST(test_pairing_cleans_and_checks_the_vin_and_never_echoes_it);
+    RUN_TEST(test_the_test_commands_need_a_paired_car_and_check_their_values);
+    RUN_TEST(test_watch_cancel_and_forget_work_and_car_posts_need_the_safe_header);
     RUN_TEST(test_telemetry_before_any_reading_or_charger);
     RUN_TEST(test_telemetry_shows_a_charging_car_and_the_latest_decision);
     RUN_TEST(test_status_names_follow_the_dashboard_convention);

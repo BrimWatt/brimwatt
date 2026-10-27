@@ -18,6 +18,9 @@ public:
     void saveKey(const solar::tesla::Bytes& privateKey);
     std::string loadVin();
     void saveVin(const std::string& vin);
+    /** Whether the controller reads the car now and then (read only). On unless switched off. */
+    bool loadWatch();
+    void saveWatch(bool on);
     /** Forgets the key and the VIN. */
     void clear();
 };

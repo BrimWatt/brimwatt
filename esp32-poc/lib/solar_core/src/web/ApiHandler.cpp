@@ -10,6 +10,7 @@
 
 #include "common/CivilDate.h"
 #include "common/Config.h"
+#include "tesla/TeslaBle.h"
 
 namespace solar {
 
@@ -75,6 +76,7 @@ HttpResponse ApiHandler::handle(const std::string& method, const std::string& pa
     if (path == "/api/events" && method == "GET") return events(query);
     if (path == "/api/diagnostics" && method == "GET") return diagnostics();
     if (path == "/api/export.csv" && method == "GET") return exportCsv();
+    if (path.rfind("/api/car/", 0) == 0 && method == "POST") return car(path, query);
     return text(404, "Not found");
 }
 
@@ -430,6 +432,123 @@ HttpResponse ApiHandler::updatePause(const Params& query) {
     return text(200, pause ? "Charging paused" : "Charging resumed");
 }
 
+namespace {
+
+void addCarToTelemetry(JsonObject root, const CarControl* car) {
+    JsonObject out = root["car"].to<JsonObject>();
+    if (!car) {
+        out["supported"] = false;
+        return;
+    }
+    const CarSnapshot s = car->snapshot();
+    out["supported"] = s.supported;
+    if (!s.supported) return;
+    out["paired"] = s.paired;
+    out["vin"] = s.vin;                 // masked
+    out["key"] = s.key;
+    out["watch"] = s.watch;
+    out["busy"] = s.busy;
+    out["job"] = s.job;
+    if (s.busy && s.job == "pair") {
+        JsonObject pair = out["pair"].to<JsonObject>();
+        pair["state"] = s.pairState;
+        pair["text"] = s.pairText;
+        pair["secondsLeft"] = s.pairSecondsLeft;
+    }
+    if (s.hasResult) {
+        JsonObject result = out["result"].to<JsonObject>();
+        result["job"] = s.resultJob;
+        result["ok"] = s.resultOk;
+        result["ageSeconds"] = s.resultAgeSeconds;
+        JsonArray lines = result["lines"].to<JsonArray>();
+        for (const std::string& line : s.resultLines) lines.add(line);
+    }
+    if (s.hasReading) {
+        JsonObject reading = out["reading"].to<JsonObject>();
+        reading["ageSeconds"] = s.readingAgeSeconds;
+        reading["sleep"] = s.sleep;
+        reading["lock"] = s.lock;
+        const tesla::ChargeState& c = s.charge;
+        if (c.valid) {
+            reading["charging"] = tesla::chargingStateText(c.chargingState);
+            reading["chargingCode"] = c.chargingState;
+        }
+        if (c.hasBatteryLevel) reading["battery"] = c.batteryLevel;
+        if (c.hasChargeLimit) reading["limit"] = c.chargeLimit;
+        if (c.hasActualCurrent) reading["amps"] = c.actualCurrent;
+        if (c.hasCurrentRequest) reading["requestAmps"] = c.currentRequest;
+        if (c.hasCurrentRequestMax) reading["maxAmps"] = c.currentRequestMax;
+        if (c.hasVoltage) reading["volts"] = c.voltage;
+        if (c.hasPower) reading["kw"] = c.power;
+    }
+    out["restoreAmps"] = s.restoreAmps;
+}
+
+/** Spaces and dashes are tolerated and the letters are made capital; whatever is left is checked as a VIN. */
+std::string cleanVin(const std::string& raw) {
+    std::string vin;
+    for (char c : raw) {
+        if (c == ' ' || c == '-' || c == '\t') continue;
+        vin += static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+    }
+    return vin;
+}
+
+}  // namespace
+
+HttpResponse ApiHandler::car(const std::string& path, const Params& query) {
+    if (!car_) return text(400, "Car control needs the ESP32 board.");
+    const CarSnapshot now = car_->snapshot();
+    if (!now.supported) return text(400, "Car control needs the ESP32 board.");
+
+    auto answer = [](const CarResult& r, const char* ok) {
+        if (r.ok) return text(200, ok);
+        return text(r.busy ? 409 : 400, r.message);
+    };
+
+    if (path == "/api/car/pair") {
+        const std::string* raw = find(query, "vin");
+        std::string vin = raw ? cleanVin(*raw) : std::string();
+        // The VIN is never echoed back, not even in an error.
+        if (!tesla::isValidVin(vin)) return text(400, "That is not a VIN (17 letters and digits, no I, O or Q).");
+        return answer(car_->startPair(vin), "Pairing started");
+    }
+    if (path == "/api/car/refresh") {
+        if (!now.paired) return text(400, "No car is paired yet.");
+        return answer(car_->startRefresh(), "Reading the car");
+    }
+    if (path == "/api/car/watch") {
+        const std::string* enabled = find(query, "enabled");
+        if (!enabled || (*enabled != "true" && *enabled != "false")) return text(400, "enabled must be true or false");
+        car_->setWatch(*enabled == "true");
+        return text(200, "Car watching updated");
+    }
+    if (path == "/api/car/cancel") {
+        car_->cancel();
+        return text(200, "Stopped");
+    }
+    if (path == "/api/car/forget") {
+        car_->forget();
+        return text(200, "Car forgotten");
+    }
+    if (path == "/api/car/test") {
+        const std::string* action = find(query, "action");
+        if (!action) return text(400, "Missing action.");
+        if (*action != "start" && *action != "stop" && *action != "amps") return text(400, "action must be start, stop or amps");
+        if (!now.paired) return text(400, "No car is paired yet.");
+        if (*action == "amps") {
+            const std::string* amps = find(query, "amps");
+            std::optional<int> value = amps ? parseWholeNumber(*amps) : std::nullopt;
+            if (!value || *value < config::kMinAmps || *value > config::kMaxFastAmps) {
+                return text(400, "amps must be a whole number from " + std::to_string(config::kMinAmps) + " to " + std::to_string(config::kMaxFastAmps) + ".");
+            }
+            return answer(car_->startSetAmps(*value), "Setting the car's current");
+        }
+        return answer(*action == "start" ? car_->startStart() : car_->startStop(), *action == "start" ? "Starting the charge" : "Stopping the charge");
+    }
+    return text(404, "Not found");
+}
+
 HttpResponse ApiHandler::telemetry() {
     const SystemState& state = controller_.state();
     const auto& control = state.control();
@@ -502,6 +621,7 @@ HttpResponse ApiHandler::telemetry() {
     ctl["gridAllowanceWatts"] = state.mode() != ChargingMode::Fast ? state.gridAllowanceWatts() : 0;
     ctl["failSafe"] = state.failSafe();
     ctl["pollSeconds"] = config::kPollIntervalSeconds;
+    addCarToTelemetry(doc.as<JsonObject>(), car_);
 
     HttpResponse response;
     response.contentType = "application/json";

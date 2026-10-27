@@ -15,6 +15,7 @@
 #include <WiFi.h>
 #include <esp_system.h>
 
+#include "ble/CarService.h"
 #include "ble/TeslaCar.h"
 #include "ble/TeslaScan.h"
 #include "platform/NvsTeslaStore.h"
@@ -82,6 +83,7 @@ static device::MeterPoller meterPoller(envoy);
 static device::TeslaScan teslaScan;
 static device::NvsTeslaStore teslaStore;
 static device::TeslaCar teslaCar(teslaStore);
+static device::CarService carService(teslaCar, teslaStore, teslaScan);
 static device::SerialConsole console(controller, wallbox, meterPoller);
 static device::EspNotifySender notifySender;
 static Notifier notifier(platform, state, notifySender);
@@ -122,7 +124,7 @@ static void serviceWhileOffline() {
     portal.loop();
     console.poll();
     teslaScan.loop();   // Tesla jobs must also work with no Wi-Fi (the car is reached over Bluetooth)
-    teslaCar.loop();
+    carService.loop();
     delay(5);
 }
 
@@ -255,6 +257,7 @@ void setup() {
     api.setNotifier(&notifier);
     api.setHistory(&history);
     api.setDiagnostics(&diagnostics);
+    api.setCar(&carService);
     ocppServer.setHistory(&history);
     controller.restoreSettings();
     chargerPersistence.restore();
@@ -269,7 +272,7 @@ void loop() {
     portal.loop();   // the BOOT button, and the setup network when it is open
     console.poll();
     teslaScan.loop();
-    teslaCar.loop();
+    carService.loop();
 
     if (!controlStarted) {
         if (device::TimeSync::isValid()) {

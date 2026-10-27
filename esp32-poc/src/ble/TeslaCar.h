@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "ble/MbedTeslaCrypto.h"
 #include "platform/NvsTeslaStore.h"
@@ -22,12 +23,29 @@ class TeslaCar {
 public:
     enum class Job { None, Pair, Status, Charge };
 
+    /** How the last finished job went (any job, including the quiet watch reads). */
+    struct Result {
+        bool have = false;
+        const char* job = "";   // "pair", "status" or "charge"
+        bool ok = false;
+        uint32_t atMs = 0;
+        std::vector<std::string> lines;
+    };
+    /** The latest successful read of the car: from a status read, or the read-back after a test command. */
+    struct Reading {
+        bool have = false;
+        uint32_t atMs = 0;
+        int sleep = 0;          // 0 unknown, 1 awake, 2 asleep
+        int lock = -1;
+        solar::tesla::ChargeState charge;
+    };
+
     explicit TeslaCar(NvsTeslaStore& store) : store_(store) {}
 
     /** Starts pairing with the car that has this VIN. Returns an error text, or empty when it started. */
     std::string startPair(const std::string& vin);
     /** Starts the read-only status for the paired car. Returns an error text, or empty when it started. */
-    std::string startStatus();
+    std::string startStatus(bool quiet = false);
     /**
      * Starts one charge command for the paired car (start, stop, or set the current). This CHANGES the car. Returns an error text, or empty
      * when it started. The amps are checked here, before anything is sent.
@@ -39,6 +57,13 @@ public:
     void setDebug(bool on) { debug_ = on; }
     bool debug() const { return debug_; }
     bool busy() const { return job_ != Job::None; }
+    const char* jobName() const { return job_ == Job::Pair ? "pair" : job_ == Job::Status ? "status" : job_ == Job::Charge ? "charge" : ""; }
+    const Result& lastResult() const { return result_; }
+    const Reading& lastReading() const { return reading_; }
+    /** While pairing: "finding" or "waiting", the car's latest words, and how long until the 2-minute limit. */
+    const char* pairState() const { return stage_ == Stage::Finding ? "finding" : "waiting"; }
+    std::string pairText() const;
+    int pairSecondsLeft() const;
 
     /** A short, shareable fingerprint of our public key (first 4 bytes of its SHA-256), or empty when there is no key yet. */
     std::string keyFingerprint();
@@ -73,6 +98,9 @@ private:
     bool radioOn_ = false;
     bool scanFailed_ = false;
     bool debug_ = false;
+    bool quiet_ = false;
+    Result result_;
+    Reading reading_;
     uint32_t startedAt_ = 0;
     uint32_t lastActivity_ = 0;
     uint32_t lastProgress_ = 0;

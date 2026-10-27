@@ -71,9 +71,18 @@ std::string TeslaCar::keyFingerprint() {
     return solar::tesla::toHex(Bytes(d.begin(), d.begin() + 4));
 }
 
+std::string TeslaCar::pairText() const { return pair_ ? pair_->text() : std::string(); }
+
+int TeslaCar::pairSecondsLeft() const {
+    uint32_t used = millis() - startedAt_;
+    return used >= 120000UL ? 0 : static_cast<int>((120000UL - used) / 1000);
+}
+
 void TeslaCar::forget() {
     if (busy()) cancel();
     store_.clear();
+    result_ = Result();
+    reading_ = Reading();
     LOG_INFO("Tesla: the key and the car were forgotten on this board. The car still lists the key: remove it there too (Controls > Locks).");
 }
 
@@ -97,12 +106,13 @@ std::string TeslaCar::startPair(const std::string& vin) {
     name_ = solar::tesla::advertisedName(upper);
     pair_.reset(new solar::tesla::PairFlow(crypto_, pub_, solar::tesla::kRoleChargingManager));
     status_.reset();
+    quiet_ = false;
     begin(Job::Pair);
     LOG_INFO("Tesla pair: looking for car %s. Sit in the car with your key card ready; nothing is changed until you tap it.", solar::tesla::maskVin(vin_).c_str());
     return "";
 }
 
-std::string TeslaCar::startStatus() {
+std::string TeslaCar::startStatus(bool quiet) {
     if (busy()) return "A Tesla job is already running. Type \"tesla stop\" to end it.";
     if (!store_.loadKey(priv_) || !crypto_.publicKeyFor(priv_, pub_)) return "No key yet. Pair first: tesla pair <VIN>.";
     vin_ = store_.loadVin();
@@ -110,8 +120,9 @@ std::string TeslaCar::startStatus() {
     name_ = solar::tesla::advertisedName(vin_);
     status_.reset(new solar::tesla::StatusFlow(crypto_, priv_, pub_, vin_));
     pair_.reset();
+    quiet_ = quiet;
     begin(Job::Status);
-    LOG_INFO("Tesla status: looking for car %s. This only reads; it changes nothing and does not wake the car.", solar::tesla::maskVin(vin_).c_str());
+    if (!quiet) LOG_INFO("Tesla status: looking for car %s. This only reads; it changes nothing and does not wake the car.", solar::tesla::maskVin(vin_).c_str());
     return "";
 }
 
@@ -128,6 +139,7 @@ std::string TeslaCar::startCharge(solar::tesla::ChargeCommandFlow::Command comma
     chargeWhat_ = command == ChargeCommandFlow::Start ? "start charging" : command == ChargeCommandFlow::Stop ? "stop charging" : "set the charging current to " + std::to_string(amps) + " A";
     pair_.reset();
     status_.reset();
+    quiet_ = false;
     begin(Job::Charge);
     LOG_INFO("Tesla charge: looking for car %s to %s. This CHANGES the car's charging; it does not wake a sleeping car.", solar::tesla::maskVin(vin_).c_str(), chargeWhat_.c_str());
     return "";
@@ -186,18 +198,47 @@ void TeslaCar::finish(const std::string& why) {
     write_ = nullptr;
     BLEDevice::getScan()->stop();
     wantedName.clear();
+    result_ = Result();
+    result_.have = true;
+    result_.job = jobName();
+    result_.atMs = millis();
     if (job_ == Job::Pair && pair_) {
-        if (pair_->state() == solar::tesla::PairFlow::Accepted || pair_->alreadyOnCar()) {
+        bool done = pair_->state() == solar::tesla::PairFlow::Accepted || pair_->alreadyOnCar();
+        result_.ok = done;
+        result_.lines.push_back(done ? "The car accepted our key." : (why.empty() ? pair_->text() : why));
+        if (done) {
             store_.saveVin(vin_);
             LOG_INFO("Tesla pair: done. Our key (fingerprint %s) is on the car with the Charging Manager role. You can see it, rename it or delete it in the car under Controls > Locks.", keyFingerprint().c_str());
         } else {
             LOG_WARN("Tesla pair: not paired. %s", why.empty() ? pair_->text().c_str() : why.c_str());
         }
     } else if (job_ == Job::Status && status_) {
-        for (const auto& line : status_->lines()) LOG_INFO("Tesla status: %s", line.c_str());
-        if (!status_->ok() && status_->lines().empty()) LOG_WARN("Tesla status: %s", why.c_str());
-        LOG_INFO("Tesla status: read-only; nothing was sent that changes the car.");
+        result_.ok = status_->ok();
+        result_.lines = status_->lines();
+        if (result_.lines.empty() && !why.empty()) result_.lines.push_back(why);
+        if (status_->ok()) {
+            reading_.have = true;
+            reading_.atMs = result_.atMs;
+            reading_.sleep = status_->sleepStatus();
+            reading_.lock = status_->lockState();
+            reading_.charge = status_->charge();
+        }
+        if (!quiet_) {
+            for (const auto& line : status_->lines()) LOG_INFO("Tesla status: %s", line.c_str());
+            if (!status_->ok() && status_->lines().empty()) LOG_WARN("Tesla status: %s", why.c_str());
+            LOG_INFO("Tesla status: read-only; nothing was sent that changes the car.");
+        } else if (!status_->ok()) {
+            LOG_WARN("Tesla watch: %s", result_.lines.empty() ? "no answer." : result_.lines.back().c_str());
+        }
     } else if (job_ == Job::Charge && charge_) {
+        result_.ok = charge_->ok();
+        result_.lines = charge_->lines();
+        if (result_.lines.empty() && !why.empty()) result_.lines.push_back(why);
+        if (charge_->ok() && charge_->charge().valid) {   // the read-back after the command
+            reading_.have = true;
+            reading_.atMs = result_.atMs;
+            reading_.charge = charge_->charge();
+        }
         for (const auto& line : charge_->lines()) {
             if (charge_->ok()) LOG_INFO("Tesla charge: %s", line.c_str());
             else LOG_WARN("Tesla charge: %s", line.c_str());
@@ -309,7 +350,7 @@ void TeslaCar::loop() {
         have = found;
         portEXIT_CRITICAL(&lock);
         if (have) {
-            LOG_INFO("Tesla: car found, connecting...");
+            if (!quiet_) LOG_INFO("Tesla: car found, connecting...");
             if (!connect()) {
                 finish("Could not connect.");
                 return;

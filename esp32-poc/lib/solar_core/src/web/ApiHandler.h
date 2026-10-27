@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 
+#include "car/CarControl.h"
 #include "notify/Notifier.h"
 #include "common/Platform.h"
 #include "control/SolarController.h"
@@ -37,6 +38,13 @@ struct HttpResponse {
  *   GET  /api/days?n=30                      daily energy totals for the last n days (up to 365)
  *   GET  /api/diagnostics                    restarts and crashes, uptime, memory, Wi-Fi signal (404 if the platform has none)
  *   GET  /api/export.csv                     every day's energy totals as a spreadsheet file
+ *   POST /api/car/pair  (vin in the body)    adds this controller's own key to the owner's Tesla (the owner taps the key card)
+ *   POST /api/car/refresh                    reads the car now (read only)
+ *   POST /api/car/watch?enabled=true|false   read the car every few minutes (read only)
+ *   POST /api/car/test?action=start|stop|amps[&amps=6-40]   test commands: these CHANGE the car
+ *   POST /api/car/cancel                     ends a pairing or test early
+ *   POST /api/car/forget                     deletes our key and the car from this controller
+ *   (the car's state is part of /api/telemetry as "car")
  */
 class ApiHandler {
 public:
@@ -56,6 +64,8 @@ public:
     /** Needed for the notification test button; without it the test reports an error. */
     void setNotifier(Notifier* notifier) { notifier_ = notifier; }
     void setDiagnostics(const DiagnosticsSource* source) { diagnostics_ = source; }
+    /** The Bluetooth link to the car; without it the car endpoints answer "not supported". */
+    void setCar(CarControl* car) { car_ = car; }
 
 private:
     HttpResponse telemetry();
@@ -74,6 +84,7 @@ private:
     HttpResponse events(const Params& query);
     HttpResponse diagnostics();
     HttpResponse exportCsv();
+    HttpResponse car(const std::string& path, const Params& query);
 
     const Platform& platform_;
     SolarController& controller_;
@@ -82,6 +93,7 @@ private:
     const HistoryService* history_ = nullptr;
     const DiagnosticsSource* diagnostics_ = nullptr;
     Notifier* notifier_ = nullptr;
+    CarControl* car_ = nullptr;
 };
 
 }  // namespace solar
