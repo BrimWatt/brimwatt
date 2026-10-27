@@ -372,7 +372,7 @@ void TeslaCar::loop() {
             return;
         }
         if (now - startedAt_ > (kFindSeconds + 1) * 1000UL) {
-            finish("The car was not heard. Move the board closer (try `tesla scan`) and try again.");
+            finish("The car was not heard. Move the controller closer to the car and try again.");
         }
         return;
     }

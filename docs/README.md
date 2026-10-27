@@ -5,7 +5,7 @@
 | Overview, modes, settings, endpoints (Pi app) | [../README.md](../README.md) |
 | ESP32 firmware: set-up, flashing, console, checks | [../esp32-poc/README.md](../esp32-poc/README.md) |
 | **The ESP32 setup network** (diagrams, UI mocks, endpoints, safety) | [setup-network.md](setup-network.md) |
-| **Tesla car control** (decisions so far, the Phase 0 range test) | [tesla-car-control.md](tesla-car-control.md) |
+| **Tesla car control** (decisions, research, what works on a real car, the dashboard UI) | [tesla-car-control.md](tesla-car-control.md) |
 | Notes for working on the project (layout, commands, rules, git) | [../CLAUDE.md](../CLAUDE.md) |
 | **User guide** for the car owner (dashboard, modes, goal, history, miles, settings), PDF | [user-guide.pdf](user-guide.pdf) |
 | **Demo video** of the dashboard on sample data (MP4, and a GIF of the same) | [demo/wattsync-demo.mp4](demo/wattsync-demo.mp4), [GIF](demo/wattsync-demo.gif) |

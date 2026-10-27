@@ -219,6 +219,8 @@ test('the Tesla tile says what the car reported, how old it is, and compares wit
     assert.equal(v.pct, 46);
     assert.equal(v.limit, 80);
     assert.equal(v.stale, false);
+    assert.equal(page.carView({ reading: { ageSeconds: 2, battery: 50 } }, null).note, 'Read just now');
+    assert.ok(!/ago ago/.test(v.note));
 });
 
 test('an old reading is marked stale and a sleeping car is not shown as charging', () => {

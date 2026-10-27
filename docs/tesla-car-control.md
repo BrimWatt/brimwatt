@@ -154,3 +154,13 @@ Not verified: all of it on a real car (the car's replies, whether the Charging M
 - The car also broadcasts messages addressed to "everyone" (domain 0) during a conversation; only messages addressed to our routing id count.
 - `BLEDevice::deinit(true)` makes the radio unusable until a reboot (and aborts on a second release): use `deinit(false)`. Free the `BLEClient` only after the disconnect event arrived.
 - Typing into the serial monitor while the board is inside a 30 s Wi-Fi join delays the reply; arrow keys inject escape codes into the line.
+
+### Dashboard UI (built 2026-10-26, checked in the browser on a stand-in, not yet on the board)
+
+- **Decisions (owner, 2026-10-26):** the paired car is read-only by default; "Control through: Car" will need a confirmation naming the car; test controls get UI too; one car slot (pair another and the first is replaced). Context: the paired car belongs to a friend, used for testing while the board keeps optimizing the owner's own wallbox.
+- **Settings > Tesla:** VIN box + Pair (the VIN is cleaned and checked in the page, sent in a POST body, then the box is emptied), a progress box while pairing or reading (Stop button), then paired state: masked VIN, "Read the car every few minutes" (watch), Check now, Forget car, and **For testing** (Start, Stop, current + Set, "Put the setting back to N A" after a change). Every test button asks first.
+- **Tesla tile** (under the modes, only when paired): battery with the limit marked on a thin bar, charging state, amps and kW, "Read 2m ago" (amber after 15 min), "Not reachable" with the reason when the last read failed, "Asleep" when the car sleeps, and the charger's own amps for comparison.
+- **Pi:** the group says "Car control needs the ESP32 board."
+- **Not built:** the "Control through: Charger | Car" switch and the controller engine behind it; wake; Pi support.
+- **Watch schedule:** first read 60 s after start, then every 5 minutes (a Bluetooth read pauses the main loop for a few seconds, so not every minute; if OCPP or the web page stalls, the next step is to run Bluetooth in its own task).
+- **Code:** `lib/solar_core/src/car/CarControl.h` (interface), `ApiHandler` (routes, telemetry `car`), `src/ble/CarService.*`, `TeslaCar` (results, readings), dashboard `renderCar`.
