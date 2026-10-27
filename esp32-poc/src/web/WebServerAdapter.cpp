@@ -33,6 +33,12 @@ void WebServerAdapter::begin() {
     server_.on("/api/goal", HTTP_POST, [this] { serveApi(); });
     server_.on("/api/notify", HTTP_POST, [this] { serveApi(); });
     server_.on("/api/notify/test", HTTP_POST, [this] { serveApi(); });
+    server_.on("/api/car/pair", HTTP_POST, [this] { serveApi(); });
+    server_.on("/api/car/refresh", HTTP_POST, [this] { serveApi(); });
+    server_.on("/api/car/watch", HTTP_POST, [this] { serveApi(); });
+    server_.on("/api/car/test", HTTP_POST, [this] { serveApi(); });
+    server_.on("/api/car/cancel", HTTP_POST, [this] { serveApi(); });
+    server_.on("/api/car/forget", HTTP_POST, [this] { serveApi(); });
     server_.on("/api/history", HTTP_GET, [this] { serveApi(); });
     server_.on("/api/days", HTTP_GET, [this] { serveApi(); });
     server_.on("/api/sessions", HTTP_GET, [this] { serveApi(); });
