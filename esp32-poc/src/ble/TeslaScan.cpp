@@ -80,7 +80,11 @@ std::string TeslaScan::begin(uint32_t seconds) {
     scan->setActiveScan(true);                            // also ask for the scan response, where a name may be
     scan->setInterval(100);
     scan->setWindow(99);
-    scan->start(seconds, nullptr, false);                 // not blocking: the web server and the console keep running
+    if (!scan->start(seconds, nullptr, false)) {          // not blocking: the web server and the console keep running
+        BLEDevice::deinit(false);
+        radioOn_ = false;
+        return "Could not start the Bluetooth scan. Try again.";
+    }
     running_ = true;
     return "";
 }
@@ -124,7 +128,9 @@ void TeslaScan::finish() {
         LOG_INFO("Tesla scan result for %s: %s", masked_.c_str(), stats_.summary().c_str());
     }
     LOG_INFO("Tesla scan: this only shows the car is in range. It cannot show whether the car accepts charging commands over Bluetooth.");
-    BLEDevice::deinit(true);   // give the memory back
+    // false: release_memory=true would give the radio's memory up until the next reboot, so the NEXT Bluetooth job could not start
+    // (and a second release aborts the board).
+    BLEDevice::deinit(false);
     radioOn_ = false;
 }
 
