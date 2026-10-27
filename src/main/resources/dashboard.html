@@ -988,8 +988,8 @@ function renderHeadline(data) {
     const c = data.charger, p = data.power, mode = MODE_NAME[data.currentMode];
     let h;
     if (data.paused) h = { cls: 'warn', icon: '⏸️', title: 'Charging is paused', sub: 'Resume to go back to ' + mode + '.' };
-    else if (c.status === 'NONE') h = { cls: 'warn', icon: '🔌', title: 'Charger is offline', sub: 'Waiting for the wallbox to connect.' };
-    else if (c.status === 'FAULTED') h = { cls: 'bad', icon: '⚠️', title: 'Charger has a fault', sub: 'Check the wallbox.' };
+    else if (c.status === 'NONE') h = { cls: 'warn', icon: '🔌', title: 'Charger is offline', sub: 'Waiting for the charger to connect.' };
+    else if (c.status === 'FAULTED') h = { cls: 'bad', icon: '⚠️', title: 'Charger has a fault', sub: 'Check the charger.' };
     else if (c.status === 'CHARGING' && c.amps > 0) {
         const carW = p.chargerWatts, sun = Math.min(carW, Math.max(0, p.solarWatts - p.homeWatts)), grid = Math.max(0, carW - sun);
         // This charger may not report its real current; then the number is the limit it was set to, so say "up to".
