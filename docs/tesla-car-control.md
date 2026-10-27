@@ -1,6 +1,6 @@
 # Tesla car control
 
-> **Status:** built (2026-10-27, **not yet tried on a real car**): `tesla pair <VIN>`, read-only `tesla status`, `tesla charge start|stop|amps <n>`, `tesla key|forget|selftest` (section "First connecting step: what was built"). Before that: design and research (below), plus the Phase 0 range test (built, host-tested, builds as firmware, run once on the board (2026-10-26): one Tesla heard, weak signal (-80 dBm, 4 sightings in 60 s) from where the board sat; closer placement and the car-asleep case not yet tried). The screens in `ui-drafts/` are proposals and use the word "charger".
+> **Status:** built and **proven on a real 2021 Model Y on 2026-10-26** (console only; the controller does not use it yet): `tesla pair <VIN>`, read-only `tesla status`, `tesla charge start|stop|amps <n>`, `tesla key|forget|selftest` (section "First connecting step: what was built"). Before that: design and research (below), plus the Phase 0 range test (built, host-tested, builds as firmware, run once on the board (2026-10-26): one Tesla heard, weak signal (-80 dBm, 4 sightings in 60 s) from where the board sat; closer placement and the car-asleep case not yet tried). The screens in `ui-drafts/` are proposals and use the word "charger".
 
 ## Decisions so far (2026-10-26)
 
