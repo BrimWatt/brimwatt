@@ -160,14 +160,9 @@ bool decodeSessionInfo(const Bytes& bytes, SessionInfo& info) {
 
 // ---- VCSEC ------------------------------------------------------------------------------------------------------------------
 
-static Bytes wrapVcsec(const Writer& unsignedMessage, int signatureType) {
-    Writer signedMessage;
-    signedMessage.bytes(2, unsignedMessage.data());
-    if (signatureType) signedMessage.varint(3, static_cast<uint64_t>(signatureType));
-    Writer to;
-    to.message(1, signedMessage);
-    return to.data();
-}
+// A message to the security computer travels as a bare UnsignedMessage in RoutableMessage.protobuf_message_as_bytes (Tesla's protocol notes).
+// Wrapping it in ToVCSECMessage/SignedMessage is the older, non-routable Bluetooth format: the car answers "could not decode" (fault 10).
+static Bytes vcsecPayload(const Writer& unsignedMessage) { return unsignedMessage.data(); }
 
 Bytes vcsecAddKey(const Bytes& publicKey65, int role, int formFactor) {
     Writer key;
@@ -182,14 +177,14 @@ Bytes vcsecAddKey(const Bytes& publicKey65, int role, int formFactor) {
     op.message(6, meta);                             // metadataForKey
     Writer unsignedMessage;
     unsignedMessage.message(16, op);                 // UnsignedMessage.WhitelistOperation
-    return wrapVcsec(unsignedMessage, 2);            // SIGNATURE_TYPE_PRESENT_KEY: approved by tapping a key card
+    return vcsecPayload(unsignedMessage);            // no signature: the owner approves by tapping a key card
 }
 
 Bytes vcsecGetStatus() {
     Writer request;                                  // informationRequestType 0 = GET_STATUS (left out as the default)
     Writer unsignedMessage;
     unsignedMessage.message(1, request);
-    return wrapVcsec(unsignedMessage, 0);
+    return vcsecPayload(unsignedMessage);
 }
 
 Bytes vcsecGetWhitelistEntry(const Bytes& publicKey65) {
@@ -201,7 +196,7 @@ Bytes vcsecGetWhitelistEntry(const Bytes& publicKey65) {
     request.message(2, id);
     Writer unsignedMessage;
     unsignedMessage.message(1, request);
-    return wrapVcsec(unsignedMessage, 0);
+    return vcsecPayload(unsignedMessage);
 }
 
 bool decodeVcsecReply(const Bytes& bytes, VcsecReply& reply) {

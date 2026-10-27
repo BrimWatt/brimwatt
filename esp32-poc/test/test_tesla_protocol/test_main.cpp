@@ -58,11 +58,11 @@ void test_damaged_bytes_are_reported_not_crashed_on() {
 void test_the_add_key_message_has_the_published_layout() {
     // PermissionChange: key = 1, keyRole = 4. WhitelistOperation: addKeyToWhitelistAndAddPermissions = 5, metadataForKey = 6.
     Bytes m = vcsecAddKey(Bytes{0xaa, 0xbb}, kRoleChargingManager, kFormFactorCloudKey);
-    TEST_ASSERT_EQUAL_STRING("0a15" "1211" "82010e" "2a08" "0a040a02aabb" "2006" "3202" "0809" "1802", hex(m).c_str());
+    TEST_ASSERT_EQUAL_STRING("82010e" "2a08" "0a040a02aabb" "2006" "3202" "0809", hex(m).c_str());
 }
 
 void test_status_and_charge_requests_are_short_and_change_nothing() {
-    TEST_ASSERT_EQUAL_STRING("0a0412020a00", hex(vcsecGetStatus()).c_str());
+    TEST_ASSERT_EQUAL_STRING("0a00", hex(vcsecGetStatus()).c_str());
     TEST_ASSERT_EQUAL_STRING("12040a021200", hex(carGetChargeState()).c_str());
 }
 

@@ -102,6 +102,10 @@ Console commands on the ESP32 (see `esp32-poc/README.md`): `tesla pair <VIN>`, `
 
 **What is NOT verified (needs a real car):** the car's actual replies; that the add-key request is accepted with the Charging Manager role (the fallback to Driver is not built yet); the Bluetooth connection, indications, fragmenting and MTU on the S3; the **reply decryption** (the protocol description has no example for it, so the code follows the written rules: signature type 9, domain, VIN, counter, flags, request hash = 0x05 + our tag, fault; if the car disagrees, `tesla status` will say "the car's reply could not be verified" and shows nothing); `tesla selftest` on the board's mbedTLS; Bluetooth next to Wi-Fi; range.
 
+### First real-car finding (2026-10-26, 2021 Model Y): the security-computer payload is a bare `UnsignedMessage`
+
+The first `tesla pair` reached the car over Bluetooth (found, connected, request sent, car answered in under a second) but the car refused with fault 10 ("could not decode"), twice. Cause: add-key, status and key-lookup messages were wrapped in `ToVCSECMessage { signedMessage { ... } }`, the older non-routable format. Tesla's protocol notes say `RoutableMessage.protobuf_message_as_bytes` for the security domain parses as a bare `vcsec.UnsignedMessage`. Fixed in `TeslaMessages.cpp` (`vcsecPayload`); add-key is now `82010e 2a08 ... 2006 3202 0809`, status is `0a00`. Not yet re-tried on the car. The pair log also prints the raw request and reply bytes (public data only) while this is being proven; remove them once pairing works. A one-time retry as a phone key (form factor 7) after fault 10 stays in as a fallback.
+
 ### Charge commands: start, stop, set amps (built 2026-10-27, not tried on a real car)
 
 `tesla charge start`, `tesla charge stop`, `tesla charge amps <6-40>` (typing the command is the confirmation; nothing else asks). Each runs one `ChargeCommandFlow`:
