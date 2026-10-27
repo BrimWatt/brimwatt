@@ -320,5 +320,121 @@ Bytes ChargeCommandFlow::onMessage(const Bytes& routable, uint32_t nowMs) {
     return Bytes();
 }
 
+// ---- wake -------------------------------------------------------------------------------------------------------------------
+
+Bytes WakeFlow::envelope(int domain, const Bytes& payload) {
+    Routable r;
+    r.toDomain = domain;
+    r.fromRouting = routing_;
+    r.hasPayload = true;
+    r.payload = payload;
+    r.uuid = c_.randomBytes(16);
+    return encodeRoutable(r);
+}
+
+void WakeFlow::fail(const std::string& why) {
+    lines_.push_back(why);
+    ok_ = false;
+    stage_ = Done;
+}
+
+void WakeFlow::succeed(const std::string& text) {
+    lines_.push_back(text);
+    ok_ = true;
+    stage_ = Done;
+}
+
+Bytes WakeFlow::askStatus() { return envelope(kDomainVehicleSecurity, vcsecGetStatus()); }
+
+Bytes WakeFlow::start() {
+    routing_ = c_.randomBytes(16);
+    stage_ = AwaitStatus;
+    ok_ = false;
+    asked_ = false;
+    looks_ = 0;
+    lines_.clear();
+    return askStatus();
+}
+
+void WakeFlow::timedOut() {
+    if (stage_ == Done) return;
+    if (stage_ == AwaitStatus || stage_ == AwaitSession) fail("The car did not answer. Is it in range? Nothing was sent.");
+    else fail("The car did not wake. It may take another try.");
+}
+
+Bytes WakeFlow::poll(uint32_t nowMs) {
+    if (stage_ == AwaitCommandReply && nowMs - sentAt_ >= kReplyWaitMs) {   // no word back: ask the car how it is instead
+        stage_ = AwaitVerify;
+        asked_ = true;
+        looks_ = 1;
+        return askStatus();
+    }
+    if (stage_ == AwaitVerify && !asked_ && static_cast<int32_t>(nowMs - askAt_) >= 0) {
+        asked_ = true;
+        looks_++;
+        return askStatus();
+    }
+    return Bytes();
+}
+
+Bytes WakeFlow::onMessage(const Bytes& routable, uint32_t nowMs) {
+    if (stage_ == Done) return Bytes();
+    Routable r;
+    if (!decodeRoutable(routable, r)) return Bytes();
+    if (r.toRouting != routing_) return Bytes();   // broadcasts to everyone are not for us
+
+    if (stage_ == AwaitStatus || stage_ == AwaitVerify) {
+        if (r.hasStatus && r.statusFault != 0) {
+            fail(std::string("The car refused: ") + messageFaultText(r.statusFault) + ".");
+            return Bytes();
+        }
+        VcsecReply v;
+        if (!r.hasPayload || !decodeVcsecReply(r.payload, v) || !v.isVehicleStatus) return Bytes();
+        if (v.sleepStatus == 1) {
+            succeed(stage_ == AwaitStatus ? "The car is already awake." : "The car is awake.");
+            return Bytes();
+        }
+        if (stage_ == AwaitStatus) {
+            stage_ = AwaitSession;
+            Routable h = session_.handshakeRequest();
+            h.fromRouting = routing_;
+            return encodeRoutable(h);
+        }
+        if (looks_ >= kMaxLooks) {
+            fail("The car did not wake. It may take another try.");
+            return Bytes();
+        }
+        asked_ = false;
+        askAt_ = nowMs + kAskEveryMs;
+        return Bytes();
+    }
+
+    if (stage_ == AwaitSession) {
+        if (r.sessionInfo.empty() && !(r.hasStatus && r.statusFault != 0)) return Bytes();
+        std::string error;
+        if (!session_.acceptSessionInfo(r, nowMs, error)) {
+            fail(session_.keyUnknown() ? "The car does not have our key. Pair again (tesla pair). Nothing was sent."
+                                       : "Could not start a session: " + error + ". Nothing was sent.");
+            return Bytes();
+        }
+        Routable cmd = session_.command(vcsecWake(), 0, 10, nowMs, requestTag_);
+        cmd.fromRouting = routing_;
+        stage_ = AwaitCommandReply;
+        sentAt_ = nowMs;
+        return encodeRoutable(cmd);
+    }
+
+    // AwaitCommandReply: any answer addressed to us ends the wait; a fault ends the job.
+    if (r.hasStatus && r.statusFault != 0) {
+        fail(std::string("The car refused the wake command: ") + messageFaultText(r.statusFault) + ".");
+        return Bytes();
+    }
+    stage_ = AwaitVerify;
+    asked_ = false;
+    looks_ = 0;
+    askAt_ = nowMs + 1500;   // give it a moment, then look
+    return Bytes();
+}
+
 }  // namespace tesla
 }  // namespace solar

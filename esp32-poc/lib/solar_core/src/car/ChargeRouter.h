@@ -32,6 +32,7 @@ public:
     /** Moves the command to the car (paired cars only) or back to the charger. */
     CarResult setThroughCar(bool car);
     void setOnReturn(CarOnReturn policy);
+    void setAllowWake(bool on);
     /** At start-up: applies the saved choice (never the car if it is no longer paired). */
     void restore();
 

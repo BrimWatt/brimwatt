@@ -68,6 +68,8 @@ bool decodeSessionInfo(const Bytes& bytes, SessionInfo& info);
 
 /** Asks the car to add this key. Not signed (nobody trusts us yet): the owner approves by tapping their key card. A bare UnsignedMessage. */
 Bytes vcsecAddKey(const Bytes& publicKey65, int role, int formFactor);
+/** Wakes the car: UnsignedMessage { RKEAction = RKE_ACTION_WAKE_VEHICLE (30) }. A command: it is signed in a session, unlike the status request. */
+Bytes vcsecWake();
 /** Asks for the car's status (locked, asleep, someone near). Needs no key. */
 Bytes vcsecGetStatus();
 /** Asks whether our key is on the car's list (by the SHA-1 of the public key). */

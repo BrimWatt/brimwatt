@@ -15,15 +15,16 @@ void CarCommander::setActive(bool active) {
     active_ = active;
     desired_.reset();
     fixed_.reset();
+    belief_ = Belief();
+    lastStatus_.reset();
+    nextCheckAt_ = 0;
     pending_ = Job::None;
     retryAt_ = 0;
     failures_ = 0;
     unreachableSince_.reset();
     outageReported_ = false;
     stopOnReturn_ = false;
-    asleep_ = false;
     problem_.clear();
-    everRead_ = false;
     seenSerialSet_ = false;
     car_.setControlled(active);
 }
@@ -49,23 +50,18 @@ std::optional<int> CarCommander::wanted() const {
 }
 
 void CarCommander::refreshMeasurements() {
-    if (!active_) return;
+    if (!active_ || belief_.known) return;   // nothing to measure: it only needs a first look at the car
     const CarSnapshot s = car_.snapshot();
-    if (!s.paired || s.busy) return;
     const uint64_t now = platform_.nowMillis();
-    if (now < retryAt_) return;
-    if (everRead_ && now - lastReadAt_ < kReadEverySeconds * 1000ULL && fresh(s)) return;
+    if (!s.paired || s.busy || now < retryAt_ || pending_ != Job::None) return;
     begin(car_.startQuietRefresh(), Job::Read, 0, now);
 }
 
 void CarCommander::begin(const CarResult& result, Job job, int amps, uint64_t now) {
+    (void)now;
     if (!result.ok) return;   // busy or refused: try again on a later pass
     pending_ = job;
     pendingAmps_ = amps;
-    if (job == Job::Read) {
-        lastReadAt_ = now;
-        everRead_ = true;
-    }
 }
 
 void CarCommander::loop() {
@@ -79,33 +75,65 @@ void CarCommander::loop() {
         outageReported_ = true;
         event("Car not reachable for 10 minutes: it keeps its last setting");
     }
-    if (s.busy || now < retryAt_) return;
-    decide(s, now);
+    if (s.busy || now < retryAt_ || pending_ != Job::None) return;
+    decide(now);
+}
+
+/** Takes a reading into the belief, if it is the one the job that just finished produced. */
+void CarCommander::adopt(const CarSnapshot& s, uint64_t now) {
+    if (!s.hasReading || s.readingAgeSeconds > kFreshReadSeconds) return;
+    if (s.sleep == 2 && !s.charge.valid) {   // asleep: no charge data, keep what we knew about the plug and the current
+        belief_.known = true;
+        belief_.asleep = true;
+    } else if (s.charge.valid) {
+        belief_.known = true;
+        belief_.asleep = false;
+        belief_.code = s.charge.chargingState;
+        belief_.hasRequest = s.charge.hasCurrentRequest;
+        belief_.request = s.charge.currentRequest;
+    } else {
+        return;
+    }
+    nextCheckAt_ = now + kCheckEverySeconds * 1000ULL;
 }
 
 void CarCommander::learn(const CarSnapshot& s, uint64_t now) {
     if (!seenSerialSet_) {
         seenSerialSet_ = true;
-        seenSerial_ = s.resultSerial;   // results from before we took command are not ours
+        seenSerial_ = s.resultSerial;   // results from before we took command are not ours, but a fresh reading is still news
+        adopt(s, now);
         return;
     }
     if (s.resultSerial == seenSerial_) return;
     seenSerial_ = s.resultSerial;
-    if (pending_ == Job::None) return;   // a job somebody else started (the dashboard's test buttons)
     const Job job = pending_;
     pending_ = Job::None;
+    if (job == Job::None) {   // a job somebody else started (the dashboard's buttons): its reading is still news
+        if (s.resultOk) adopt(s, now);
+        return;
+    }
 
     if (s.resultOk) {
         failures_ = 0;
         retryAt_ = 0;
-        asleep_ = false;
         problem_.clear();
-        if (job == Job::SetAmps) recordCommand("changed limit to " + std::to_string(pendingAmps_) + " A", pendingContext_);
-        else if (job == Job::Start) recordCommand("started charging", pendingContext_);
-        else if (job == Job::Stop) {
+        // What we just did, taken as true until a reading says otherwise.
+        if (job == Job::SetAmps) {
+            belief_.hasRequest = true;
+            belief_.request = pendingAmps_;
+            recordCommand("changed limit to " + std::to_string(pendingAmps_) + " A", pendingContext_);
+        } else if (job == Job::Start) {
+            belief_.code = 5;
+            recordCommand("started charging", pendingContext_);
+        } else if (job == Job::Stop) {
+            belief_.code = 7;
             recordCommand("stopped charging", pendingContext_);
             stopOnReturn_ = false;
+        } else if (job == Job::Wake) {
+            belief_.asleep = false;
+            nextCheckAt_ = now;   // look at the car at once: it is awake now
         }
+        adopt(s, now);   // a fresh reading (the read-back, or a check) overrides the guess
         if (unreachableSince_) recovered(now);
         return;
     }
@@ -114,10 +142,12 @@ void CarCommander::learn(const CarSnapshot& s, uint64_t now) {
     problem_ = line;
     if (line.find("asleep") != std::string::npos) {
         // The car answered, it is just asleep: not an outage. Look again in a couple of minutes.
-        asleep_ = true;
+        belief_.known = true;
+        belief_.asleep = true;
         retryAt_ = now + 120 * 1000ULL;
         return;
     }
+    if (job == Job::Wake && line.find("did not wake") != std::string::npos) return;   // heard, but still asleep: not an outage; the wake limit paces the next try
     failures_++;
     retryAt_ = now + backoffSeconds(failures_) * 1000ULL;
     if (!unreachableSince_) unreachableSince_ = now;
@@ -139,24 +169,21 @@ void CarCommander::recovered(uint64_t now) {
     }
 }
 
-void CarCommander::decide(const CarSnapshot& s, uint64_t now) {
+void CarCommander::decide(uint64_t now) {
     std::optional<int> want = wanted();
     if (!want) return;
 
-    if (!fresh(s)) {
-        if (!everRead_ || now - lastReadAt_ >= kReadEverySeconds * 1000ULL || !s.hasReading) {
-            begin(car_.startQuietRefresh(), Job::Read, 0, now);
-        }
+    // A check: first look, or ten minutes since the last one.
+    if (!belief_.known || now >= nextCheckAt_) {
+        begin(car_.startQuietRefresh(), Job::Read, 0, now);
         return;
     }
-    if (s.sleep == 2 && !s.charge.valid) {   // asleep: not woken here
-        asleep_ = true;
+    if (belief_.asleep) {
+        if (*want > 0) maybeWake(now);
         return;
     }
-    asleep_ = false;
-    if (!s.charge.valid) return;
 
-    const int code = s.charge.chargingState;
+    const int code = belief_.code;
     const std::string& context = fixed_ || stopOnReturn_ ? fixedContext_ : desiredContext_;
     pendingContext_ = stopOnReturn_ ? "car was out of reach" : context;
 
@@ -165,15 +192,25 @@ void CarCommander::decide(const CarSnapshot& s, uint64_t now) {
         else if (stopOnReturn_) stopOnReturn_ = false;   // already not charging: nothing to stop
         return;
     }
-    const bool hasRequest = s.charge.hasCurrentRequest;
-    const int request = hasRequest ? s.charge.currentRequest : 0;
+    const bool same = belief_.hasRequest && belief_.request == *want;
     if (charging(code)) {
-        if (!hasRequest || request != *want) begin(car_.startSetAmps(*want), Job::SetAmps, *want, now);
+        if (!same) begin(car_.startSetAmps(*want), Job::SetAmps, *want, now);
     } else if (code == 7) {   // stopped: set the current first, then start
-        if (!hasRequest || request != *want) begin(car_.startSetAmps(*want), Job::SetAmps, *want, now);
+        if (!same) begin(car_.startSetAmps(*want), Job::SetAmps, *want, now);
         else begin(car_.startStart(), Job::Start, 0, now);
     }
     // disconnected, complete, no power or unknown: nothing to do
+}
+
+void CarCommander::maybeWake(uint64_t now) {
+    if (!allowWake_) return;
+    if (belief_.code == 2 || belief_.code == 6 || belief_.code == 1) return;   // unplugged, full, or never seen awake: nothing to wake it for
+    if (lastWakeAt_ && now - *lastWakeAt_ < kWakeEverySeconds * 1000ULL) return;
+    CarResult r = car_.startWake();
+    if (!r.ok) return;
+    lastWakeAt_ = now;
+    pending_ = Job::Wake;
+    event("Car: waking the car so charging can start");
 }
 
 void CarCommander::recordCommand(const std::string& description, const std::string& context) {
@@ -183,31 +220,24 @@ void CarCommander::recordCommand(const std::string& description, const std::stri
 }
 
 double CarCommander::currentDrawAmps() {
-    const CarSnapshot s = car_.snapshot();
-    if (!fresh(s) || !s.charge.valid || !charging(s.charge.chargingState) || !s.charge.hasActualCurrent) return 0;
-    return s.charge.actualCurrent;
+    if (!belief_.known || belief_.asleep || !charging(belief_.code) || !belief_.hasRequest) return 0;
+    return belief_.request;   // what WattSync set
 }
 
-bool CarCommander::drawIsMeasured() { return fresh(car_.snapshot()); }
-
 std::optional<int> CarCommander::currentLimitAmps() {
-    const CarSnapshot s = car_.snapshot();
-    if (!fresh(s) || !s.charge.valid || !charging(s.charge.chargingState)) return std::nullopt;
-    return s.charge.hasCurrentRequest ? s.charge.currentRequest : config::kMaxAmps;
+    if (!belief_.known || belief_.asleep || !charging(belief_.code)) return std::nullopt;
+    return belief_.hasRequest ? belief_.request : config::kMaxAmps;
 }
 
 std::optional<ChargerStatus> CarCommander::primaryStatus() {
-    const CarSnapshot s = car_.snapshot();
-    if (!s.hasReading || s.readingAgeSeconds > kPlugStateMaxAgeSeconds) return std::nullopt;
-    if (s.sleep == 2 && !s.charge.valid) return lastStatus_;   // asleep: what we knew before
-    if (!s.charge.valid) return std::nullopt;
-    switch (s.charge.chargingState) {
+    if (!belief_.known) return std::nullopt;
+    switch (belief_.code) {
         case 2: lastStatus_ = ChargerStatus::Available; break;
         case 3: lastStatus_ = ChargerStatus::SuspendedEVSE; break;
         case 4: case 5: case 8: lastStatus_ = ChargerStatus::Charging; break;
         case 6: lastStatus_ = ChargerStatus::Finishing; break;
         case 7: lastStatus_ = ChargerStatus::SuspendedEV; break;
-        default: lastStatus_ = ChargerStatus::Unknown; break;
+        default: return std::nullopt;   // never seen awake: not known to be plugged in
     }
     return lastStatus_;
 }
@@ -216,12 +246,24 @@ CarCommander::Status CarCommander::status() const {
     Status st;
     st.active = active_;
     st.problem = problem_;
+    st.allowWake = allowWake_;
+    if (lastWakeAt_) st.lastWakeAgeSeconds = static_cast<int>((platform_.nowMillis() - *lastWakeAt_) / 1000);
     if (unreachableSince_) st.unreachableSeconds = static_cast<int>((platform_.nowMillis() - *unreachableSince_) / 1000);
     if (!active_) st.state = "The charger is in command.";
-    else if (asleep_) st.state = "The car is asleep. It is not woken from here: wake it with the Tesla app and WattSync carries on.";
+    else if (belief_.known && belief_.asleep)
+        st.state = allowWake_ ? "The car is asleep. WattSync will wake it when charging is wanted."
+                              : "The car is asleep and waking is off: wake it with the Tesla app and WattSync carries on.";
     else if (unreachableSince_) st.state = "The car cannot be reached. It keeps its last setting; trying again.";
     else if (stopOnReturn_) st.state = "Stopping the charge, as you chose for when the car comes back.";
-    else st.state = "WattSync is controlling the car's charging.";
+    else {
+        st.state = "WattSync is controlling the car's charging.";
+        if (belief_.known) {
+            if (charging(belief_.code) && belief_.hasRequest) st.state += " Charging at " + std::to_string(belief_.request) + " A, as set by WattSync.";
+            else if (belief_.code == 2) st.state += " The car is not plugged in.";
+            else if (belief_.code == 6) st.state += " The car has finished charging.";
+            else if (!charging(belief_.code)) st.state += " Not charging.";
+        }
+    }
     return st;
 }
 

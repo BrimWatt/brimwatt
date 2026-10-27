@@ -180,6 +180,12 @@ Bytes vcsecAddKey(const Bytes& publicKey65, int role, int formFactor) {
     return vcsecPayload(unsignedMessage);            // no signature: the owner approves by tapping a key card
 }
 
+Bytes vcsecWake() {
+    Writer w;
+    w.varint(2, 30);                                 // UnsignedMessage.RKEAction = RKE_ACTION_WAKE_VEHICLE
+    return vcsecPayload(w);
+}
+
 Bytes vcsecGetStatus() {
     Writer request;                                  // informationRequestType 0 = GET_STATUS (left out as the default)
     Writer unsignedMessage;

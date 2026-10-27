@@ -33,10 +33,16 @@ void ChargeRouter::setOnReturn(CarOnReturn policy) {
     if (settings_) settings_->saveOnReturn(static_cast<int>(policy));
 }
 
+void ChargeRouter::setAllowWake(bool on) {
+    commander_.setAllowWake(on);
+    if (settings_) settings_->saveAllowWake(on);
+}
+
 void ChargeRouter::restore() {
     if (!settings_) return;
     int policy = settings_->loadOnReturn();
     commander_.setOnReturn(policy == 1 ? CarOnReturn::Tell : policy == 2 ? CarOnReturn::Stop : CarOnReturn::Keep);
+    commander_.setAllowWake(settings_->loadAllowWake());
     if (settings_->loadThrough()) {
         if (car_.snapshot().paired) apply(true);
         else settings_->saveThrough(false);   // the car is gone: never leave it in command
