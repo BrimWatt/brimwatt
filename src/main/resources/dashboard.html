@@ -216,12 +216,13 @@
         #feedcard { order: 7; } #sessions { order: 8; }
 
         /* wider screens: two stacks on top and the graph beside the sessions below, so both sides end on the same line */
+        /* The Tesla tile sits in the left stack so the right one is not the taller; on a phone the order rules above keep it under the modes. */
         @media (min-width: 900px) {
             body { padding: 18px 24px; }
             .dash { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 12px; align-items: stretch; }
             .stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
             .stack > * { order: 0 !important; }
-            .stack > :last-child { flex: 1 1 auto; }   /* the shorter stack's last tile fills the difference */
+            .stack > :last-child, #stats:has(+ #carcard[hidden]) { flex: 1 1 auto; }   /* the shorter stack's last tile fills the difference */
             .stack-a { grid-column: 1; grid-row: 1; } .stack-b { grid-column: 2; grid-row: 1; }
             #chartcard { grid-column: 1; grid-row: 2; order: 0; } #sessions { grid-column: 2; grid-row: 2; order: 0; }
             .ft b { font-size: 1.5rem; }
@@ -259,6 +260,13 @@
             <div class="stat"><span class="fl">From the sun</span><b id="st-share">–</b><small>of car energy</small><button type="button" class="info" data-tip="share" aria-label="What is From the sun?">i</button></div>
             <div class="stat"><span class="fl" id="st-car-label">Car today</span><b id="st-car">–</b><small id="st-solar-sub">&nbsp;</small></div>
         </section>
+        <section class="tile" id="carcard" hidden>
+            <h2>Tesla</h2>
+            <div class="carmain"><b id="car-main">–</b><span class="st" id="car-state">&nbsp;</span><button type="button" class="info" data-tip="car" aria-label="What is the Tesla tile?">i</button></div>
+            <div class="carbar" id="car-bar" hidden><i id="car-bar-fill"></i><u id="car-bar-limit"></u></div>
+            <p class="hint" id="car-note">&nbsp;</p>
+            <p class="hint" id="car-ctl" hidden></p>
+        </section>
         </div>
         <div class="stack stack-b">
         <section class="tile" id="modes">
@@ -278,13 +286,6 @@
                 <input type="range" id="allowance-slider" min="0" max="1000" step="100" value="1000" aria-valuetext="1000 watts" oninput="onAllowanceSlide(this)">
                 <p class="hint" id="allowance-status">Grid power the car may add to the solar.</p>
             </div>
-        </section>
-        <section class="tile" id="carcard" hidden>
-            <h2>Tesla</h2>
-            <div class="carmain"><b id="car-main">–</b><span class="st" id="car-state">&nbsp;</span><button type="button" class="info" data-tip="car" aria-label="What is the Tesla tile?">i</button></div>
-            <div class="carbar" id="car-bar" hidden><i id="car-bar-fill"></i><u id="car-bar-limit"></u></div>
-            <p class="hint" id="car-note">&nbsp;</p>
-            <p class="hint" id="car-ctl" hidden></p>
         </section>
         <section class="tile" id="feedcard">
             <h2>Activity</h2>
