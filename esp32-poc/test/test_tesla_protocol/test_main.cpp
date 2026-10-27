@@ -376,7 +376,7 @@ public:
                 response2.message(1, status);
                 body = response2.data();
             }
-            replyCounter++;
+            replyCounter = 1;   // a real car sent counter 1 for different replies in one session
             Metadata rm;
             rm.addByte(kTagSignatureType, kSigAesGcmResponse);
             rm.addByte(kTagDomain, in.toDomain);

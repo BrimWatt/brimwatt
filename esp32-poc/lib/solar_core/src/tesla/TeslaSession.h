@@ -73,7 +73,6 @@ private:
     SessionInfo info_;
     uint32_t counter_ = 0;
     uint32_t infoAtMs_ = 0;
-    uint32_t lastReplyCounter_ = 0;
     bool ready_ = false;
     bool keyUnknown_ = false;
 };
