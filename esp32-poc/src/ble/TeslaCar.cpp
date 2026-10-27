@@ -145,6 +145,22 @@ std::string TeslaCar::startCharge(solar::tesla::ChargeCommandFlow::Command comma
     return "";
 }
 
+std::string TeslaCar::startWake() {
+    if (busy()) return "A Tesla job is already running. Type \"tesla stop\" to end it.";
+    if (!store_.loadKey(priv_) || !crypto_.publicKeyFor(priv_, pub_)) return "No key yet. Pair first: tesla pair <VIN>.";
+    vin_ = store_.loadVin();
+    if (vin_.empty()) return "No car paired yet. Pair first: tesla pair <VIN>.";
+    name_ = solar::tesla::advertisedName(vin_);
+    wake_.reset(new solar::tesla::WakeFlow(crypto_, priv_, pub_, vin_));
+    pair_.reset();
+    status_.reset();
+    charge_.reset();
+    quiet_ = false;
+    begin(Job::Wake);
+    LOG_INFO("Tesla wake: looking for car %s to wake it. The car stays awake a while and uses a little battery.", solar::tesla::maskVin(vin_).c_str());
+    return "";
+}
+
 void TeslaCar::begin(Job job) {
     job_ = job;
     stage_ = Stage::Finding;
@@ -173,6 +189,7 @@ void TeslaCar::cancel() {
     if (!busy()) return;
     // A command that is already out may have been applied: say so rather than just "stopped".
     if (job_ == Job::Charge && charge_ && stage_ == Stage::Running && !charge_->finished()) charge_->timedOut();
+    if (job_ == Job::Wake && wake_ && stage_ == Stage::Running && !wake_->finished()) wake_->timedOut();
     finish("Stopped.");
 }
 
@@ -246,11 +263,21 @@ void TeslaCar::finish(const std::string& why) {
         }
         if (charge_->lines().empty()) LOG_WARN("Tesla charge: %s", why.empty() ? "no answer." : why.c_str());
     }
+    else if (job_ == Job::Wake && wake_) {
+        result_.ok = wake_->ok();
+        result_.lines = wake_->lines();
+        if (result_.lines.empty() && !why.empty()) result_.lines.push_back(why);
+        for (const auto& line : result_.lines) {
+            if (wake_->ok()) LOG_INFO("Tesla wake: %s", line.c_str());
+            else LOG_WARN("Tesla wake: %s", line.c_str());
+        }
+    }
     job_ = Job::None;
     stage_ = Stage::Idle;
     pair_.reset();
     status_.reset();
     charge_.reset();
+    wake_.reset();
     vin_.clear();
     BLEDevice::deinit(false);   // never release_memory=true: the radio could not start again until a reboot, and a second release aborts
     radioOn_ = false;
@@ -333,6 +360,9 @@ void TeslaCar::handleFrames() {
         } else if (job_ == Job::Charge && charge_) {
             Bytes next = charge_->onMessage(message, millis());
             if (!next.empty()) sendMessage(next);
+        } else if (job_ == Job::Wake && wake_) {
+            Bytes next = wake_->onMessage(message, millis());
+            if (!next.empty()) sendMessage(next);
         }
     }
 }
@@ -362,6 +392,7 @@ void TeslaCar::loop() {
                 sendMessage(pair_->request());
             }
             else if (job_ == Job::Status) sendMessage(status_->start());
+            else if (job_ == Job::Wake) sendMessage(wake_->start());
             else {
                 Bytes first = charge_->start();
                 if (first.empty()) {
@@ -425,8 +456,22 @@ void TeslaCar::loop() {
             return;
         }
     }
+    else if (job_ == Job::Wake && wake_) {
+        Bytes next = wake_->poll(millis());   // the status questions that wait their turn
+        if (!next.empty()) sendMessage(next);
+        if (wake_->finished()) {
+            finish("");
+            return;
+        }
+        if (static_cast<int32_t>(now - lastActivity_) > 8000) {
+            wake_->timedOut();
+            finish("");
+            return;
+        }
+    }
     if (gone) {
         if (job_ == Job::Charge && charge_ && !charge_->finished()) charge_->timedOut();
+        if (job_ == Job::Wake && wake_ && !wake_->finished()) wake_->timedOut();
         finish("The car dropped the connection.");
     }
 }

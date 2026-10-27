@@ -43,7 +43,7 @@ public class ApiRoutes {
     /** Name of the header every changing request must carry. A web page on another site cannot add it without our permission. */
     public static final String SAFE_HEADER = "X-WattSync";
     public static final String CAR_UNSUPPORTED = "Car control needs the ESP32 board.";
-    static final String[] CAR_ROUTES = {"/api/car/pair", "/api/car/refresh", "/api/car/watch", "/api/car/test", "/api/car/cancel", "/api/car/forget", "/api/car/through", "/api/car/policy"};
+    static final String[] CAR_ROUTES = {"/api/car/pair", "/api/car/refresh", "/api/car/watch", "/api/car/test", "/api/car/cancel", "/api/car/forget", "/api/car/through", "/api/car/policy", "/api/car/wake", "/api/car/allowwake"};
 
     /** Changing requests (POST) are allowed only with the safe header; reading is always allowed. */
     static boolean isAllowed(String method, String headerValue) {

@@ -155,7 +155,7 @@ namespace `net` (`NvsCredentialStore`) and **win over `secrets.h` field by field
   `make_diagrams.py`) and the screenshots in `docs/ui/` current when this feature changes. Screenshots come from the real page served by a stand-in
   for the board's API (no board needed): serve `setup.html` plus fake `/api/setup/*` replies, resize the browser pane to 402 px and capture each state.
 
-## Tesla car control (pairing, status and charge commands proven on a 2021 Model Y; Control through: Car built, untried on a car)
+## Tesla car control (pairing, status and charge commands proven on a 2021 Model Y; Control through: Car and wake built, untried on a car)
 
 Decisions (2026-10-26): works for other Tesla owners, so each controller makes its own key and nothing secret ships in the repo; **one commander at a time**,
 the user picks **Control through: Charger | Car** (user-facing word is "charger", code still says wallbox/charger for the OCPP hardware); runs on both the ESP32 and the Pi;
@@ -170,11 +170,13 @@ Never echo the typed pair line. Details, code map, test plan and the results tab
 ### Control through: Car (built 2026-10-27, not yet tried on a real car; default Charger)
 
 The planner talks to a `ChargeDevice` (`wallbox/ChargeDevice.h`): `WallboxController` (OCPP) or `car/CarCommander` (Bluetooth), picked by `car/ChargeRouter` (one in command; `main.cpp` passes the router to
-`SolarController` and `ApiHandler`; switching calls `SolarController::onCommanderChanged()`). `CarCommander` turns the wanted current into one Bluetooth job at a time from the car's last reading
-(under 150 s old, else it reads first): charging -> set current; stopped -> set current, then start; stop request -> stop; unplugged/complete/no power -> nothing; asleep -> nothing (**no wake command yet**).
+`SolarController` and `ApiHandler`; switching calls `SolarController::onCommanderChanged()`). `CarCommander` works from what it BELIEVES the car is doing (the car's last reading, updated by each command it sends; WattSync is the only thing meant to set the amps, so the planner's draw
+is what it set, `drawIsMeasured()` is false) and turns the wanted current into one Bluetooth job at a time: charging -> set current; stopped -> set current, then start; stop request -> stop; unplugged/complete/no power -> nothing.
+The car is read only to CHECK the belief: first look, after each command (read-back), after an outage, and every 10 min (`kCheckEverySeconds`). Asleep -> nothing, unless `allowWake` (NVS `allowwake`, default OFF, `POST /api/car/allowwake`): then `WakeFlow`
+(`TeslaFlows`: status, VCSEC session, ONE signed `RKEAction` WAKE_VEHICLE=30 command `101e`, asks status every 3 s up to 5 looks) at most once per 30 min, only if charging is wanted and the car was last seen plugged in.
 Failed jobs back off 30 s / 60 s / 2 min / 5 min; asleep is not an outage. Policy `CarOnReturn` Keep/Tell/Stop after 10+ min out of reach (events "Car not reachable for 10 minutes...", "Car reachable again",
 both in the Notifier lists, Java and C++). Events are prefixed "Car:". `CarService` pauses its own watch while controlled. Persisted in NVS `tesla` (`through`, `onreturn`) via `CarSettingsStore`; `restore()` never leaves an unpaired car in command.
-Tests: `test/test_car_commander` (30), API tests for through/policy, dashboard tests. The decision "ramp to the minimum before stopping" cannot be done when the car is unreachable (nothing can be sent): the car keeps its last setting.
+Tests: `test/test_car_commander` (39), wake in `test/test_tesla_protocol`, API tests for through/policy, dashboard tests. The decision "ramp to the minimum before stopping" cannot be done when the car is unreachable (nothing can be sent): the car keeps its last setting.
 
 ## Documentation map
 
@@ -242,7 +244,7 @@ snapshot-before-setup-network   tag on that same commit (a fixed marker; a branc
 
 ## Not yet verified on real hardware
 
-Verified 2026-10-26: the board's OTA update over Wi-Fi end to end (`esp32s3-ota`, 59 s, board came back serving the new dashboard). Not yet verified: the Tesla dashboard UI on the real board with a real car, Control through: Car on a real charge (planner + car feedback, restart with the car in command), and Bluetooth reads running next to Wi-Fi, OCPP and the Enphase polling (a read pauses the main loop for a few seconds).
+Verified 2026-10-26: the board's OTA update over Wi-Fi end to end (`esp32s3-ota`, 59 s, board came back serving the new dashboard). Not yet verified: the Tesla dashboard UI on the real board with a real car, Control through: Car on a real charge (planner + belief, restart with the car in command), the wake command (whether the security computer accepts it signed this way), and Bluetooth reads running next to Wi-Fi, OCPP and the Enphase polling (a read pauses the main loop for a few seconds).
 
 The setup network's trial and undo of a bad password, saving a real change, and setup with the router off at start-up (the network opening and an iPhone joining it and loading the page were confirmed on the board 2026-10-26), the board's start-up with no internet, the safe-header collection (`collectHeaders`), the new NVS keys, notifications over https, the departure goal on a real charge, the PSRAM allocator and flash journal at scale, the 3 min / 5 min timing on a real charge, an overnight run watching for crashes. Ideas not built: a native iOS wrapper, a separate total-grid-import cap (Eco's allowance does the same job),
 gzip for the page, a hint card for Add to Home Screen, a minimum run time instead of the stop delay.

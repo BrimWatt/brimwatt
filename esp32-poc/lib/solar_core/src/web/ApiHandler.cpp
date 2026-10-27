@@ -491,6 +491,8 @@ void addCarToTelemetry(JsonObject root, const CarControl* car, const ChargeRoute
         control["problem"] = st.problem;
         const CarOnReturn policy = router->commander().onReturn();
         control["onReturn"] = policy == CarOnReturn::Tell ? "tell" : policy == CarOnReturn::Stop ? "stop" : "keep";
+        control["allowWake"] = st.allowWake;
+        control["lastWakeAgeSeconds"] = st.lastWakeAgeSeconds;
     }
 }
 
@@ -549,6 +551,17 @@ HttpResponse ApiHandler::car(const std::string& path, const Params& query) {
         const std::string* value = find(query, "onReturn");
         if (!value || (*value != "keep" && *value != "tell" && *value != "stop")) return text(400, "onReturn must be keep, tell or stop");
         router_->setOnReturn(*value == "tell" ? CarOnReturn::Tell : *value == "stop" ? CarOnReturn::Stop : CarOnReturn::Keep);
+        return text(200, "Saved");
+    }
+    if (path == "/api/car/wake") {
+        if (!now.paired) return text(400, "No car is paired yet.");
+        return answer(car_->startWake(), "Waking the car");
+    }
+    if (path == "/api/car/allowwake") {
+        if (!router_) return text(400, "Car control needs the ESP32 board.");
+        const std::string* enabled = find(query, "enabled");
+        if (!enabled || (*enabled != "true" && *enabled != "false")) return text(400, "enabled must be true or false");
+        router_->setAllowWake(*enabled == "true");
         return text(200, "Saved");
     }
     if (path == "/api/car/cancel") {

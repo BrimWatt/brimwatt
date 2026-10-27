@@ -27,6 +27,8 @@ public:
     void saveThrough(bool car) override;
     int loadOnReturn() override;
     void saveOnReturn(int value) override;
+    bool loadAllowWake() override;
+    void saveAllowWake(bool on) override;
     /** Forgets the key and the VIN. */
     void clear();
 };
