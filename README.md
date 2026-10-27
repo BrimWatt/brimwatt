@@ -91,6 +91,7 @@ Dashboard-controlled, saved across restarts: mode, Custom current, grid allowanc
 | `POST /api/maxamps?amps=6-40` | The most current any mode may ask for (Custom is lowered if it was higher) |
 | `POST /api/goal?kwh=0-100[&byMinutes=0-1439]` | The departure goal: kWh wanted (0 = off) and the time of day as minutes after midnight; telemetry shows `goal` with progress |
 | `POST /api/notify?url=` | The web address messages are posted to (empty turns them off); `POST /api/notify/test` sends a test. Telemetry shows only the host (`notifyTo`). |
+| `POST /api/car/pair` (VIN in the body), `/api/car/refresh`, `/api/car/watch?enabled=`, `/api/car/test?action=start\|stop\|amps[&amps=]`, `/api/car/cancel`, `/api/car/forget` | Tesla car link over Bluetooth. **ESP32 board only**: on the Pi these answer 400 "Car control needs the ESP32 board." and telemetry shows `car: {supported: false}`. |
 | `POST /api/rate?cents=0-200[&peakCents=0-200&peakStart=0-23&peakEnd=1-24]` | Also sets the peak price and its hours |
 | `POST /api/pause?enabled=true\|false` | The kill switch: stop charging whatever the mode (`true`), or hand the charger back to the saved mode (`false`). Saved, so it survives a restart or crash. |
 | `POST /api/daylight?enabled=true\|false&startMin=0-180&endMin=0-180` | Turn the daylight window on or off, and/or set how many minutes after sunrise it opens and before sunset it closes (each parameter optional; nothing changes if any value is invalid) |

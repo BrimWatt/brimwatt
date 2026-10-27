@@ -96,6 +96,7 @@ Docs: `python3 docs/pdf-src/test_scenarios_pdf.py` and `python3 docs/pdf-src/dep
 `GET /api/telemetry`, `POST /api/mode?mode=ECO|MAX_SOLAR|FAST[&amps=6-40]`, `POST /api/allowance?watts=0-1000`,
 `POST /api/daylight?enabled=&startMin=0-180&endMin=0-180` (each optional), `POST /api/pause?enabled=`, `POST /api/rate?cents=0-200[&peakCents=&peakStart=0-23&peakEnd=1-24]`, `POST /api/maxamps?amps=6-40`,
 `POST /api/goal?kwh=0-100[&byMinutes=0-1439]`, `POST /api/notify?url=` and `POST /api/notify/test`,
+`POST /api/car/pair` (VIN in the BODY, never the URL) `|refresh|watch?enabled=|test?action=start|stop|amps[&amps=6-40]|cancel|forget` (ESP32 only; the Pi answers 400 "needs the ESP32 board"; telemetry `car`),
 `GET /api/history[?daysAgo=0-364]` (5-min samples, totals, daylight window; no events), `GET /api/days?n=1-365`,
 `GET /api/events?n=1-20&offset=0-1000` (paged, with total), `GET /api/sessions?n=1-100&offset=` (paged, with total and the open one),
 `GET /api/diagnostics`, `GET /api/export.csv`, `GET /favicon.ico`. Bad input gets a 400 and changes nothing.
@@ -113,6 +114,7 @@ After editing it, rebuild **both** the jar and the firmware, and `cmp` the two c
 - Gear icon (top right) opens the Settings sheet: solar hours and start/stop minutes always shown; Charge by morning, Prices, Limits and Messages are collapsed optional groups (`details.opt`); then a collapsed Diagnostics list.
   The pill says Live, or turns amber "Meter 12m old" when a daytime reading is stale.
 - Units: Settings > Units shows energy as kWh or estimated miles (`~`, kWh x miles-per-kWh, default 3, 1-6). Display only, stored in the phone's `localStorage` (`unit`, `mpk`); API, planner, savings, CSV and message text stay kWh. Helpers `fmtEnergy`, `fmtCarPower`, `goalToBox`/`goalFromBox` (a goal above 0 is never rounded to 0 kWh); `applyUnits()` redraws. Event text from the controller still says kWh.
+- Tesla (ESP32 only): Settings > Tesla group (`#car-group`: VIN + Pair, live pairing box, watch switch, Check now, Forget, collapsed For testing with Start/Stop/amps and "put back"); a `#carcard` tile under the modes when a car is paired and `car.supported`. `carView(c, charger)` and `carProgressText(c)` are pure and tested. Test buttons always `confirm()` first. The VIN goes through `postForm` (body), the box is cleared after sending. Hidden `.field` rows need `.field[hidden]{display:none}`.
 - Blue "i" buttons open plain-words help cards (`TIPS` map). Activity and Charging sessions show 5 per page and fetch only that page.
 - Sliders (Custom current and Grid allowance) send once, 5 s after you stop moving, with a countdown; the outcome fades after 4 s.
 - Elapsed times are short: `30s`, `45m`, `~5h`, `~2d` (half-hour rounds down, more rounds up). At night the Solar tile says "Resting until sunrise".
@@ -161,7 +163,7 @@ unreachable car = ramp to the minimum current first, keep the last setting, retr
 Built so far (ESP32 console only): `tesla scan [seconds]` / `tesla scan <VIN>` (range, never connects), and since 2026-10-27 `tesla pair <VIN>` (adds our own key with the Charging Manager
 role; the owner taps their key card), read-only `tesla status` (never wakes the car, sends no charge command), `tesla charge start|stop|amps <6-40>` (`ChargeCommandFlow`: never wakes the car, one command, then a read-back; manual console use only, the controller does not call it), `tesla key`, `tesla forget`, `tesla selftest`.
 Code: `lib/solar_core/src/tesla/` (`Proto.h`, `TeslaMessages`, `TeslaSession`, `TeslaFlows` (`PairFlow`, `StatusFlow`, `ChargeCommandFlow`), `TeslaSelfTest`, `TeslaBle`), `src/ble/` (`TeslaScan`, `TeslaCar`, `MbedTeslaCrypto`),
-`src/platform/NvsTeslaStore`. Host tests: `test/test_tesla` and `test/test_tesla_protocol` (the latter needs OpenSSL; `scripts/native_openssl.py` finds Homebrew's).
+`src/platform/NvsTeslaStore`, `src/ble/CarService` (dashboard link: results, readings, 5-minute read-only watch, restore note; `car/CarControl.h` is the portable interface the ApiHandler uses). Host tests: `test/test_tesla` and `test/test_tesla_protocol` (the latter needs OpenSSL; `scripts/native_openssl.py` finds Homebrew's).
 Pre-2021 Model S/X are not supported by the protocol; Model 3/Y and 2021+ S/X are expected to work but **paired and read (`tesla pair`, `tesla status`) on a real 2021 Model Y on 2026-10-26, including the encrypted reply**; the charge commands (`tesla charge amps|stop|start`) were reported working on the same car the same day. `tesla debug on` dumps the raw messages. **The full VIN is stored on the board** (NVS `tesla`, needed for signing) but never printed, logged, served or committed; the private key too.
 Never echo the typed pair line. Details, code map, test plan and the results table: `docs/tesla-car-control.md`.
 
