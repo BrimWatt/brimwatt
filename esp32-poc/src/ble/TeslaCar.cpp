@@ -266,7 +266,13 @@ void TeslaCar::handleFrames() {
         rx_.erase(0, 2 + n);
         lastActivity_ = millis();
         if (job_ == Job::Pair && pair_) {
-            pair_->onMessage(message);
+            // first-connection diagnostics: the car's raw reply holds no secret
+            LOG_INFO("Tesla pair: car replied (%u bytes): %s", (unsigned)message.size(), solar::tesla::toHex(message).c_str());
+            Bytes next = pair_->onMessage(message);
+            if (!next.empty()) {
+                LOG_INFO("Tesla pair: sending again (%u bytes): %s", (unsigned)next.size(), solar::tesla::toHex(next).c_str());
+                sendMessage(next);
+            }
         } else if (job_ == Job::Status && status_) {
             Bytes next = status_->onMessage(message, millis());
             if (!next.empty()) sendMessage(next);
@@ -298,7 +304,11 @@ void TeslaCar::loop() {
             }
             stage_ = Stage::Running;
             lastActivity_ = millis();
-            if (job_ == Job::Pair) sendMessage(pair_->request());
+            if (job_ == Job::Pair) {
+                Bytes first = pair_->request();
+                LOG_INFO("Tesla pair: sending request (%u bytes): %s", (unsigned)first.size(), solar::tesla::toHex(first).c_str());
+                sendMessage(first);
+            }
             else if (job_ == Job::Status) sendMessage(status_->start());
             else {
                 Bytes first = charge_->start();
