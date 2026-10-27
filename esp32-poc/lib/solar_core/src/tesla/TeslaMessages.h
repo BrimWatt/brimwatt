@@ -66,7 +66,7 @@ bool decodeSessionInfo(const Bytes& bytes, SessionInfo& info);
 
 // ---- messages to the car's security computer (VCSEC), carried as a ToVCSECMessage -----------------------------------------
 
-/** Asks the car to add this key. Not signed (nobody trusts us yet): the owner approves by tapping their key card. */
+/** Asks the car to add this key. Not signed (nobody trusts us yet): the owner approves by tapping their key card. A bare UnsignedMessage. */
 Bytes vcsecAddKey(const Bytes& publicKey65, int role, int formFactor);
 /** Asks for the car's status (locked, asleep, someone near). Needs no key. */
 Bytes vcsecGetStatus();
