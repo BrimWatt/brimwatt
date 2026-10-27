@@ -154,7 +154,7 @@ void TeslaCar::begin(Job job) {
     scan->setActiveScan(true);
     scan->setInterval(100);
     scan->setWindow(99);
-    scan->start(kFindSeconds, nullptr, false);
+    scanFailed_ = !scan->start(kFindSeconds, nullptr, false);
 }
 
 void TeslaCar::cancel() {
@@ -197,7 +197,7 @@ void TeslaCar::finish(const std::string& why) {
     status_.reset();
     charge_.reset();
     vin_.clear();
-    BLEDevice::deinit(true);
+    BLEDevice::deinit(false);   // never release_memory=true: the radio could not start again until a reboot, and a second release aborts
     radioOn_ = false;
 }
 
@@ -282,6 +282,10 @@ void TeslaCar::loop() {
     uint32_t now = millis();
 
     if (stage_ == Stage::Finding) {
+        if (scanFailed_) {
+            finish("Could not start the Bluetooth scan (the radio was busy). Try again.");
+            return;
+        }
         bool have;
         portENTER_CRITICAL(&lock);
         have = found;

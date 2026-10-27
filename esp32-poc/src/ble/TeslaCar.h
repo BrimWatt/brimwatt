@@ -68,6 +68,7 @@ private:
     BLEClient* client_ = nullptr;
     void* write_ = nullptr;   // BLERemoteCharacteristic*
     bool radioOn_ = false;
+    bool scanFailed_ = false;
     uint32_t startedAt_ = 0;
     uint32_t lastActivity_ = 0;
     uint32_t lastProgress_ = 0;
