@@ -28,6 +28,7 @@ public:
     void onChanged(std::function<void()> callback) { onChanged_ = std::move(callback); }
 
     bool throughCar() const { return throughCar_; }
+    const CarCommander& commander() const { return commander_; }
     /** Moves the command to the car (paired cars only) or back to the charger. */
     CarResult setThroughCar(bool car);
     void setOnReturn(CarOnReturn policy);

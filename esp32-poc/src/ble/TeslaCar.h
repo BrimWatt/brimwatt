@@ -59,6 +59,8 @@ public:
     bool busy() const { return job_ != Job::None; }
     const char* jobName() const { return job_ == Job::Pair ? "pair" : job_ == Job::Status ? "status" : job_ == Job::Charge ? "charge" : ""; }
     const Result& lastResult() const { return result_; }
+    /** How many jobs have finished since start-up (so a listener can tell a new result from an old one). */
+    uint32_t finishedCount() const { return finished_; }
     const Reading& lastReading() const { return reading_; }
     /** While pairing: "finding" or "waiting", the car's latest words, and how long until the 2-minute limit. */
     const char* pairState() const { return stage_ == Stage::Finding ? "finding" : "waiting"; }
@@ -99,6 +101,7 @@ private:
     bool scanFailed_ = false;
     bool debug_ = false;
     bool quiet_ = false;
+    uint32_t finished_ = 0;
     Result result_;
     Reading reading_;
     uint32_t startedAt_ = 0;

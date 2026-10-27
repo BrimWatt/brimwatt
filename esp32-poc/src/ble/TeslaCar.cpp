@@ -198,6 +198,7 @@ void TeslaCar::finish(const std::string& why) {
     write_ = nullptr;
     BLEDevice::getScan()->stop();
     wantedName.clear();
+    finished_++;
     result_ = Result();
     result_.have = true;
     result_.job = jobName();

@@ -33,6 +33,7 @@ public class Notifier {
     private static final String[] WORTH_SENDING = {
         "Charging ended", "Lost contact with the solar meter", "Solar meter is back", "Charger disconnected",
         "The saved settings were damaged", "Departure goal needs charging now",
+        "Car not reachable", "Car reachable again", "Control moved",
     };
 
     private final Sender sender;

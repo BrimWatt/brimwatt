@@ -284,6 +284,7 @@
             <div class="carmain"><b id="car-main">–</b><span class="st" id="car-state">&nbsp;</span><button type="button" class="info" data-tip="car" aria-label="What is the Tesla tile?">i</button></div>
             <div class="carbar" id="car-bar" hidden><i id="car-bar-fill"></i><u id="car-bar-limit"></u></div>
             <p class="hint" id="car-note">&nbsp;</p>
+            <p class="hint" id="car-ctl" hidden></p>
         </section>
         <section class="tile" id="feedcard">
             <h2>Activity</h2>
@@ -352,11 +353,13 @@
             <div class="carbox" id="car-progress" hidden><span id="car-progress-text">&nbsp;</span><button type="button" class="smallbtn" onclick="carCancel()">Stop</button></div>
             <div id="car-paired" hidden>
                 <div class="field"><span>Paired car</span><b id="car-vin-masked">–</b></div>
+                <div class="field" id="car-through-row"><span><label for="car-through">Control through</label><button type="button" class="info" data-tip="carthrough" aria-label="What does control through mean?">i</button></span><span class="edit"><select id="car-through" onchange="carThrough(this)"><option value="charger">Charger</option><option value="car">Car</option></select></span></div>
+                <div class="field" id="car-onreturn-row" hidden><label for="car-onreturn">If the car can't be reached</label><span class="edit"><select id="car-onreturn" onchange="carOnReturn(this)"><option value="keep">Keep its setting</option><option value="tell">Just tell me</option><option value="stop">Stop when it is back</option></select></span></div>
                 <label class="check"><input type="checkbox" id="car-watch" onchange="carWatch(this)"><span>Read the car every few minutes</span></label>
                 <div class="field"><label for="car-refresh">Read the car now</label><button type="button" id="car-refresh" class="smallbtn" onclick="carRefresh()">Check now</button></div>
                 <div class="field"><label for="car-forget">Remove this car</label><button type="button" id="car-forget" class="smallbtn danger" onclick="carForget()">Forget car</button></div>
-                <details class="more"><summary>For testing</summary>
-                    <p class="hint">These buttons change how the car charges. The controller never uses them by itself.</p>
+                <details class="more" id="car-testing"><summary>For testing</summary>
+                    <p class="hint" id="car-testing-note">These buttons change how the car charges. The controller never uses them by itself.</p>
                     <div class="field"><span>Charging</span><span class="edit"><button type="button" class="smallbtn" onclick="carTest('start')">Start</button><button type="button" class="smallbtn" onclick="carTest('stop')">Stop</button></span></div>
                     <div class="field"><label for="car-amps">Current (A)</label><span class="edit"><input type="number" id="car-amps" inputmode="numeric" min="6" max="40" step="1" value="16"><button type="button" id="car-amps-btn" class="smallbtn" onclick="carSetAmps()">Set</button></span></div>
                     <div class="field" id="car-restore-row" hidden><span id="car-restore-label">Put the setting back</span><button type="button" class="smallbtn" onclick="carRestore()">Put back</button></div>
@@ -385,6 +388,7 @@ const TIPS = {
     share: ['From the sun', ['How much of the car\'s energy today came from your solar panels instead of the grid. 100% means all of it.']],
     hours: ['Solar hours', ['Eco and Max solar only work during the day: from a little after sunrise until a little before sunset. Outside these hours they do nothing.', 'You can change how many minutes after sunrise it starts, and before sunset it stops, in the two boxes below.', 'Custom works at any time.']],
     car: ['Tesla', ['WattSync reads your Tesla over Bluetooth: the battery, the charge limit and the charging current. It only reads. The buttons under For testing in Settings are the only things that change the car, and only when you press them.', 'The controller must be near the car. If the car cannot be reached the numbers stay as they were, with their age.']],
+    carthrough: ['Control through', ['Charger: WattSync sets the speed on your wall charger, as before. Car: it sets the speed on the car itself over Bluetooth, and starts and stops its charging, with the same Eco, Max solar and Custom rules.', 'Only one is in command at a time. The car must be near the controller. A sleeping car is not woken from here: WattSync waits until it wakes. You can switch back any time.']],
     carvin: ['Car VIN', ['The VIN is the 17-character number on the sticker inside the driver door, at the lower corner of the windshield, and in the Tesla app under Software.', 'It is kept on the controller only, shown with the middle hidden, and never sent anywhere. You can remove the car and the key at any time: Forget car here, and Controls > Locks in the car.']],
     notify: ['Messages', ['WattSync can post a short message to a web address when charging ends, the solar meter is lost, or the charger disconnects. Paste a webhook address from Slack, Discord, Home Assistant, IFTTT or Zapier.', 'The address is kept on the controller and never shown back in full. Clear the box and save to turn messages off.']],
     goal: ['Charge by morning', ['Say how much energy you want and by when, for example 20 kWh by 7:00 am. Until time gets short, charging works as normal, from the sun.', 'When the time left is only just enough, WattSync charges at the lowest speed that still gets there, using the grid if needed, even at night.', 'Only while a car is plugged in, never while paused or in Custom mode. Set 0 to turn it off.']],
@@ -706,7 +710,12 @@ const VIN_OK = /^[A-HJ-NPR-Z0-9]{17}$/;
 const carChargingName = t => t ? t.charAt(0).toUpperCase() + t.slice(1) : '';
 /** What the Tesla tile shows, from the telemetry's car block (and the charger's own amps, for comparison). Pure, so it can be tested. */
 function carView(c, charger) {
-    const v = { main: '–', state: '', note: '', pct: null, limit: null, stale: false };
+    const v = { main: '–', state: '', note: '', pct: null, limit: null, stale: false, control: '', controlWarn: false };
+    const ctl = c && c.control && c.control.through ? c.control : null;
+    if (ctl) {
+        v.control = ctl.state + (ctl.unreachableSeconds >= 60 ? ' Out of reach for ' + fmtAge(ctl.unreachableSeconds).replace(' ago', '') + '.' : '');
+        v.controlWarn = ctl.unreachableSeconds > 0 || /asleep/.test(ctl.state);
+    }
     const r = c && c.reading;
     const last = c && c.result && c.result.job === 'status' ? c.result : null;
     if (!r) {
@@ -759,11 +768,21 @@ function renderCar(data) {
     carWasBusy = supported && c.busy === true;
     if (!paired) { el('car-result').textContent = ''; return; }
     el('car-vin-masked').textContent = c.vin || '';
+    const ctl = c.control || null, inCommand = !!(ctl && ctl.through);
+    el('car-through-row').hidden = !ctl;
+    el('car-onreturn-row').hidden = !inCommand;
+    if (ctl && document.activeElement !== el('car-through')) el('car-through').value = inCommand ? 'car' : 'charger';
+    if (ctl && document.activeElement !== el('car-onreturn')) el('car-onreturn').value = ctl.onReturn || 'keep';
+    el('car-watch').disabled = inCommand;   // in command, the controller reads the car itself
+    for (const b of document.querySelectorAll('#car-testing button, #car-testing input')) b.disabled = inCommand;
+    el('car-testing-note').textContent = inCommand ? 'These buttons are off while the car is in command: WattSync would change the setting back. Switch Control through to Charger to use them.' : 'These buttons change how the car charges. The controller never uses them by itself.';
     if (document.activeElement !== el('car-watch')) el('car-watch').checked = c.watch === true;
     const view = carView(c, data.charger);
     el('car-main').textContent = view.main;
     el('car-state').textContent = view.state || '\u00a0';
     setText('car-note', view.note || '\u00a0', view.stale ? 'warn' : '');
+    el('car-ctl').hidden = !view.control;
+    setText('car-ctl', view.control, view.controlWarn ? 'warn' : '');
     const bar = el('car-bar');
     bar.hidden = view.pct === null;
     if (view.pct !== null) { el('car-bar-fill').style.width = Math.max(0, Math.min(100, view.pct)) + '%'; el('car-bar-limit').style.left = view.limit === null ? '100%' : Math.max(0, Math.min(100, view.limit)) + '%'; }
@@ -801,6 +820,18 @@ async function carForget() {
     if (!confirm('Forget ' + carName() + '? This deletes the key and the VIN from the controller. The key stays in the car until you remove it there (Controls > Locks).')) return;
     const result = await post('/api/car/forget');
     if (result.ok) { toast('Car forgotten', 'ok'); refresh(); } else toast("Couldn't forget the car", 'err', result.text);
+}
+async function carThrough(select) {
+    const want = select.value, was = want === 'car' ? 'charger' : 'car';
+    if (want === 'car' && !confirm('Let WattSync control the charging of ' + carName() + '? It will start, stop and change the charging current by itself, following the solar rules. The charger will no longer be controlled. You can switch back here at any time.')) { select.value = was; return; }
+    const result = await post('/api/car/through?mode=' + want + (want === 'car' ? '&confirm=yes' : ''));
+    if (!result.ok) { select.value = was; toast("Couldn't switch", 'err', result.text); return; }
+    toast(want === 'car' ? 'The car is in command' : 'The charger is in command', 'ok');
+    refresh();
+}
+async function carOnReturn(select) {
+    const result = await post('/api/car/policy?onReturn=' + select.value);
+    if (!result.ok) toast("Couldn't save that", 'err', result.text); else refresh();
 }
 async function carTest(action) {
     const what = action === 'start' ? 'Start charging' : 'Stop charging';
