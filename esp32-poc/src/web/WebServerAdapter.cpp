@@ -16,7 +16,7 @@ extern const uint8_t faviconEnd[] asm("_binary_src_web_favicon_png_end");
 namespace device {
 
 namespace {
-constexpr uint32_t kMinHeapForHistory = 70 * 1024;   // largest free block needed to build the history reply
+constexpr uint32_t kMinHeapForHistory = 40 * 1024;   // largest free block needed to build the history reply (about 20 KB of text, built in pieces)
 }
 
 void WebServerAdapter::begin() {
