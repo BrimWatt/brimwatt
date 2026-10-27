@@ -6,10 +6,10 @@ namespace device {
 
 /**
  * The name this board announces on the network. It is what the router's device list shows (the Pi appears as
- * "wattsyncpi") and it also becomes the mDNS name, so the board is reachable as wattsyncesp.local.
+ * "wattsyncpi") and it also becomes the mDNS name, so the board is reachable as wattsync.local.
  * Letters, digits and hyphens only, 24 characters at most.
  */
-constexpr const char* kHostname = "wattsyncesp";
+constexpr const char* kHostname = "wattsync";
 
 constexpr uint32_t kPollIntervalMillis = 60000;        // same as the Java app
 constexpr uint32_t kWifiConnectTimeoutMillis = 30000;

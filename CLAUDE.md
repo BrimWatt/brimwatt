@@ -5,8 +5,8 @@ decides how fast a wallbox should charge the car, and talks to the wallbox over 
 share one dashboard page. Only one of them can be connected to the wallbox at a time.
 
 - **Pi**: Java 17 / Javalin app (this folder). Host `wattsyncpi`, dashboard and OCPP both on port 8080.
-- **ESP32-S3**: C++ firmware in `esp32-poc/` (PlatformIO, Arduino). Host `wattsyncesp`, dashboard on port 80,
-  OCPP on port 8080 at `/ocpp/wallbox/<id>`, OTA on 3232. Board: ESP32-S3 N16R8 (16 MB flash, 8 MB octal PSRAM).
+- **ESP32-S3**: C++ firmware in `esp32-poc/` (PlatformIO, Arduino). Host `wattsync`, dashboard on port 80,
+  OCPP on port 8080: owners enter `ws://wattsync.local:8080/pair` (the wallbox appends its id; `/ocpp/wallbox/<id>` still works), OTA on 3232. Board: ESP32-S3 N16R8 (16 MB flash, 8 MB octal PSRAM).
 - Site: Lathrop, CA (37.8412, -121.2691, America/Los_Angeles). The array faces south-east (118 degrees), no shade.
 - Wallbox charger id: `mywallbox/wattsyncpi`. It needs RemoteStartTransaction to start; SetChargingProfile only changes
   the limit of a running transaction. Reply frames are deliberately `[3, id, action, payload]` (copied from an earlier

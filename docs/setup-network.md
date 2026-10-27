@@ -44,7 +44,7 @@ After a save with a different network (or a different password for the same one)
 1. Join the Wi-Fi **WattSync-Setup**, password `wattsync`. If the page does not open by itself, open `http://192.168.4.1/setup` in Safari.
 2. Tap your network in the list (strongest first; a name seen on several access points appears once). Type its password. Hidden networks cannot be listed, so use *My network is not listed*. **Scan again** looks again; the page may stall for a few seconds because the board scans on the radio the page uses.
 3. Paste the **Enphase token**, check the **Envoy address** (empty finds it by itself) and set an **update password**. Leaving a secret field empty keeps what is saved; the page only ever says that one is saved.
-4. **Save and restart.** Rejoin your usual Wi-Fi and open `http://wattsyncesp.local`.
+4. **Save and restart.** Rejoin your usual Wi-Fi and open `http://wattsync.local`.
 
 ## What the page looks like
 

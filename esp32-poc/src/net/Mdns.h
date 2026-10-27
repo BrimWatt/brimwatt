@@ -5,7 +5,7 @@
 
 namespace device {
 
-/** mDNS: announces this board (wattsyncesp.local) and finds other devices such as the Envoy. */
+/** mDNS: announces this board (wattsync.local) and finds other devices such as the Envoy. */
 namespace Mdns {
 
 bool start(const char* hostname, uint16_t ocppPort);

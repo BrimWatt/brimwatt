@@ -38,7 +38,7 @@ void begin(const char* hostname, const char* password, std::function<void()> bef
         LOG_ERROR("OTA: update failed: %s. The current firmware keeps running.", why);
     });
     ArduinoOTA.begin();
-    MDNS.enableArduino(3232, true);   // lets tools find the board as wattsyncesp.local
+    MDNS.enableArduino(3232, true);   // lets tools find the board as wattsync.local
     LOG_INFO("OTA: ready. Update over Wi-Fi with: pio run -e esp32s3-ota -t upload");
 }
 
