@@ -8,7 +8,7 @@ namespace solar {
 namespace {
 const char* const kWorthSending[] = {"Charging ended", "Lost contact with the solar meter", "Solar meter is back",
                                       "Charger disconnected", "The saved settings were damaged",
-                                      "Departure goal needs charging now"};
+                                      "Departure goal needs charging now", "Car not reachable", "Car reachable again", "Control moved"};
 
 bool startsWith(const std::string& text, const char* prefix) { return text.compare(0, std::strlen(prefix), prefix) == 0; }
 

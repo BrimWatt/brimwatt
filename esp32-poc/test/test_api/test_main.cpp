@@ -9,6 +9,8 @@
 #include "wallbox/ChargerRegistry.h"
 #include "web/ApiHandler.h"
 #include "wallbox/WallboxController.h"
+#include "car/CarCommander.h"
+#include "car/ChargeRouter.h"
 
 using namespace solar;
 using testing::FakeLink;
@@ -808,15 +810,75 @@ void test_watch_cancel_and_forget_work_and_car_posts_need_the_safe_header() {
     testing::check("forget", car.lastCall);
     car.lastCall.clear();
     car.snap.paired = true;
-    for (const char* path : {"/api/car/forget", "/api/car/test", "/api/car/pair", "/api/car/cancel", "/api/car/watch", "/api/car/refresh"}) {
+    for (const char* path : {"/api/car/forget", "/api/car/test", "/api/car/pair", "/api/car/cancel", "/api/car/watch", "/api/car/refresh", "/api/car/through", "/api/car/policy"}) {
         TEST_ASSERT_EQUAL(403, r.api.handle("POST", path, {{"action", "stop"}, {"vin", "5YJYGDEE2MF284667"}, {"enabled", "true"}}, false).status);
     }
     testing::check("", car.lastCall);
     TEST_ASSERT_EQUAL(404, r.api.handle("GET", "/api/car/forget", {}).status);          // wrong method
 }
 
+void test_the_choice_of_who_is_in_command_is_validated_confirmed_and_shown() {
+    Rig r;
+    FakeCar car;
+    r.api.setCar(&car);
+    CarCommander commander(r.platform, car);
+    ChargeRouter router(r.wallbox, commander, car);
+    r.api.setRouter(&router);
+    car.snap.paired = false;
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/through", {{"mode", "car"}, {"confirm", "yes"}}).status);   // not paired
+    car.snap.paired = true;
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/through", {{"mode", "car"}}).status);                      // no confirmation
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/through", {{"mode", "car"}, {"confirm", "maybe"}}).status);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/through", {{"mode", "boat"}}).status);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/through", {}).status);
+    TEST_ASSERT_FALSE(router.throughCar());
+    {
+        JsonDocument t = r.telemetry();
+        JsonObject c = t["car"]["control"];
+        TEST_ASSERT_FALSE(c["through"].as<bool>());
+        testing::check("keep", c["onReturn"] | "");
+    }
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/through", {{"mode", "car"}, {"confirm", "yes"}}).status);
+    TEST_ASSERT_TRUE(router.throughCar());
+    {
+        JsonDocument t = r.telemetry();
+        TEST_ASSERT_TRUE(t["car"]["control"]["through"].as<bool>());
+        TEST_ASSERT_TRUE(t["car"]["control"]["state"].as<std::string>().size() > 0);
+    }
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/through", {{"mode", "charger"}}).status);                  // going back needs no confirmation
+    TEST_ASSERT_FALSE(router.throughCar());
+}
+
+void test_the_unreachable_policy_is_validated_and_shown() {
+    Rig r;
+    FakeCar car;
+    r.api.setCar(&car);
+    CarCommander commander(r.platform, car);
+    ChargeRouter router(r.wallbox, commander, car);
+    r.api.setRouter(&router);
+    for (const char* ok : {"tell", "stop", "keep"}) TEST_ASSERT_EQUAL(200, r.post("/api/car/policy", {{"onReturn", ok}}).status);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/policy", {{"onReturn", "panic"}}).status);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/policy", {}).status);
+    r.post("/api/car/policy", {{"onReturn", "stop"}});
+    JsonDocument t = r.telemetry();
+    testing::check("stop", t["car"]["control"]["onReturn"] | "");
+}
+
+void test_without_a_router_the_choice_endpoints_say_the_car_needs_the_esp32() {
+    Rig r;
+    FakeCar car;
+    r.api.setCar(&car);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/through", {{"mode", "charger"}}).status);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/policy", {{"onReturn", "keep"}}).status);
+    JsonDocument t = r.telemetry();
+    TEST_ASSERT_TRUE(t["car"]["control"].isNull());
+}
+
 int main() {
     UNITY_BEGIN();
+    RUN_TEST(test_the_choice_of_who_is_in_command_is_validated_confirmed_and_shown);
+    RUN_TEST(test_the_unreachable_policy_is_validated_and_shown);
+    RUN_TEST(test_without_a_router_the_choice_endpoints_say_the_car_needs_the_esp32);
     RUN_TEST(test_car_endpoints_say_not_supported_without_a_car_link);
     RUN_TEST(test_telemetry_shows_the_car_without_the_vin_or_key);
     RUN_TEST(test_pairing_progress_and_the_last_result_are_in_telemetry);

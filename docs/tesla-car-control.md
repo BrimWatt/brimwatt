@@ -11,7 +11,7 @@
 | Who commands the charge | **One at a time**: the car or the charger. Setting: *Control through: Charger \| Car*. With a car on Bluetooth its readings (battery, rate, limit) are still used. |
 | Word for the hardware | "Charger" in anything the user sees. Code and saved settings keep their names until a separate rename. |
 | Where it runs | ESP32 and Pi. (Pi: BlueZ is needed; a small helper using Tesla's own open-source command library is one option. Not verified.) |
-| Car can't be reached | Step down to the minimum current before stopping, keep the last setting, retry every 30 s with backoff, a message after 10 min. Owner picks: keep last setting (default), just tell me, or stop when it is back. The car's own charge limit and scheduled charging stay as backstops. |
+| Car can't be reached | Keep the last setting (nothing can be sent to an unreachable car, so stepping down to the minimum first is not possible), retry after 30 s, 60 s, 2 min, then every 5 min, a message after 10 min. Owner picks: keep (default), just tell me, or stop when it is back. The car's own charge limit and scheduled charging stay as backstops. |
 | Not now | Cloud (Fleet API) fallback, several cars per controller. |
 
 ## Phase 0: the range test
@@ -164,3 +164,11 @@ Not verified: all of it on a real car (the car's replies, whether the Charging M
 - **Not built:** the "Control through: Charger | Car" switch and the controller engine behind it; wake; Pi support.
 - **Watch schedule:** first read 60 s after start, then every 5 minutes (a Bluetooth read pauses the main loop for a few seconds, so not every minute; if OCPP or the web page stalls, the next step is to run Bluetooth in its own task).
 - **Code:** `lib/solar_core/src/car/CarControl.h` (interface), `ApiHandler` (routes, telemetry `car`), `src/ble/CarService.*`, `TeslaCar` (results, readings), dashboard `renderCar`.
+
+### Control through: Car, the engine (built 2026-10-27, host-tested, not yet tried on a car)
+
+- **Where:** `wallbox/ChargeDevice.h` (what the planner needs from whatever holds the charge), `car/CarCommander.*`, `car/ChargeRouter.*`, `car/CarSettings.h`; API `POST /api/car/through` and `/api/car/policy`; dashboard Settings > Tesla > Control through. 30 tests in `test/test_car_commander`.
+- **Switching:** the page asks first (naming the masked VIN); the API needs `confirm=yes` and a paired car. Switching releases any fixed hold on the wallbox, resets the planner, logs "Control moved to the car" / "back to the charger". The choice is saved; a forgotten car can never stay in command.
+- **What it sends:** from the car's last reading (must be under 150 s old, otherwise it reads first): charging and the current differs -> set the current; stopped -> set the current, then start; stop wanted and charging -> stop; unplugged, complete, no power -> nothing; asleep -> nothing. One job at a time, the latest wish wins. Pause, Custom's fixed current, the departure goal, the daylight window and the fail-safe all work through the same calls as with the wallbox.
+- **Unreachable car:** retries after 30 s, 60 s, 2 min, then every 5 min; the car keeps its last setting. After 10 minutes out of reach: *Keep* is silent, *Just tell me* reports it and the return, *Stop when it is back* also stops the charge once on return, then planning resumes. A sleeping car is a different state ("asleep", retried every 2 min), not an outage.
+- **Known limits:** (1) no wake command, so a car that fell asleep after a stop is not restarted until it wakes (the Tesla app wakes it); (2) every Bluetooth read or command pauses the board's main loop for a few seconds (about one read a minute while in command): if the web page, OCPP or the Enphase polling stall because of it, the next step is to run Bluetooth in its own task; (3) the car's current is whole amps and its measured current is a rounded number; (4) not tried on a real car: the first real test should be a short one with the owner at the car, Control through = Car in Eco or Custom, watching the Activity list and the car's screen.

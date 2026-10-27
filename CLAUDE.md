@@ -96,7 +96,7 @@ Docs: `python3 docs/pdf-src/test_scenarios_pdf.py` and `python3 docs/pdf-src/dep
 `GET /api/telemetry`, `POST /api/mode?mode=ECO|MAX_SOLAR|FAST[&amps=6-40]`, `POST /api/allowance?watts=0-1000`,
 `POST /api/daylight?enabled=&startMin=0-180&endMin=0-180` (each optional), `POST /api/pause?enabled=`, `POST /api/rate?cents=0-200[&peakCents=&peakStart=0-23&peakEnd=1-24]`, `POST /api/maxamps?amps=6-40`,
 `POST /api/goal?kwh=0-100[&byMinutes=0-1439]`, `POST /api/notify?url=` and `POST /api/notify/test`,
-`POST /api/car/pair` (VIN in the BODY, never the URL) `|refresh|watch?enabled=|test?action=start|stop|amps[&amps=6-40]|cancel|forget` (ESP32 only; the Pi answers 400 "needs the ESP32 board"; telemetry `car`),
+`POST /api/car/pair` (VIN in the BODY, never the URL) `|refresh|watch?enabled=|test?action=start|stop|amps[&amps=6-40]|through?mode=charger|car[&confirm=yes]|policy?onReturn=keep|tell|stop|cancel|forget` (ESP32 only; the Pi answers 400 "needs the ESP32 board"; telemetry `car`),
 `GET /api/history[?daysAgo=0-364]` (5-min samples, totals, daylight window; no events), `GET /api/days?n=1-365`,
 `GET /api/events?n=1-20&offset=0-1000` (paged, with total), `GET /api/sessions?n=1-100&offset=` (paged, with total and the open one),
 `GET /api/diagnostics`, `GET /api/export.csv`, `GET /favicon.ico`. Bad input gets a 400 and changes nothing.
@@ -155,7 +155,7 @@ namespace `net` (`NvsCredentialStore`) and **win over `secrets.h` field by field
   `make_diagrams.py`) and the screenshots in `docs/ui/` current when this feature changes. Screenshots come from the real page served by a stand-in
   for the board's API (no board needed): serve `setup.html` plus fake `/api/setup/*` replies, resize the browser pane to 402 px and capture each state.
 
-## Tesla car control (pairing, status and charge commands proven on a 2021 Model Y; not yet used by the controller)
+## Tesla car control (pairing, status and charge commands proven on a 2021 Model Y; Control through: Car built, untried on a car)
 
 Decisions (2026-10-26): works for other Tesla owners, so each controller makes its own key and nothing secret ships in the repo; **one commander at a time**,
 the user picks **Control through: Charger | Car** (user-facing word is "charger", code still says wallbox/charger for the OCPP hardware); runs on both the ESP32 and the Pi;
@@ -166,6 +166,15 @@ Code: `lib/solar_core/src/tesla/` (`Proto.h`, `TeslaMessages`, `TeslaSession`, `
 `src/platform/NvsTeslaStore`, `src/ble/CarService` (dashboard link: results, readings, 5-minute read-only watch, restore note; `car/CarControl.h` is the portable interface the ApiHandler uses). Host tests: `test/test_tesla` and `test/test_tesla_protocol` (the latter needs OpenSSL; `scripts/native_openssl.py` finds Homebrew's).
 Pre-2021 Model S/X are not supported by the protocol; Model 3/Y and 2021+ S/X are expected to work but **paired and read (`tesla pair`, `tesla status`) on a real 2021 Model Y on 2026-10-26, including the encrypted reply**; the charge commands (`tesla charge amps|stop|start`) were reported working on the same car the same day. `tesla debug on` dumps the raw messages. **The full VIN is stored on the board** (NVS `tesla`, needed for signing) but never printed, logged, served or committed; the private key too.
 Never echo the typed pair line. Details, code map, test plan and the results table: `docs/tesla-car-control.md`.
+
+### Control through: Car (built 2026-10-27, not yet tried on a real car; default Charger)
+
+The planner talks to a `ChargeDevice` (`wallbox/ChargeDevice.h`): `WallboxController` (OCPP) or `car/CarCommander` (Bluetooth), picked by `car/ChargeRouter` (one in command; `main.cpp` passes the router to
+`SolarController` and `ApiHandler`; switching calls `SolarController::onCommanderChanged()`). `CarCommander` turns the wanted current into one Bluetooth job at a time from the car's last reading
+(under 150 s old, else it reads first): charging -> set current; stopped -> set current, then start; stop request -> stop; unplugged/complete/no power -> nothing; asleep -> nothing (**no wake command yet**).
+Failed jobs back off 30 s / 60 s / 2 min / 5 min; asleep is not an outage. Policy `CarOnReturn` Keep/Tell/Stop after 10+ min out of reach (events "Car not reachable for 10 minutes...", "Car reachable again",
+both in the Notifier lists, Java and C++). Events are prefixed "Car:". `CarService` pauses its own watch while controlled. Persisted in NVS `tesla` (`through`, `onreturn`) via `CarSettingsStore`; `restore()` never leaves an unpaired car in command.
+Tests: `test/test_car_commander` (30), API tests for through/policy, dashboard tests. The decision "ramp to the minimum before stopping" cannot be done when the car is unreachable (nothing can be sent): the car keeps its last setting.
 
 ## Documentation map
 
@@ -233,7 +242,7 @@ snapshot-before-setup-network   tag on that same commit (a fixed marker; a branc
 
 ## Not yet verified on real hardware
 
-Verified 2026-10-26: the board's OTA update over Wi-Fi end to end (`esp32s3-ota`, 59 s, board came back serving the new dashboard). Not yet verified: the Tesla dashboard UI on the real board with a real car, and Bluetooth reads running next to Wi-Fi, OCPP and the Enphase polling (a read pauses the main loop for a few seconds).
+Verified 2026-10-26: the board's OTA update over Wi-Fi end to end (`esp32s3-ota`, 59 s, board came back serving the new dashboard). Not yet verified: the Tesla dashboard UI on the real board with a real car, Control through: Car on a real charge (planner + car feedback, restart with the car in command), and Bluetooth reads running next to Wi-Fi, OCPP and the Enphase polling (a read pauses the main loop for a few seconds).
 
 The setup network's trial and undo of a bad password, saving a real change, and setup with the router off at start-up (the network opening and an iPhone joining it and loading the page were confirmed on the board 2026-10-26), the board's start-up with no internet, the safe-header collection (`collectHeaders`), the new NVS keys, notifications over https, the departure goal on a real charge, the PSRAM allocator and flash journal at scale, the 3 min / 5 min timing on a real charge, an overnight run watching for crashes. Ideas not built: a native iOS wrapper, a separate total-grid-import cap (Eco's allowance does the same job),
 gzip for the page, a hint card for Add to Home Screen, a minimum run time instead of the stop delay.

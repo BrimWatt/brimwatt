@@ -55,6 +55,36 @@ void NvsTeslaStore::saveWatch(bool on) {
     prefs.end();
 }
 
+bool NvsTeslaStore::loadThrough() {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return false;
+    bool on = prefs.getBool("through", false);
+    prefs.end();
+    return on;
+}
+
+void NvsTeslaStore::saveThrough(bool car) {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return;
+    prefs.putBool("through", car);
+    prefs.end();
+}
+
+int NvsTeslaStore::loadOnReturn() {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return 0;
+    int value = prefs.getUChar("onreturn", 0);
+    prefs.end();
+    return value;
+}
+
+void NvsTeslaStore::saveOnReturn(int value) {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return;
+    prefs.putUChar("onreturn", static_cast<uint8_t>(value));
+    prefs.end();
+}
+
 void NvsTeslaStore::clear() {
     Preferences prefs;
     if (!prefs.begin(kNamespace, /*readOnly=*/false)) return;

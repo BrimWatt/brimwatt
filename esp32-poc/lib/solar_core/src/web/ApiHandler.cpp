@@ -434,7 +434,7 @@ HttpResponse ApiHandler::updatePause(const Params& query) {
 
 namespace {
 
-void addCarToTelemetry(JsonObject root, const CarControl* car) {
+void addCarToTelemetry(JsonObject root, const CarControl* car, const ChargeRouter* router) {
     JsonObject out = root["car"].to<JsonObject>();
     if (!car) {
         out["supported"] = false;
@@ -482,6 +482,16 @@ void addCarToTelemetry(JsonObject root, const CarControl* car) {
         if (c.hasPower) reading["kw"] = c.power;
     }
     out["restoreAmps"] = s.restoreAmps;
+    if (router) {
+        const CarCommander::Status st = router->commander().status();
+        JsonObject control = out["control"].to<JsonObject>();
+        control["through"] = router->throughCar();
+        control["state"] = st.state;
+        control["unreachableSeconds"] = st.unreachableSeconds;
+        control["problem"] = st.problem;
+        const CarOnReturn policy = router->commander().onReturn();
+        control["onReturn"] = policy == CarOnReturn::Tell ? "tell" : policy == CarOnReturn::Stop ? "stop" : "keep";
+    }
 }
 
 /** Spaces and dashes are tolerated and the letters are made capital; whatever is left is checked as a VIN. */
@@ -522,6 +532,24 @@ HttpResponse ApiHandler::car(const std::string& path, const Params& query) {
         if (!enabled || (*enabled != "true" && *enabled != "false")) return text(400, "enabled must be true or false");
         car_->setWatch(*enabled == "true");
         return text(200, "Car watching updated");
+    }
+    if (path == "/api/car/through") {
+        if (!router_) return text(400, "Car control needs the ESP32 board.");
+        const std::string* mode = find(query, "mode");
+        if (!mode || (*mode != "charger" && *mode != "car")) return text(400, "mode must be charger or car");
+        if (*mode == "car") {
+            if (!now.paired) return text(400, "No car is paired yet.");
+            const std::string* confirm = find(query, "confirm");
+            if (!confirm || *confirm != "yes") return text(400, "Switching to the car needs confirm=yes: WattSync will then change the car's charging by itself.");
+        }
+        return answer(router_->setThroughCar(*mode == "car"), *mode == "car" ? "The car is in command" : "The charger is in command");
+    }
+    if (path == "/api/car/policy") {
+        if (!router_) return text(400, "Car control needs the ESP32 board.");
+        const std::string* value = find(query, "onReturn");
+        if (!value || (*value != "keep" && *value != "tell" && *value != "stop")) return text(400, "onReturn must be keep, tell or stop");
+        router_->setOnReturn(*value == "tell" ? CarOnReturn::Tell : *value == "stop" ? CarOnReturn::Stop : CarOnReturn::Keep);
+        return text(200, "Saved");
     }
     if (path == "/api/car/cancel") {
         car_->cancel();
@@ -621,7 +649,7 @@ HttpResponse ApiHandler::telemetry() {
     ctl["gridAllowanceWatts"] = state.mode() != ChargingMode::Fast ? state.gridAllowanceWatts() : 0;
     ctl["failSafe"] = state.failSafe();
     ctl["pollSeconds"] = config::kPollIntervalSeconds;
-    addCarToTelemetry(doc.as<JsonObject>(), car_);
+    addCarToTelemetry(doc.as<JsonObject>(), car_, router_);
 
     HttpResponse response;
     response.contentType = "application/json";

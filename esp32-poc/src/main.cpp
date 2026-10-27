@@ -16,6 +16,8 @@
 #include <esp_system.h>
 
 #include "ble/CarService.h"
+#include "car/CarCommander.h"
+#include "car/ChargeRouter.h"
 #include "ble/TeslaCar.h"
 #include "ble/TeslaScan.h"
 #include "platform/NvsTeslaStore.h"
@@ -73,21 +75,24 @@ static device::FileHistoryStore historyStore;
 static DaylightWindow daylight(platform, config::kSiteLatitude, config::kSiteLongitude,
                                config::kDaylightStartAfterSunriseSeconds, config::kDaylightEndBeforeSunsetSeconds);
 static device::NvsSettingsStore settingsStore;
-static SolarController controller(platform, state, wallbox, daylight, settingsStore);
+static device::TeslaScan teslaScan;
+static device::NvsTeslaStore teslaStore;
+static device::TeslaCar teslaCar(teslaStore);
+static device::CarService carService(teslaCar, teslaStore, teslaScan);
+// Who is in command of the charge: the OCPP wallbox (default) or, if the owner chose it, the car over Bluetooth.
+static solar::CarCommander carCommander(platform, carService);
+static solar::ChargeRouter chargeRouter(wallbox, carCommander, carService);
+static SolarController controller(platform, state, chargeRouter, daylight, settingsStore);
 
 static device::EspDiagnostics diagnostics(__DATE__ " " __TIME__);
 static device::WifiConnection wifi(device::kHostname);
 static device::TimeSync timeSync;
 static device::EnphaseClient envoy;   // told its token and address in setup(), once they are known
 static device::MeterPoller meterPoller(envoy);
-static device::TeslaScan teslaScan;
-static device::NvsTeslaStore teslaStore;
-static device::TeslaCar teslaCar(teslaStore);
-static device::CarService carService(teslaCar, teslaStore, teslaScan);
 static device::SerialConsole console(controller, wallbox, meterPoller);
 static device::EspNotifySender notifySender;
 static Notifier notifier(platform, state, notifySender);
-static ApiHandler api(platform, controller, wallbox, daylight);
+static ApiHandler api(platform, controller, chargeRouter, daylight);
 
 // The setup network and its page. The values in secrets.h are the defaults; what was saved from the setup page wins.
 static solar::setup::Credentials compiledDefaults() {
@@ -258,8 +263,12 @@ void setup() {
     api.setHistory(&history);
     api.setDiagnostics(&diagnostics);
     api.setCar(&carService);
+    api.setRouter(&chargeRouter);
     ocppServer.setHistory(&history);
     controller.restoreSettings();
+    chargeRouter.setSettings(&teslaStore);
+    chargeRouter.onChanged([] { controller.onCommanderChanged(); });
+    chargeRouter.restore();   // the car only takes command again if it was chosen and is still paired
     chargerPersistence.restore();
 
     console.printHelpHint();
@@ -273,6 +282,7 @@ void loop() {
     console.poll();
     teslaScan.loop();
     carService.loop();
+    carCommander.loop();
 
     if (!controlStarted) {
         if (device::TimeSync::isValid()) {

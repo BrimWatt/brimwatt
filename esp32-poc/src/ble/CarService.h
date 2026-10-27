@@ -22,10 +22,12 @@ public:
     solar::CarSnapshot snapshot() const override;
     solar::CarResult startPair(const std::string& vin) override;
     solar::CarResult startRefresh() override;
+    solar::CarResult startQuietRefresh() override;
     solar::CarResult startStart() override;
     solar::CarResult startStop() override;
     solar::CarResult startSetAmps(int amps) override;
     void cancel() override { car_.cancel(); }
+    void setControlled(bool on) override { controlled_ = on; nextReadSet_ = false; }
     void setWatch(bool on) override;
     void forget() override;
 
@@ -41,6 +43,7 @@ private:
     NvsTeslaStore& store_;
     TeslaScan& scan_;
     bool watch_;
+    bool controlled_ = false;   // the car is in command: the controller reads it itself, so the separate watch pauses
     uint32_t nextReadAt_ = 0;
     bool nextReadSet_ = false;
     uint32_t seenResultAt_ = 0;

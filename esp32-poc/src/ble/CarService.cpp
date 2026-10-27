@@ -25,7 +25,7 @@ void CarService::loop() {
         nextReadSet_ = true;
     }
 
-    if (!watch_ || !car_.paired() || car_.busy() || scan_.running()) return;
+    if (!watch_ || controlled_ || !car_.paired() || car_.busy() || scan_.running()) return;
     if (!nextReadSet_) {
         nextReadAt_ = millis() + kFirstReadMillis;
         nextReadSet_ = true;
@@ -82,6 +82,7 @@ CarSnapshot CarService::snapshot() const {
         s.resultAgeSeconds = ageSeconds(result.atMs);
         s.resultLines = result.lines;
     }
+    s.resultSerial = car_.finishedCount();
     const TeslaCar::Reading& reading = car_.lastReading();
     if (reading.have && s.paired) {
         s.hasReading = true;
@@ -104,6 +105,12 @@ CarResult CarService::startRefresh() {
     CarResult blocked = blockedBy();
     if (!blocked.ok) return blocked;
     return started(car_.startStatus(/*quiet=*/false));
+}
+
+CarResult CarService::startQuietRefresh() {
+    CarResult blocked = blockedBy();
+    if (!blocked.ok) return blocked;
+    return started(car_.startStatus(/*quiet=*/true));
 }
 
 CarResult CarService::startStart() {

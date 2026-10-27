@@ -263,3 +263,32 @@ test('every Tesla test button asks before it changes the car', () => {
     for (const name of ['carTest', 'carSetAmps', 'carForget']) assert.match(body(name), /confirm\(/, name + ' must ask first');
     assert.match(body('carRestore'), /carSetAmps\(n\)/, 'restoring goes through the same question');
 });
+
+// ---- Control through: Car ----
+
+test('the tile says who is in command, and warns when the car is asleep or out of reach', () => {
+    const base = { watch: true, reading: { ageSeconds: 20, battery: 50, charging: 'charging', amps: 12, volts: 239 } };
+    assert.equal(page.carView(base, null).control, '');                               // the charger is in command: no line
+    const on = page.carView(Object.assign({}, base, { control: { through: true, state: "WattSync is controlling the car's charging.", unreachableSeconds: 0 } }), null);
+    assert.match(on.control, /WattSync is controlling/);
+    assert.equal(on.controlWarn, false);
+    const out = page.carView(Object.assign({}, base, { control: { through: true, state: 'The car cannot be reached. It keeps its last setting; trying again.', unreachableSeconds: 720 } }), null);
+    assert.match(out.control, /Out of reach for 12m\./);
+    assert.equal(out.controlWarn, true);
+    const asleep = page.carView(Object.assign({}, base, { control: { through: true, state: 'The car is asleep. It is not woken from here.', unreachableSeconds: 0 } }), null);
+    assert.equal(asleep.controlWarn, true);
+});
+
+test('switching to the car asks first, names the car, and needs the confirmation word on the wire', () => {
+    const body = script.match(/async function carThrough\([^)]*\) \{([\s\S]*?)\n\}/)[1];
+    assert.match(body, /confirm\(/);
+    assert.match(body, /carName\(\)/);
+    assert.match(body, /confirm=yes/);
+    assert.match(body, /select\.value = was/, 'a refusal puts the box back');
+    assert.match(script, /async function carOnReturn/);
+});
+
+test('the test buttons are switched off while the car is in command', () => {
+    assert.match(script, /#car-testing button, #car-testing input/);
+    assert.match(script, /b\.disabled = inCommand/);
+});

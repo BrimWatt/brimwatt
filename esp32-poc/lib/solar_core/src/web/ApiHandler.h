@@ -4,6 +4,7 @@
 #include <string>
 
 #include "car/CarControl.h"
+#include "car/ChargeRouter.h"
 #include "notify/Notifier.h"
 #include "common/Platform.h"
 #include "control/SolarController.h"
@@ -42,6 +43,8 @@ struct HttpResponse {
  *   POST /api/car/refresh                    reads the car now (read only)
  *   POST /api/car/watch?enabled=true|false   read the car every few minutes (read only)
  *   POST /api/car/test?action=start|stop|amps[&amps=6-40]   test commands: these CHANGE the car
+ *   POST /api/car/through?mode=charger|car[&confirm=yes]   who is in command of the charge (the car needs confirm=yes and a paired car)
+ *   POST /api/car/policy?onReturn=keep|tell|stop   what to do when the car is back after 10+ minutes out of reach
  *   POST /api/car/cancel                     ends a pairing or test early
  *   POST /api/car/forget                     deletes our key and the car from this controller
  *   (the car's state is part of /api/telemetry as "car")
@@ -66,6 +69,8 @@ public:
     void setDiagnostics(const DiagnosticsSource* source) { diagnostics_ = source; }
     /** The Bluetooth link to the car; without it the car endpoints answer "not supported". */
     void setCar(CarControl* car) { car_ = car; }
+    /** Who is in command of the charge (wallbox or car). Without it "Control through: Car" is not offered. */
+    void setRouter(ChargeRouter* router) { router_ = router; }
 
 private:
     HttpResponse telemetry();
@@ -94,6 +99,7 @@ private:
     const DiagnosticsSource* diagnostics_ = nullptr;
     Notifier* notifier_ = nullptr;
     CarControl* car_ = nullptr;
+    ChargeRouter* router_ = nullptr;
 };
 
 }  // namespace solar
