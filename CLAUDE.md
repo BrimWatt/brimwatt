@@ -227,6 +227,7 @@ snapshot-before-setup-network   tag on that same commit (a fixed marker; a branc
 - `main.cpp` is touched on every build so the firmware-built time in Diagnostics is fresh.
 - A new embedded page must be added to `board_build.embed_txtfiles` in `platformio.ini` (symbol `_binary_src_web_<name>_html_start`).
 - `WiFi.mode` must be set (and the hostname set before it) before `WebServer::begin()`; the setup page needs the server up with no Wi-Fi.
+- With no Wi-Fi the board sits in `bringUpNetwork()`'s loop (`serviceWhileOffline`): anything that must work offline (console, Tesla jobs) has to be serviced there too, and a blocking Wi-Fi join (30 s) must not run while a Tesla job is active. (Found 2026-10-26: `tesla scan` never finished offline.)
 - Test output from `mvn` prints WARN lines (fail-safe tests); they are normal.
 
 ## Not yet verified on real hardware
