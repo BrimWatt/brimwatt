@@ -652,8 +652,56 @@ void test_a_failed_read_back_does_not_undo_a_good_command() {
     TEST_ASSERT_TRUE(joined(flow.lines()).find("stopped") != std::string::npos);
 }
 
+// The car also broadcasts messages that are not for us (to "everyone", domain 0). They must never be taken as a reply.
+static Bytes broadcastNoise() {
+    Routable r;
+    r.toDomain = 0;
+    r.hasPayload = true;
+    r.payload = Bytes{0x1a, 0x03, 0x12, 0x01, 0x01};
+    return encodeRoutable(r);
+}
+
+void test_status_ignores_broadcasts_that_arrive_before_the_real_reply() {
+    FakeCar car;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    StatusFlow flow(crypto, priv, pub, car.vin);
+    Bytes msg = flow.start();
+    flow.onMessage(broadcastNoise(), 9900);                      // noise before anything else
+    msg = flow.onMessage(car.answer(msg), 10000);                // status -> handshake
+    flow.onMessage(broadcastNoise(), 10100);
+    msg = flow.onMessage(car.answer(msg), 10200);                // session -> command
+    TEST_ASSERT_FALSE(msg.empty());
+    flow.onMessage(broadcastNoise(), 10300);                     // noise while the command is out
+    TEST_ASSERT_FALSE(flow.finished());
+    flow.onMessage(car.answer(msg), 10400);                      // the real reply
+    TEST_ASSERT_TRUE_MESSAGE(flow.ok(), joined(flow.lines()).c_str());
+    TEST_ASSERT_EQUAL(76, flow.charge().batteryLevel);
+}
+
+void test_a_charge_command_ignores_broadcasts_too() {
+    FakeCar car;
+    Bytes priv, pub;
+    crypto.generateKeyPair(priv, pub);
+    ChargeCommandFlow flow(crypto, priv, pub, car.vin, ChargeCommandFlow::Stop, 0);
+    Bytes msg = flow.start();
+    msg = flow.onMessage(car.answer(msg), 10000);
+    msg = flow.onMessage(car.answer(msg), 10200);                // the command is out
+    flow.onMessage(broadcastNoise(), 10300);
+    TEST_ASSERT_FALSE(flow.finished());
+    msg = flow.onMessage(car.answer(msg), 10400);                // accepted -> read-back
+    flow.onMessage(broadcastNoise(), 10500);
+    TEST_ASSERT_FALSE(flow.finished());
+    flow.onMessage(car.answer(msg), 10600);
+    TEST_ASSERT_TRUE(flow.finished());
+    TEST_ASSERT_TRUE(flow.ok());
+    TEST_ASSERT_EQUAL(1, car.chargeCommandsSeen);
+}
+
 int main() {
     UNITY_BEGIN();
+    RUN_TEST(test_status_ignores_broadcasts_that_arrive_before_the_real_reply);
+    RUN_TEST(test_a_charge_command_ignores_broadcasts_too);
     RUN_TEST(test_charge_commands_have_the_published_layout);
     RUN_TEST(test_start_sends_one_start_command_and_reads_back);
     RUN_TEST(test_stop_sends_one_stop_command);
