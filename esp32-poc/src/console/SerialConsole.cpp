@@ -49,6 +49,7 @@ void SerialConsole::printHelp() {
     Serial.println("  tesla status        read-only: is the car awake, battery, charge limit, charging current (changes nothing, does not wake it)");
     Serial.println("  tesla charge start|stop       start or stop the car's charge (CHANGES the car; never wakes it)");
     Serial.println("  tesla charge amps <6-40>      set the car's charging current (CHANGES the car; never wakes it)");
+    Serial.println("  tesla debug on|off            print every message to and from the car as hex (for trying a new car model)");
     Serial.println("  tesla key           show this controller's key fingerprint and whether a car is paired");
     Serial.println("  tesla forget        delete the key and car from this board (then remove the key in the car: Controls > Locks)");
     Serial.println("  tesla selftest      check this board's cryptography against Tesla's published example values");
@@ -154,6 +155,13 @@ void SerialConsole::run(const std::string& line) {
             }
             std::string err = valid ? teslaCar_->startCharge(command, amps) : "Give the current in whole amps, 6 to 40: tesla charge amps 16";
             if (!err.empty()) LOG_WARN("Tesla charge: %s", err.c_str());
+        }
+    } else if (line == "tesla debug on" || line == "tesla debug off") {
+        if (!teslaCar_) {
+            LOG_WARN("Console: Tesla control is not available.");
+        } else {
+            teslaCar_->setDebug(line == "tesla debug on");
+            LOG_INFO("Tesla: message dump %s.", teslaCar_->debug() ? "on" : "off");
         }
     } else if (line == "tesla key") {
         if (!teslaCar_) {

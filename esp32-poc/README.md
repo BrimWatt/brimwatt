@@ -192,6 +192,7 @@ The wallbox can talk to only one controller, so while testing the ESP32 the Pi m
 | `tesla key` / `tesla forget` | Shows the key's short fingerprint and whether a car is paired / deletes the key and VIN from the board (remove the key in the car too) |
 | `tesla charge start` / `tesla charge stop` | **Changes the car.** Starts or stops its charge over Bluetooth, then reads the charge state back. Never wakes a sleeping car (it says so and sends nothing). The car must be paired, plugged in and awake. Do not use while the real wallbox is in control |
 | `tesla charge amps <6-40>` | **Changes the car.** Sets the charging current the car asks for, then reads it back. Same rules as above |
+| `tesla debug on` / `tesla debug off` | Prints every message to and from the car as hex (no secrets in them). Off at every start; use it when trying a new car model |
 | `tesla selftest` | Runs Tesla's published example values (key agreement, message check, one encrypted command) through the board's own cryptography. No car needed |
 | `help` | The list |
 
