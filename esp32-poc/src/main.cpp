@@ -121,6 +121,8 @@ static void serviceWhileOffline() {
     webServer.loop();
     portal.loop();
     console.poll();
+    teslaScan.loop();   // Tesla jobs must also work with no Wi-Fi (the car is reached over Bluetooth)
+    teslaCar.loop();
     delay(5);
 }
 
@@ -150,6 +152,10 @@ static void bringUpNetwork() {
         serviceWhileOffline();
         if (!credentials.hasWifi() || static_cast<int32_t>(millis() - nextAttempt) < 0) continue;
         if (portal.clientsConnected()) {   // somebody is using the setup page: a join attempt would interrupt them
+            nextAttempt = millis() + 5000;
+            continue;
+        }
+        if (teslaScan.running() || teslaCar.busy()) {   // a Tesla job is using the radio and needs the loop: no blocking join now
             nextAttempt = millis() + 5000;
             continue;
         }
