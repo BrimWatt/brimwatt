@@ -166,7 +166,20 @@ void TeslaCar::cancel() {
 
 void TeslaCar::finish(const std::string& why) {
     if (client_) {
-        if (client_->isConnected()) client_->disconnect();
+        if (client_->isConnected()) {
+            client_->disconnect();
+            // Wait for the Bluetooth task to report the disconnect before the client is freed: deleting it while that event is still on its
+            // way crashed the board (assert in FreeRTOS::Semaphore::give).
+            for (int i = 0; i < 150; i++) {
+                bool gone;
+                portENTER_CRITICAL(&lock);
+                gone = disconnected;
+                portEXIT_CRITICAL(&lock);
+                if (gone) break;
+                delay(10);
+            }
+        }
+        delay(150);   // let the event handler finish with the client
         delete client_;
         client_ = nullptr;
     }

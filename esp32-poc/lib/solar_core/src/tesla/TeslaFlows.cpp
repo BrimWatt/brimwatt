@@ -110,6 +110,7 @@ Bytes StatusFlow::onMessage(const Bytes& routable, uint32_t nowMs) {
     if (stage_ == Done) return Bytes();
     Routable r;
     if (!decodeRoutable(routable, r)) return Bytes();
+    if (r.toRouting != routing_) return Bytes();   // the car also broadcasts to everyone: only what is addressed to us counts
 
     if (stage_ == AwaitStatus) {
         if (r.hasStatus && r.statusFault != 0) {
@@ -237,6 +238,7 @@ Bytes ChargeCommandFlow::onMessage(const Bytes& routable, uint32_t nowMs) {
     if (stage_ == Done) return Bytes();
     Routable r;
     if (!decodeRoutable(routable, r)) return Bytes();
+    if (r.toRouting != routing_) return Bytes();   // the car also broadcasts to everyone: only what is addressed to us counts
 
     if (stage_ == AwaitStatus) {
         if (r.hasStatus && r.statusFault != 0) {
