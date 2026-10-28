@@ -345,14 +345,17 @@ test('a meter that was never set up says so, calmly, and locks Eco and Max solar
     assert.equal(v.diag, 'No solar meter paired');
 });
 
-test('a meter that is set up but cannot be read says that, and only locks the solar modes once the fail-safe has stopped charging', () => {
-    const blip = page.meterView({ meterLinked: true, enphaseOk: false, controller: { failSafe: false } });
+test('a meter that is set up but cannot be read says that, and only locks the solar modes once it has been silent for 150 s or the fail-safe has stopped charging', () => {
+    const blip = page.meterView({ meterLinked: true, enphaseOk: false, controller: { failSafe: false, hasReading: true, readingAgeSeconds: 60, pollSeconds: 60 } });
     assert.equal(blip.state, 'lost');
     assert.equal(blip.title, 'Unable to read solar meter');
     assert.equal(blip.blockSolar, false);
     assert.equal(blip.soft, false);
     assert.equal(blip.diagCls, 'bad');
     assert.equal(page.meterView({ meterLinked: true, enphaseOk: false, controller: { failSafe: true } }).blockSolar, true);
+    // Custom never trips the fail-safe, but a meter silent for over 150 s still greys out Eco and Max solar
+    assert.equal(page.meterView({ meterLinked: true, enphaseOk: false, controller: { hasReading: true, readingAgeSeconds: 200, pollSeconds: 60 } }).blockSolar, true);
+    assert.equal(page.meterView({ meterLinked: true, enphaseOk: false, controller: { hasReading: false, pollSeconds: 60 } }).blockSolar, true);
 });
 
 test('a readable meter says nothing, and an older controller without the flag counts as linked', () => {
