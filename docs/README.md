@@ -10,6 +10,7 @@
 | Notes for working on the project (layout, commands, rules, git) | [../CLAUDE.md](../CLAUDE.md) |
 | **User guide** for the car owner (dashboard, modes, goal, history, miles, settings), PDF | [user-guide.pdf](user-guide.pdf) |
 | **Demo video** of the dashboard on sample data (MP4, and a GIF of the same) | [demo/wattsync-demo.mp4](demo/wattsync-demo.mp4), [GIF](demo/wattsync-demo.gif) |
+| **Pitch to a Tesla owner**: a 46 s video and the message that goes with it (asks them to volunteer as a tester) | [demo/wattsync-tesla-pitch.mp4](demo/wattsync-tesla-pitch.mp4), [demo/neighbor-message.md](demo/neighbor-message.md) |
 | Running the Pi app on the Raspberry Pi (service, token, logs, state) | [deploy-to-raspberry-pi.pdf](deploy-to-raspberry-pi.pdf) |
 | Scenarios to try on the real house | [test-scenarios.pdf](test-scenarios.pdf) |
 
@@ -47,5 +48,6 @@ python3 docs/pdf-src/test_scenarios_pdf.py
 
 ```bash
 python3 docs/demo-src/make_demo.py        # pictures, GIF and MP4 (or: guide | demo); the MP4 needs ffmpeg: on the PATH, or FFMPEG=/path/to/ffmpeg (e.g. the one from `pip install imageio-ffmpeg`)
+python3 docs/demo-src/make_neighbor_demo.py   # the Tesla pitch video (uses docs/demo-src/car_standin.py, a stand-in board with a paired car; same Chrome/ffmpeg needs)
 python3 docs/pdf-src/user_guide_pdf.py    # the PDF
 ```
