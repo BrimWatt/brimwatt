@@ -17,3 +17,7 @@ Shorter version for a text message:
 Very short and informal:
 
 > Hey [name]! Quick favor: I built a little box that can control a Tesla's charging over Bluetooth, and I need a second Tesla to test it on. Takes about 30 min once, you just tap your key card to approve it, and I'll remove the key after. No Tesla account or anything. 45 sec video attached. Up for it? Totally fine if not!
+
+Very short and informal, with the savings and solar features:
+
+> Hey [name]! Quick favor: I built a little box that controls a Tesla's charging over Bluetooth, and I need a second Tesla to test it on. If you have solar, it can charge from your spare sun and shows how much of your charging came from it and what that saved you. Takes about 30 min once, you just tap your key card to approve it, and I'll remove the key after. No Tesla account or anything. 45 sec video attached. Up for it? Totally fine if not!
