@@ -170,9 +170,9 @@ S.append(table(["You see", "It means", "What to do"], [
 ], [1.9 * inch, 2.5 * inch, 2.4 * inch]))
 
 # ---- goal -----------------------------------------------------------------------------------------------------------
-S += [P("4. Charge by morning (departure goal)", h2)]
-S.append(side(shot("settings-goal", width=2.4 * inch, crop=(0.27, 0.97), caption="Settings: Charge by morning"), [
-    P("Open <b>Settings</b> (the gear icon at the top right) and the <b>Charge by morning</b> group. Say how much energy you want, and by when, for example 20 kWh by 7:00 am. Set 0 to turn it off."),
+S += [P("4. Ready by (departure goal)", h2)]
+S.append(side(shot("settings-goal", width=2.4 * inch, crop=(0.25, 0.46), caption="Settings: Ready by"), [
+    P("Open <b>Settings</b> (the gear icon at the top right) and the <b>Ready by</b> card. Turn on <i>Have the car ready at a set time</i>, then say how much energy you want, and by when, for example 20 kWh by 7:00 am or 5:30 pm. Tap the green check mark to save. Turn the switch off to stop."),
     P("Until time gets short, nothing changes: the sun charges as usual. When the time left is only just enough, WattSync charges at the lowest speed that still gets there, "
       "using grid power if it has to, even at night."),
     P("The headline then shows progress, for example <i>Goal: 12 of 20 kWh by 7:00 am</i>."),
@@ -193,7 +193,7 @@ S.append(side(shot("graph-day", width=2.3 * inch, caption="Today's graph"), [
 ], pic_left=True))
 S.append(side(shot("graph-7", width=2.3 * inch, caption="Last 7 days"), [
     P("<b>How savings are worked out.</b> The sun's share of the car's energy times the price you set (cents per kWh, default 30). "
-      "Set your real price, and an optional peak price and hours, in Settings under <b>Prices</b>. It is an estimate of money not spent on the grid, not a bill."),
+      "Set your real price, and an optional peak price and hours (turn on <i>Higher price at certain hours</i>), in Settings under <b>Money</b>. It is an estimate of money not spent on the grid, not a bill."),
 ], pic_left=False))
 
 # ---- miles ----------------------------------------------------------------------------------------------------------
@@ -207,33 +207,33 @@ S.append(side(shot("top-miles", width=2.35 * inch, caption="Miles view (estimate
     P("<b>What does not change.</b> Savings stay in dollars. The power flow still shows watts. The activity lines the controller writes still say kWh, and so do the CSV export and message text. "
       "The choice is kept on this phone only."),
 ], pic_left=True))
-S.append(side(shot("settings-miles", width=2.4 * inch, crop=(0.27, 0.95), caption="Settings: Units"), [
+S.append(side(shot("settings-miles", width=2.4 * inch, crop=(0.25, 0.46), caption="Settings: Ready by in miles"), [
     P("Your miles per kWh also sets how the goal converts. A goal above zero is never rounded down to zero, so asking for 1 mile still asks for 1 kWh."),
 ], pic_left=False))
 
 # ---- settings -------------------------------------------------------------------------------------------------------
 S += [P("7. Settings, one by one", h2),
-      P("Tap the gear icon at the top right. Number boxes show a green check mark when you change them: press it (or Enter) to save, Escape puts the saved value back.")]
+      P("Tap the gear icon at the top right. Everything is on one page, in cards; the names at the top (Charging, Money, Messages, Tesla, More) jump to a section. Number boxes show a green check mark when you change them: press it (or Enter) to save, Escape puts the saved value back.")]
 S.append(table(["Setting", "What it does"], [
     ["Solar hours only", "Keeps Eco and Max solar to the daylight window. Switch off to allow them at any hour."],
     ["Start / Stop (minutes)", "How long after sunrise charging may start, and how long before sunset it stops. 0 to 180 minutes each."],
-    ["Charge by morning", "Energy (or miles) you want by a time. 0 turns it off. See section 4."],
-    ["Prices", "Your price per kWh in cents, and an optional peak price with its hours. Only used to work out savings."],
+    ["Ready by", "A switch. On: the energy (or miles) you want and the time you want it by, any time of day. Off: no goal. See section 4."],
+    ["Money", "Your price per kWh in cents, and a switch for an optional peak price with its hours. Only used to work out savings."],
     ["Limits", "Maximum current the charger is ever asked for, in any mode (6 to 40 A). Set it to what your wiring and car can take."],
-    ["Units", "kWh or miles, and miles per kWh. See section 6."],
+    ["Display", "kWh or miles, and miles per kWh. See section 6."],
     ["Messages", "An optional web address (Slack, Discord, Home Assistant and similar). WattSync posts a short message when charging ends, the solar meter is lost or returns, the charger disconnects, or the goal takes over. "
                  "The same message is sent at most once per 10 minutes. Use <i>Send test</i> to check it. Only the address's host is shown afterwards."],
     ["Diagnostics", "A short health list: setup check (solar meter, charger, clock), how long it has been running, why it last restarted, free memory and Wi-Fi signal."],
 ], [1.7 * inch, 5.1 * inch]))
 S.append(Spacer(1, 6))
-S.append(shot("settings-diag", width=1.8 * inch, crop=(0.27, 1.0), caption="Settings with Diagnostics open (sample data)"))
+S.append(shot("settings-diag", width=1.8 * inch, crop=(0.0, 1.0), caption="Settings with Diagnostics open (sample data)"))
 
 # ---- help -----------------------------------------------------------------------------------------------------------
 S += [P("8. Quick answers", h2)]
 S.append(table(["Question", "Answer"], [
     ["It is sunny but the car is not charging.", "Read the headline; it says why. Often the house is using the sun, the minimum charge is not reachable yet, or the 3-minute wait has not passed."],
     ["Can I charge right now regardless of the sun?", "Yes: choose <b>Custom</b> and set the current. It uses grid power if needed."],
-    ["I need the car full by a certain time.", "Use <b>Charge by morning</b>. It charges only as fast as needed to get there."],
+    ["I need the car full by a certain time.", "Use <b>Ready by</b>. It charges only as fast as needed to get there."],
     ["How do I stop everything quickly?", "Tap <b>Pause</b>. It survives restarts until you tap Resume."],
     ["The numbers look old.", "The pill turns amber (<i>Meter 12m old</i>) when daytime readings are stale. Check the solar gateway and Wi-Fi."],
     ["Can I use it away from home?", "Only on your home network, unless you set up your own remote access. The page has no sign-in, so do not expose it to the internet."],
