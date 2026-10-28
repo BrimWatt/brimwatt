@@ -31,6 +31,11 @@ struct Credentials {
     std::string otaPassword;   // the password for updating the board over Wi-Fi
 
     bool hasWifi() const { return !wifiSsid.empty(); }
+    /**
+     * Has a solar meter been set up? Only the token tells: an empty gateway address means "find it automatically", which is a normal
+     * setup. The placeholder from the example secrets file does not count.
+     */
+    bool hasMeter() const { return !enphaseToken.empty() && enphaseToken.rfind("paste-your", 0) != 0; }
 };
 
 /** A Wi-Fi change is tried on the next start; if the board cannot join, the old network is put back. */
