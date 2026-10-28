@@ -1,5 +1,7 @@
 #include "ble/TeslaCar.h"
 
+#include "ble/BleGate.h"
+
 #include <BLEAdvertisedDevice.h>
 #include <BLEClient.h>
 #include <BLEDevice.h>
@@ -97,6 +99,7 @@ bool TeslaCar::ensureKey() {
 }
 
 std::string TeslaCar::startPair(const std::string& vin) {
+    if (!BleGate::on()) return BleGate::offText();
     if (busy()) return "A Tesla job is already running. Type \"tesla stop\" to end it.";
     if (!solar::tesla::isValidVin(vin)) return "That is not a VIN (17 letters and digits, no I, O or Q).";
     if (!ensureKey()) return "Could not make a key on this board.";
@@ -113,6 +116,7 @@ std::string TeslaCar::startPair(const std::string& vin) {
 }
 
 std::string TeslaCar::startStatus(bool quiet) {
+    if (!BleGate::on()) return BleGate::offText();
     if (busy()) return "A Tesla job is already running. Type \"tesla stop\" to end it.";
     if (!store_.loadKey(priv_) || !crypto_.publicKeyFor(priv_, pub_)) return "No key yet. Pair first: tesla pair <VIN>.";
     vin_ = store_.loadVin();
@@ -127,6 +131,7 @@ std::string TeslaCar::startStatus(bool quiet) {
 }
 
 std::string TeslaCar::startCharge(solar::tesla::ChargeCommandFlow::Command command, int amps) {
+    if (!BleGate::on()) return BleGate::offText();
     using solar::tesla::ChargeCommandFlow;
     if (busy()) return "A Tesla job is already running. Type \"tesla stop\" to end it.";
     if (command == ChargeCommandFlow::SetAmps && (amps < ChargeCommandFlow::kMinAmps || amps > ChargeCommandFlow::kMaxAmps))
@@ -146,6 +151,7 @@ std::string TeslaCar::startCharge(solar::tesla::ChargeCommandFlow::Command comma
 }
 
 std::string TeslaCar::startWake() {
+    if (!BleGate::on()) return BleGate::offText();
     if (busy()) return "A Tesla job is already running. Type \"tesla stop\" to end it.";
     if (!store_.loadKey(priv_) || !crypto_.publicKeyFor(priv_, pub_)) return "No key yet. Pair first: tesla pair <VIN>.";
     vin_ = store_.loadVin();

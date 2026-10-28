@@ -1,5 +1,7 @@
 #include "ble/CarService.h"
 
+#include "ble/BleGate.h"
+
 #include "tesla/TeslaBle.h"
 
 namespace device {
@@ -13,6 +15,7 @@ int ageSeconds(uint32_t atMs) { return static_cast<int>((millis() - atMs) / 1000
 
 void CarService::loop() {
     car_.loop();
+    if (!BleGate::on()) return;   // Tesla mode is off: no watch, no jobs
 
     // A job just finished: settle the "put the setting back" note, and wait before the next watch read.
     const TeslaCar::Result& result = car_.lastResult();
@@ -37,7 +40,10 @@ void CarService::loop() {
 
 CarResult CarService::blockedBy() const {
     CarResult r;
-    if (car_.busy()) {
+    if (!BleGate::on()) {
+        r.ok = false;
+        r.message = BleGate::offText();
+    } else if (car_.busy()) {
         r.ok = false;
         r.busy = true;
         r.message = "The car is busy with another job. Wait for it, or stop it first.";

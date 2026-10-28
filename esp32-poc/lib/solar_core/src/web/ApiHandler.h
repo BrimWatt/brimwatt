@@ -5,6 +5,7 @@
 
 #include "car/CarControl.h"
 #include "car/ChargeRouter.h"
+#include "car/TeslaMode.h"
 #include "notify/Notifier.h"
 #include "common/Platform.h"
 #include "control/SolarController.h"
@@ -39,6 +40,9 @@ struct HttpResponse {
  *   GET  /api/days?n=30                      daily energy totals for the last n days (up to 365)
  *   GET  /api/diagnostics                    restarts and crashes, uptime, memory, Wi-Fi signal (404 if the platform has none)
  *   GET  /api/export.csv                     every day's energy totals as a spreadsheet file
+ *   POST /api/car/mode?enabled=true|false&confirm=yes   Tesla mode (off by default): Bluetooth, the wattsync-tesla Wi-Fi and the car in command; restarts the board
+ *   GET  /api/car/hotspot                    the Tesla hotspot's name and password (only while Tesla mode is on; never part of telemetry)
+ *   POST /api/clock?epoch=<seconds>          sets the board's clock from the phone when it has none (away from home)
  *   POST /api/car/pair  (vin in the body)    adds this controller's own key to the owner's Tesla (the owner taps the key card)
  *   POST /api/car/refresh                    reads the car now (read only)
  *   POST /api/car/watch?enabled=true|false   read the car every few minutes (read only)
@@ -73,6 +77,8 @@ public:
     void setCar(CarControl* car) { car_ = car; }
     /** Who is in command of the charge (wallbox or car). Without it "Control through: Car" is not offered. */
     void setRouter(ChargeRouter* router) { router_ = router; }
+    /** Tesla mode. Without it the car endpoints always work (the Pi, the tests). */
+    void setTeslaMode(TeslaModeControl* mode) { mode_ = mode; }
 
 private:
     HttpResponse telemetry();
@@ -92,6 +98,9 @@ private:
     HttpResponse diagnostics();
     HttpResponse exportCsv();
     HttpResponse car(const std::string& path, const Params& query);
+    HttpResponse teslaMode(const Params& query);
+    HttpResponse hotspot();
+    HttpResponse setClock(const Params& query);
 
     const Platform& platform_;
     SolarController& controller_;
@@ -102,6 +111,7 @@ private:
     Notifier* notifier_ = nullptr;
     CarControl* car_ = nullptr;
     ChargeRouter* router_ = nullptr;
+    TeslaModeControl* mode_ = nullptr;
 };
 
 }  // namespace solar

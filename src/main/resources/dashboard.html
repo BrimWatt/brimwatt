@@ -30,6 +30,8 @@
         .hdr-right { display: flex; align-items: center; gap: 8px; }
         .gear { min-height: 0; width: 44px; height: 44px; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--card); box-shadow: 0 0 0 1px var(--line); color: #475569; }
         .gear:hover:not(:disabled) { background: #eef2f7; }
+        .pill.tesla { background: #ede9fe; color: #5b21b6; } .pill[hidden] { display: none; }
+        @media (max-width: 380px) { .pill.tesla { padding: 4px 8px; font-size: 0.72rem; } .pill.tesla::before { display: none; } .pill.tesla .m { display: none; } .hdr-right { gap: 6px; } }
         .pill.wait { background: #eef1f4; color: var(--muted); }
 
         button { font: inherit; padding: 0 10px; white-space: nowrap; min-height: 44px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.9rem; background: #eaedf1; color: #374151; transition: background 0.15s; touch-action: manipulation; }
@@ -234,7 +236,7 @@
 <div class="container">
     <header>
         <h1 class="brand"><svg class="logo" viewBox="0 0 64 64" role="img" aria-label="WattSync logo"><defs><linearGradient id="wgi" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#0d9488"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#wgi)"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M14.15 25.5A19 19 0 0 1 46.55 19.79"/><path d="M49.85 38.5A19 19 0 0 1 17.45 44.2"/></g><g fill="#fff"><path d="M49.8 23.6L50 16.9L43.1 22.7Z"/><path d="M14.2 40.4L20.9 41.3L14 47.1Z"/></g><path d="M36 18L25 34H32L29 47L40 30H33Z" fill="#fde047"/></svg><span>Watt<span class="sync">Sync</span></span></h1>
-        <div class="hdr-right"><span class="pill wait" id="conn" role="status">Connecting…</span><button type="button" class="gear" id="gear" aria-label="Settings" onclick="openSettings()"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.5.5 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54A.48.48 0 0 0 13.92 2h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.5.5 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg></button></div>
+        <div class="hdr-right"><span class="pill tesla" id="tesla-badge" hidden title="Tesla mode is on: Bluetooth and the wattsync-tesla Wi-Fi are available, and the car is in command">Tesla<span class="m"> mode</span></span><span class="pill wait" id="conn" role="status">Connecting…</span><button type="button" class="gear" id="gear" aria-label="Settings" onclick="openSettings()"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.5.5 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54A.48.48 0 0 0 13.92 2h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.5.5 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg></button></div>
     </header>
     <div class="notice" id="notice" role="alert"></div>
 
@@ -347,6 +349,15 @@
 </details>
 <details class="more opt" id="car-group"><summary>Tesla<span class="hint">optional</span></summary>
             <p class="hint" id="car-unsupported" hidden>Car control needs the ESP32 board.</p>
+            <div id="car-mode" hidden>
+                <label class="check"><input type="checkbox" id="car-mode-sw" onchange="carMode(this)"><span>Tesla mode<button type="button" class="info" data-tip="carmode" aria-label="What is Tesla mode?">i</button></span></label>
+                <p class="hint" id="car-mode-note">&nbsp;</p>
+                <div id="car-hotspot" hidden>
+                    <div class="field"><span>Board's own Wi-Fi</span><b id="car-hotspot-name">wattsync-tesla</b></div>
+                    <div class="field"><span>Password</span><span class="edit"><b id="car-hotspot-pw" hidden></b><button type="button" id="car-hotspot-btn" class="smallbtn" onclick="carShowPassword()">Show</button></span></div>
+                    <p class="hint" id="car-hotspot-note">&nbsp;</p>
+                </div>
+            </div>
             <div id="car-setup">
                 <div class="field"><span><label for="car-vin">Car VIN</label><button type="button" class="info" data-tip="carvin" aria-label="Where do I find the VIN?">i</button></span><span class="edit"><input type="text" id="car-vin" maxlength="23" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="17 characters"><button id="car-pair-btn" class="smallbtn" onclick="carPair()">Pair</button></span></div>
                 <p class="hint">Pairing adds this controller's own key to the car. You tap your key card on the car's centre console to allow it.</p>
@@ -354,12 +365,13 @@
             <div class="carbox" id="car-progress" hidden><span id="car-progress-text">&nbsp;</span><button type="button" class="smallbtn" onclick="carCancel()">Stop</button></div>
             <div id="car-paired" hidden>
                 <div class="field"><span>Paired car</span><b id="car-vin-masked">–</b></div>
+                <div class="field"><label for="car-forget">Remove this car</label><button type="button" id="car-forget" class="smallbtn danger" onclick="carForget()">Forget car</button></div>
+                <div id="car-controls">
                 <div class="field" id="car-through-row"><span><label for="car-through">Control through</label><button type="button" class="info" data-tip="carthrough" aria-label="What does control through mean?">i</button></span><span class="edit"><select id="car-through" onchange="carThrough(this)"><option value="charger">Charger</option><option value="car">Car</option></select></span></div>
                 <div class="field" id="car-onreturn-row" hidden><label for="car-onreturn">If the car can't be reached</label><span class="edit"><select id="car-onreturn" onchange="carOnReturn(this)"><option value="keep">Keep its setting</option><option value="tell">Just tell me</option><option value="stop">Stop when it is back</option></select></span></div>
                 <label class="check" id="car-allowwake-row" hidden><input type="checkbox" id="car-allowwake" onchange="carAllowWake(this)"><span>Allow WattSync to wake the car when charging is wanted<button type="button" class="info" data-tip="carwake" aria-label="What does waking the car do?">i</button></span></label>
                 <label class="check"><input type="checkbox" id="car-watch" onchange="carWatch(this)"><span>Read the car every few minutes</span></label>
                 <div class="field"><label for="car-refresh">Read the car now</label><button type="button" id="car-refresh" class="smallbtn" onclick="carRefresh()">Check now</button></div>
-                <div class="field"><label for="car-forget">Remove this car</label><button type="button" id="car-forget" class="smallbtn danger" onclick="carForget()">Forget car</button></div>
                 <details class="more" id="car-testing"><summary>For testing</summary>
                     <p class="hint" id="car-testing-note">These buttons change how the car charges. The controller never uses them by itself.</p>
                     <div class="field"><span>Wake the car</span><span class="edit"><button type="button" class="smallbtn" onclick="carWake()">Wake now</button></span></div>
@@ -367,6 +379,7 @@
                     <div class="field"><label for="car-amps">Current (A)</label><span class="edit"><input type="number" id="car-amps" inputmode="numeric" min="6" max="40" step="1" value="16"><button type="button" id="car-amps-btn" class="smallbtn" onclick="carSetAmps()">Set</button></span></div>
                     <div class="field" id="car-restore-row" hidden><span id="car-restore-label">Put the setting back</span><button type="button" class="smallbtn" onclick="carRestore()">Put back</button></div>
                 </details>
+                </div>
             </div>
             <p class="hint" id="car-result"></p>
 </details>
@@ -391,6 +404,7 @@ const TIPS = {
     share: ['From the sun', ['How much of the car\'s energy today came from your solar panels instead of the grid. 100% means all of it.']],
     hours: ['Solar hours', ['Eco and Max solar only work during the day: from a little after sunrise until a little before sunset. Outside these hours they do nothing.', 'You can change how many minutes after sunrise it starts, and before sunset it stops, in the two boxes below.', 'Custom works at any time.']],
     car: ['Tesla', ['WattSync reads your Tesla over Bluetooth: the battery, the charge limit and the charging current. It only reads. The buttons under For testing in Settings are the only things that change the car, and only when you press them.', 'The controller must be near the car. If the car cannot be reached the numbers stay as they were, with their age.']],
+    carmode: ['Tesla mode', ['Off until you switch it on. While it is off, Bluetooth is never started and nothing here talks to a car.', 'On: Bluetooth works, the board opens its own Wi-Fi called wattsync-tesla (so you can use this page next to a car, away from home), and the car is in command instead of the charger. Your charger is not controlled meanwhile.', 'Away from home there is no solar data, so use Custom. Switching Tesla mode on or off restarts the board (about a minute).']],
     carthrough: ['Control through', ['Charger: WattSync sets the speed on your wall charger, as before. Car: it sets the speed on the car itself over Bluetooth, and starts and stops its charging, with the same Eco, Max solar and Custom rules.', 'Only one is in command at a time. The car must be near the controller. A sleeping car is not woken from here: WattSync waits until it wakes. You can switch back any time.']],
     carwake: ['Waking the car', ['A car that has been idle for a while goes to sleep and then cannot be told to start or change its charging. With this switched on, WattSync wakes it, but only when charging is wanted and the car was last seen plugged in.', 'A wake keeps the car awake for about 10 to 15 minutes and uses a little battery. WattSync wakes it at most once every 30 minutes. It is off unless you switch it on.']],
     carvin: ['Car VIN', ['The VIN is the 17-character number on the sticker inside the driver door, at the lower corner of the windshield, and in the Tesla app under Software.', 'It is kept on the controller only, shown with the middle hidden, and never sent anywhere. You can remove the car and the key at any time: Forget car here, and Controls > Locks in the car.']],
@@ -744,6 +758,16 @@ function carView(c, charger) {
     if (charger && charger.connected && r.amps && charger.amps > 0) v.note += ' · charger shows ' + charger.amps.toFixed(1) + ' A';
     return v;
 }
+/** Tesla mode as the dashboard shows it, from the car block. `known` is false when the controller does not report it (then everything car-related is shown, as before). */
+function carModeView(c) {
+    const m = c && c.mode;
+    if (!m) return { known: false, on: true, pending: false, note: '', hotspotUp: false, clients: 0, needsClock: false };
+    const v = { known: true, on: m.enabled === true, pending: m.restartPending === true, hotspotUp: m.hotspotUp === true, clients: m.hotspotClients || 0, note: '', needsClock: m.enabled === true && m.clockSet === false };
+    if (v.pending) v.note = 'Restarting the board… reload this page in about a minute.';
+    else if (!v.on) v.note = 'Off. Bluetooth stays off and nothing here talks to a car.' + (c.paired ? ' The paired car is kept.' : '');
+    else v.note = 'On. The car is in command' + (c.paired ? '' : ' once one is paired') + '. The charger is not controlled.';
+    return v;
+}
 /** The words for the pairing box and the busy states, from the car block. */
 function carProgressText(c) {
     if (!c.busy) return '';
@@ -756,10 +780,24 @@ function carProgressText(c) {
 function renderCar(data) {
     const c = data.car || { supported: false };
     const supported = c.supported === true, paired = supported && c.paired === true;
+    const mode = carModeView(c);
     el('car-unsupported').hidden = supported;
-    el('car-setup').hidden = !supported || paired || c.busy === true;
+    el('car-mode').hidden = !supported || !mode.known;
+    el('tesla-badge').hidden = !supported || !mode.known || !mode.on;
+    if (supported && mode.known) {
+        const sw = el('car-mode-sw');
+        if (document.activeElement !== sw) sw.checked = mode.on;
+        sw.disabled = mode.pending;
+        el('car-mode-note').textContent = mode.note;
+        el('car-hotspot').hidden = !mode.on;
+        el('car-hotspot-note').textContent = mode.hotspotUp ? (mode.clients ? mode.clients + ' device' + (mode.clients > 1 ? 's' : '') + ' joined. ' : '') + 'Join it on your phone, then open http://192.168.4.1/' : 'Starting…';
+        if (!mode.on) { el('car-hotspot-pw').hidden = true; el('car-hotspot-btn').hidden = false; }
+        if (mode.needsClock) sendClockOnce();
+    }
+    el('car-setup').hidden = !supported || paired || c.busy === true || !mode.on;
     el('car-paired').hidden = !paired;
-    el('carcard').hidden = !paired;
+    el('car-controls').hidden = !mode.on;
+    el('carcard').hidden = !paired || !mode.on;
     const box = el('car-progress');
     box.hidden = !supported || !c.busy;
     if (supported && c.busy) el('car-progress-text').textContent = carProgressText(c);
@@ -773,7 +811,7 @@ function renderCar(data) {
     if (!paired) { el('car-result').textContent = ''; return; }
     el('car-vin-masked').textContent = c.vin || '';
     const ctl = c.control || null, inCommand = !!(ctl && ctl.through);
-    el('car-through-row').hidden = !ctl;
+    el('car-through-row').hidden = !ctl || mode.known;   // in Tesla mode the car is always in command
     el('car-allowwake-row').hidden = !ctl;
     if (ctl && document.activeElement !== el('car-allowwake')) el('car-allowwake').checked = ctl.allowWake === true;
     el('car-onreturn-row').hidden = !inCommand;
@@ -797,6 +835,37 @@ function renderCar(data) {
     if (restore) el('car-restore-label').textContent = 'Put the setting back to ' + restore + ' A';
     const shown = c.result && c.result.job !== 'status' && c.result.ageSeconds < 900 ? c.result : null;
     el('car-result').textContent = shown ? (shown.ok ? '' : "Didn't work: ") + shown.lines.join('\n') : '';
+}
+let clockSentAt = 0;
+function sendClockOnce() {   // a board with no network time (away from home) takes it from this phone
+    if (Date.now() - clockSentAt < 60000) return;
+    clockSentAt = Date.now();
+    post('/api/clock?epoch=' + Math.floor(Date.now() / 1000));
+}
+async function carMode(box) {
+    const want = box.checked;
+    const ask = want
+        ? 'Turn on Tesla mode? The board restarts (about a minute). Then Bluetooth works, the board opens its own Wi-Fi called wattsync-tesla, and the car is put in command once one is paired: your charger will no longer be controlled. Away from home there is no solar data, so use Custom.'
+        : 'Turn off Tesla mode? The board restarts (about a minute). Bluetooth stops, the wattsync-tesla Wi-Fi closes and the charger is in command again.';
+    if (!confirm(ask)) { box.checked = !want; return; }
+    const result = await post('/api/car/mode?enabled=' + want + '&confirm=yes');
+    if (!result.ok) { box.checked = !want; toast("Couldn't change Tesla mode", 'err', result.text); return; }
+    toast(want ? 'Tesla mode is turning on' : 'Tesla mode is turning off', 'ok', 'The board restarts. Reload this page in about a minute.');
+    refresh();
+}
+let passwordTimer = null;
+async function carShowPassword() {
+    try {
+        const res = await fetch('/api/car/hotspot', { cache: 'no-store' });
+        if (!res.ok) { toast("Couldn't read it", 'err', (await res.text()).trim()); return; }
+        const d = await res.json();
+        el('car-hotspot-name').textContent = d.ssid;
+        el('car-hotspot-pw').textContent = d.password;
+        el('car-hotspot-pw').hidden = false;
+        el('car-hotspot-btn').hidden = true;
+        clearTimeout(passwordTimer);
+        passwordTimer = setTimeout(() => { el('car-hotspot-pw').hidden = true; el('car-hotspot-pw').textContent = ''; el('car-hotspot-btn').hidden = false; }, 30000);
+    } catch (e) { toast("Can't reach the controller.", 'err'); }
 }
 async function carStart(url, fields, failTitle) {
     carUserJob = true;

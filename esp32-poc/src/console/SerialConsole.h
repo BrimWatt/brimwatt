@@ -1,5 +1,7 @@
 #pragma once
 
+#include "car/TeslaMode.h"
+
 #include <string>
 
 #include "control/SolarController.h"
@@ -31,6 +33,7 @@ public:
     }
 
     /** Lets the console start the Bluetooth range test for a Tesla. */
+    void setTeslaMode(solar::TeslaModeControl* mode) { teslaMode_ = mode; }
     void setTesla(TeslaScan* scan, TeslaCar* car = nullptr) {
         teslaScan_ = scan;
         teslaCar_ = car;
@@ -52,6 +55,7 @@ private:
     solar::setup::CredentialStore* credentialStore_ = nullptr;
     TeslaScan* teslaScan_ = nullptr;
     TeslaCar* teslaCar_ = nullptr;
+    solar::TeslaModeControl* teslaMode_ = nullptr;
     std::string buffer_;
 };
 

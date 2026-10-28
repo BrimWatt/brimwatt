@@ -9,12 +9,29 @@ Status key: `[ ]` not run, `[x]` passed, `[!]` failed (say what happened), `[-]`
 
 - [ ] The car belongs to a friend: tell them what will happen (a key is already in the car under Controls > Locks; WattSync will change its charging current and may wake it).
 - [ ] The car is near the board (Bluetooth), **plugged in and awake**. Open a door, or use the Tesla app, to wake it.
-- [ ] The board is on Wi-Fi and `http://wattsync.local/` loads. Settings > Tesla shows the paired car (masked VIN).
+- [ ] The board is on Wi-Fi and `http://wattsync.local/` loads. Tesla mode is **off by default**: switch it on in Settings > Tesla first (section G); sections A-F need it on. Settings > Tesla then shows the paired car (masked VIN).
 - [ ] Note the car's current setting now (Tesla screen, or Settings > Tesla > Check now): ______ A. Put it back at the end (H).
 - [ ] Decide where the wallbox stands: if the car is **not** charged from your wallbox, nothing else is affected. If it is, switching to "Car" stops WattSync commanding the wallbox.
 - [ ] Optional but useful: a serial monitor on the cable (`pio device monitor`) for the board's own log lines, and `tesla debug on` to see raw messages.
 
 Back out at any time: Settings > Tesla > **Control through = Charger**. Pause is the kill switch. Forget car removes the key from the board.
+
+## G. Tesla mode and the wattsync-tesla Wi-Fi (new 2026-10-27; do this section first, the others need Tesla mode on)
+
+| # | Test | Expected | Result |
+|---|---|---|---|
+| G1 | With Tesla mode off (the default), Settings > Tesla | Only the Tesla mode switch, the paired car (masked) and Forget car; no Tesla tile on the dashboard, no badge | [ ] |
+| G2 | Console `tesla status` (or any car command) while off | "Tesla mode is off ..." and no Bluetooth starts | [ ] |
+| G3 | Memory with Tesla mode off: Diagnostics largest block | At least as high as before (about 53 KB or more); the graph and the three today tiles load | [ ] |
+| G4 | Switch Tesla mode on (confirm the dialog) | The board restarts; after about a minute the badge "Tesla mode" shows; Activity "Control moved to the car" once a car is paired; the wallbox is no longer commanded | [ ] |
+| G5 | Settings > Tesla > Password > Show | The password appears and hides again after 30 s | [ ] |
+| G6 | On a phone, join Wi-Fi `wattsync-tesla` with that password, open `http://192.168.4.1/` | The same dashboard loads (the phone may warn "no internet"; stay on it) | [ ] |
+| G7 | Home Wi-Fi still works while the hotspot is open | `http://wattsync.local/` also loads from the home network | [ ] |
+| G8 | Away from home (or router off): power-cycle the board with Tesla mode on | Start-up carries on after about 25 s; the hotspot works; the dashboard shows the phone's time within a minute (clock set) | [ ] |
+| G9 | Away from home, Custom 8 A, car in command (section D) | Works without the Envoy and without internet | [ ] |
+| G10 | Dashboard speed with the hotspot open during a Bluetooth read | The page may pause a few seconds; note how long and whether it times out | [ ] |
+| G11 | Open the setup network (hold BOOT 5 s) while Tesla mode is on, then let it close | The hotspot comes back by itself after the setup network closes | [ ] |
+| G12 | Switch Tesla mode off | The board restarts; the badge goes; `wattsync-tesla` is gone; the charger is in command again | [ ] |
 
 ## A. Read only (safe)
 

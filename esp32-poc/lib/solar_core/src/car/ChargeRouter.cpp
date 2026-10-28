@@ -38,6 +38,12 @@ void ChargeRouter::setAllowWake(bool on) {
     if (settings_) settings_->saveAllowWake(on);
 }
 
+void ChargeRouter::enforceMode(bool teslaMode) {
+    if (teslaMode == throughCar_) return;
+    if (teslaMode && !car_.snapshot().paired) return;   // nothing to command yet; it follows once a car is paired
+    setThroughCar(teslaMode);
+}
+
 void ChargeRouter::restore() {
     if (!settings_) return;
     int policy = settings_->loadOnReturn();

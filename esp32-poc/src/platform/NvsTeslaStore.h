@@ -29,7 +29,12 @@ public:
     void saveOnReturn(int value) override;
     bool loadAllowWake() override;
     void saveAllowWake(bool on) override;
-    /** Forgets the key and the VIN. */
+    // Tesla mode (default off) and its hotspot password
+    bool loadTeslaMode() override;
+    void saveTeslaMode(bool on) override;
+    std::string loadHotspotPassword() override;
+    void saveHotspotPassword(const std::string& password) override;
+    /** Forgets the key, the VIN and who was in command. Tesla mode and the other choices stay. */
     void clear();
 };
 

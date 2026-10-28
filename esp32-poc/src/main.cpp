@@ -34,6 +34,7 @@
 #include "net/EspNotifySender.h"
 #include "net/Ota.h"
 #include "net/SetupPortal.h"
+#include "net/TeslaMode.h"
 #include "notify/Notifier.h"
 #include "net/TimeSync.h"
 #include "net/WifiConnection.h"
@@ -100,6 +101,7 @@ static solar::setup::Credentials compiledDefaults() {
 }
 static device::NvsCredentialStore credentialStore;
 static device::SetupPortal portal;
+static device::TeslaMode teslaMode(teslaStore, portal);
 static solar::setup::SetupApi setupApi(credentialStore, portal, compiledDefaults());
 static device::WebServerAdapter webServer(api, setupApi, portal);
 static solar::setup::Credentials credentials;   // the values in use
@@ -127,6 +129,7 @@ static void printBoardInfo() {
 static void serviceWhileOffline() {
     webServer.loop();
     portal.loop();
+    teslaMode.loop();
     console.poll();
     teslaScan.loop();   // Tesla jobs must also work with no Wi-Fi (the car is reached over Bluetooth)
     carService.loop();
@@ -145,6 +148,11 @@ static void bringUpNetwork() {
     bool trialFailed = false;
     bool offeredSetup = false;
 
+    if (!credentials.hasWifi() && teslaMode.enabled()) {
+        // Tesla mode works without the home Wi-Fi (its own hotspot is already open); hold BOOT or type "setup" to add one.
+        LOG_WARN("Wi-Fi: no network is set. Tesla mode carries on with its own hotspot.");
+        return;
+    }
     if (!credentials.hasWifi()) {
         LOG_WARN("Wi-Fi: no network is set.");
         portal.open(device::SetupReason::NoWifi);
@@ -157,6 +165,14 @@ static void bringUpNetwork() {
     uint32_t nextAttempt = millis();
     while (!wifi.isConnected()) {
         serviceWhileOffline();
+        if (teslaMode.enabled() && !trial && millis() - started > device::kTeslaJoinMillis) {
+            // Away from home the home Wi-Fi is not there. Keep looking for it now and then (loop()), not all the time: a board
+            // that keeps scanning for a missing network keeps interrupting its own hotspot.
+            LOG_WARN("Wi-Fi: not joined after %lu s. Tesla mode carries on with its own hotspot.", (unsigned long)(device::kTeslaJoinMillis / 1000));
+            WiFi.setAutoReconnect(false);
+            WiFi.disconnect(false);
+            return;
+        }
         if (!credentials.hasWifi() || static_cast<int32_t>(millis() - nextAttempt) < 0) continue;
         if (portal.clientsConnected()) {   // somebody is using the setup page: a join attempt would interrupt them
             nextAttempt = millis() + 5000;
@@ -166,7 +182,7 @@ static void bringUpNetwork() {
             nextAttempt = millis() + 5000;
             continue;
         }
-        if (wifi.connect(credentials.wifiSsid, credentials.wifiPassword, device::kWifiConnectTimeoutMillis, portal.isActive())) break;
+        if (wifi.connect(credentials.wifiSsid, credentials.wifiPassword, device::kWifiConnectTimeoutMillis, portal.isActive() || teslaMode.enabled())) break;
 
         nextAttempt = millis() + (portal.isActive() ? device::kSetupRetryMillis : 5000);
         if (trial) {
@@ -229,8 +245,13 @@ void setup() {
     portal.setBeforeRestart([] {
         if (history.dirty() || history.longPending()) historyStore.save(history);   // nothing recent is lost across the restart
     });
+    teslaMode.setBeforeRestart([] {
+        if (history.dirty() || history.longPending()) historyStore.save(history);
+    });
     console.setSetup(&portal, &credentialStore);
     console.setTesla(&teslaScan, &teslaCar);
+    console.setTeslaMode(&teslaMode);
+    teslaMode.begin();   // off unless the owner turned it on: Bluetooth stays off, and the board's own Wi-Fi opens only when it is on
     webServer.begin();
     bringUpNetwork();
     envoy.configure(credentials.enphaseToken, credentials.envoyIp);
@@ -263,6 +284,7 @@ void setup() {
     api.setDiagnostics(&diagnostics);
     api.setCar(&carService);
     api.setRouter(&chargeRouter);
+    api.setTeslaMode(&teslaMode);
     ocppServer.setHistory(&history);
     controller.restoreSettings();
     chargeRouter.setSettings(&teslaStore);
@@ -274,14 +296,36 @@ void setup() {
     if (device::TimeSync::isValid()) startControl();   // otherwise loop() starts it once the clock is set
 }
 
+/** Tesla mode decides who is in command (the car when on, the charger when off); once a second is plenty. */
+static void followTeslaMode() {
+    static uint32_t last = 0;
+    if (millis() - last < 1000) return;
+    last = millis();
+    chargeRouter.enforceMode(teslaMode.enabled());
+    if (!teslaMode.enabled() || wifi.isConnected() || !credentials.hasWifi()) return;
+
+    // Tesla mode without the home Wi-Fi (e.g. next to a friend's car): look for it again now and then, but only when nobody is using the
+    // hotspot and no Bluetooth job is running, because a join attempt blocks the board for a while and hops the radio's channel.
+    static uint32_t lastTry = 0;
+    if (millis() - lastTry < device::kTeslaRejoinMillis || WiFi.softAPgetStationNum() > 0) return;
+    if (teslaCar.busy() || teslaScan.running() || portal.isActive()) return;
+    lastTry = millis();
+    if (!wifi.connect(credentials.wifiSsid, credentials.wifiPassword, 15000, true)) {
+        WiFi.setAutoReconnect(false);
+        WiFi.disconnect(false);   // stop searching in the background until the next try
+    }
+}
+
 void loop() {
     device::Ota::loop();
     webServer.loop();
     portal.loop();   // the BOOT button, and the setup network when it is open
+    teslaMode.loop();
     console.poll();
     teslaScan.loop();
     carService.loop();
     carCommander.loop();
+    followTeslaMode();
 
     if (!controlStarted) {
         if (device::TimeSync::isValid()) {

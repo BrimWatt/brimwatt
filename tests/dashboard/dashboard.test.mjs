@@ -305,3 +305,30 @@ test('waking is off until switched on, goes through the API, and manual wakes as
     assert.match(html, /id="car-allowwake"/);
     assert.ok(!/id="car-allowwake"[^>]*checked/.test(html), 'it must not start switched on');
 });
+
+// ---- Tesla mode ----
+
+test('Tesla mode: an older controller that does not report it shows everything as before', () => {
+    const v = page.carModeView({ supported: true, paired: true });
+    assert.equal(v.known, false);
+    assert.equal(v.on, true);
+});
+
+test('Tesla mode says what is on or off, that a paired car is kept, and when the board is restarting', () => {
+    const off = page.carModeView({ paired: true, mode: { enabled: false, restartPending: false, clockSet: true } });
+    assert.equal(off.on, false);
+    assert.match(off.note, /Off\. Bluetooth stays off/);
+    assert.match(off.note, /paired car is kept/);
+    assert.equal(off.needsClock, false);
+    const on = page.carModeView({ paired: false, mode: { enabled: true, hotspotUp: true, hotspotClients: 2, clockSet: false } });
+    assert.equal(on.on, true);
+    assert.match(on.note, /once one is paired/);
+    assert.equal(on.clients, 2);
+    assert.equal(on.needsClock, true);   // away from home the phone gives the board the time
+    const pending = page.carModeView({ mode: { enabled: true, restartPending: true } });
+    assert.match(pending.note, /Restarting/);
+});
+
+test('the help card for Tesla mode exists', () => {
+    assert.ok(read('TIPS').carmode);
+});

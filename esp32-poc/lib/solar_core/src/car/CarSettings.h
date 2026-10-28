@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace solar {
 
 /** What is kept across restarts about controlling through the car (flash on the board). */
@@ -12,6 +14,11 @@ public:
     virtual void saveOnReturn(int value) = 0;
     virtual bool loadAllowWake() = 0;               // may WattSync wake a sleeping car? (off unless the owner switches it on)
     virtual void saveAllowWake(bool on) = 0;
+    // Tesla mode (off unless the owner switches it on) and its hotspot password; the defaults suit stores that do not keep them.
+    virtual bool loadTeslaMode() { return false; }
+    virtual void saveTeslaMode(bool) {}
+    virtual std::string loadHotspotPassword() { return ""; }
+    virtual void saveHotspotPassword(const std::string&) {}
 };
 
 }  // namespace solar
