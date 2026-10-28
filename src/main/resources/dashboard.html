@@ -90,6 +90,7 @@
         .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
         .seg button { font-size: 0.85rem; }
         .seg button.active { background: var(--blue); color: #fff; }
+        .seg button.locked { opacity: 0.45; cursor: not-allowed; }
         .info { min-height: 0; width: 24px; height: 24px; padding: 0; margin-left: 6px; border-radius: 50%; position: relative; vertical-align: middle;
                 background: #e0e7ff; color: #3730a3; font-size: 0.72rem; font-weight: 700; font-style: italic; font-family: Georgia, serif; line-height: 24px; text-transform: none; letter-spacing: 0; }
         .info::before { content: ""; position: absolute; inset: -12px; }   /* a finger-sized tap area around the small circle */
@@ -436,10 +437,10 @@ async function loadDiagnostics() {
         // First the setup check: the three things that have to be true for charging to work, each with a plain verdict.
         const ld = lastData || {};
         const rows = [['Setup check', '', 'head'],
-            ['Solar meter', ld.enphaseOk === false ? "Can't reach the gateway" : 'Reading normally', ld.enphaseOk === false ? 'bad' : 'ok'],
+            ['Solar meter', meterView(ld).diag, meterView(ld).diagCls],
             ['Wallbox', ld.chargerConnected ? 'Connected' : 'Not connected yet', ld.chargerConnected ? 'ok' : 'warn'],
             ['Clock', d.clockSet === false ? 'Waiting for network time' : 'Set', d.clockSet === false ? 'warn' : 'ok']];
-        if (ld.enphaseOk === false && ld.enphaseMessage) rows.push(['Meter details', ld.enphaseMessage, 'warn']);
+        if (ld.enphaseOk === false && ld.meterLinked !== false && ld.enphaseMessage) rows.push(['Meter details', ld.enphaseMessage, 'warn']);
         rows.push(['About this device', '', 'head']);
         rows.push(['Running for', fmtAge(d.uptimeSeconds).replace(' ago', ''), '']);
         rows.push(['Last restart', d.lastRestart.reason, d.lastRestart.crash ? 'bad' : '']);
@@ -1045,6 +1046,18 @@ function updateUI(modeId) {
     ['dl-start', 'dl-end'].forEach(id => { el(id).closest('.field').style.display = modeId === 'FAST' ? 'none' : 'flex'; });   // the minutes mean nothing in Custom
 }
 
+/** Eco and Max solar need the meter: grey them out while it is missing, so Custom is the obvious choice. */
+function renderMeterLock(data) {
+    const m = meterView(data), lock = m.blockSolar;
+    for (const id of ['opt-ECO', 'opt-MAX_SOLAR']) {
+        const b = el(id);
+        b.disabled = lock;
+        b.classList.toggle('locked', lock);
+    }
+    if (lock && (currentSystemMode === 'ECO' || currentSystemMode === 'MAX_SOLAR')) el('mode-help').textContent = 'Needs the solar meter. Use Custom.';
+    else if (MODE_HELP[currentSystemMode]) el('mode-help').textContent = MODE_HELP[currentSystemMode];
+}
+
 function renderConnection(online) {
     const pill = el('conn');
     pill.className = 'pill ' + (online ? 'on' : 'off');
@@ -1164,14 +1177,36 @@ function renderPill(data) {
     pill.textContent = stale ? 'Meter ' + fmtAge(k.readingAgeSeconds).replace(' ago', '') + ' old' : 'Live';
 }
 
+/**
+ * What to tell about the solar meter (any make): 'none' = never set up, 'lost' = set up but cannot be read, 'ok'.
+ * Pure, so it can be tested. In Tesla mode the missing meter is expected (away from home), so the bar is calm and points to Custom.
+ */
+function meterView(data) {
+    const tesla = !!(data.car && data.car.mode && data.car.mode.enabled);
+    const k = data.controller || {};
+    const v = { state: 'ok', title: '', tail: '', soft: false, blockSolar: false, diag: 'Reading normally', diagCls: 'ok' };
+    if (data.meterLinked === false) {
+        v.state = 'none'; v.title = 'No solar meter paired'; v.soft = true; v.blockSolar = true;
+        v.tail = tesla ? "Use Custom to set the car's current." : 'Custom charging still works without it.';
+        v.diag = 'No solar meter paired'; v.diagCls = 'warn';
+    } else if (data.enphaseOk === false) {
+        v.state = 'lost'; v.title = 'Unable to read solar meter'; v.soft = tesla; v.blockSolar = k.failSafe === true;   // not locked for a short blip
+        v.tail = tesla ? "Use Custom to set the car's current." : 'Check that it is on and on the same Wi-Fi. Custom charging still works.';
+        v.diag = 'Unable to read solar meter'; v.diagCls = 'bad';
+    }
+    return v;
+}
+
 function renderNotice(data, online) {
     const notice = el('notice');
     // The headline already says when charging is paused or the solar meter was lost, so the banner is only for what
     // the headline cannot say: the controller is out of reach, or the gateway cannot be read.
     if (!online) { notice.className = 'notice soft'; notice.innerText = "Can't reach the controller. Retrying…"; notice.style.display = 'block'; return; }
-    if (!data.paused && !data.enphaseOk && data.currentMode !== 'FAST' && data.daylight.open) {
-        notice.className = 'notice';
-        notice.innerText = "⚠️ Can't read the solar meter. Check that the gateway is on and on the same Wi-Fi. Details: gear, Diagnostics.";
+    const m = meterView(data);
+    // 'none' is a standing fact; 'lost' is only worth a bar by day, when the meter is being polled.
+    if (!data.paused && m.state !== 'ok' && data.currentMode !== 'FAST' && (m.state === 'none' || data.daylight.open)) {
+        notice.className = m.soft ? 'notice soft' : 'notice';
+        notice.innerText = (m.soft ? '' : '⚠️ ') + m.title + '. ' + m.tail;
         notice.style.display = 'block';
         return;
     }
@@ -1510,7 +1545,7 @@ async function refresh() {
         if (!marginsEdited && document.activeElement !== el('dl-start') && document.activeElement !== el('dl-end')) {
             el('dl-start').value = data.daylight.startMinutes; el('dl-end').value = data.daylight.endMinutes;
         }
-        renderHeadline(data); renderFlow(data); renderStats(); renderCar(data); renderNotice(data, true); renderPill(data);
+        renderHeadline(data); renderFlow(data); renderStats(); renderCar(data); renderNotice(data, true); renderMeterLock(data); renderPill(data);
     } catch (e) {
         failedPolls++;
         if (failedPolls >= 2) { wasOffline = true; renderConnection(false); renderNotice(lastData, false); renderOfflineHeadline(); }

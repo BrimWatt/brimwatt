@@ -638,6 +638,7 @@ public class ApiRoutes {
         body.put("notifyTo", notifier.maskedHost());
         body.put("gridAllowanceWatts", state.gridAllowanceWatts());
         body.put("chargerConnected", !sessions.isEmpty());
+        body.put("meterLinked", true);   // the Pi cannot start without a meter token
         body.put("enphaseOk", state.enphaseOk());
         body.put("enphaseMessage", state.enphaseMessage());
         Instant now = Instant.now();

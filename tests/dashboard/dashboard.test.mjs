@@ -332,3 +332,42 @@ test('Tesla mode says what is on or off, that a paired car is kept, and when the
 test('the help card for Tesla mode exists', () => {
     assert.ok(read('TIPS').carmode);
 });
+
+// ---- the solar meter notices (no vendor names: other makes will follow) ----
+
+test('a meter that was never set up says so, calmly, and locks Eco and Max solar', () => {
+    const v = page.meterView({ meterLinked: false, enphaseOk: false, controller: {} });
+    assert.equal(v.state, 'none');
+    assert.equal(v.title, 'No solar meter paired');
+    assert.equal(v.blockSolar, true);
+    assert.equal(v.soft, true);
+    assert.match(v.tail, /Custom charging still works/);
+    assert.equal(v.diag, 'No solar meter paired');
+});
+
+test('a meter that is set up but cannot be read says that, and only locks the solar modes once the fail-safe has stopped charging', () => {
+    const blip = page.meterView({ meterLinked: true, enphaseOk: false, controller: { failSafe: false } });
+    assert.equal(blip.state, 'lost');
+    assert.equal(blip.title, 'Unable to read solar meter');
+    assert.equal(blip.blockSolar, false);
+    assert.equal(blip.soft, false);
+    assert.equal(blip.diagCls, 'bad');
+    assert.equal(page.meterView({ meterLinked: true, enphaseOk: false, controller: { failSafe: true } }).blockSolar, true);
+});
+
+test('a readable meter says nothing, and an older controller without the flag counts as linked', () => {
+    assert.equal(page.meterView({ meterLinked: true, enphaseOk: true, controller: {} }).state, 'ok');
+    assert.equal(page.meterView({ enphaseOk: true, controller: {} }).state, 'ok');
+    assert.equal(page.meterView({ enphaseOk: false, controller: {} }).state, 'lost');
+});
+
+test('in Tesla mode the missing meter points to Custom and never uses the red bar; no vendor is named anywhere', () => {
+    const tesla = { car: { mode: { enabled: true } }, controller: {} };
+    const none = page.meterView({ ...tesla, meterLinked: false });
+    const lost = page.meterView({ ...tesla, meterLinked: true, enphaseOk: false });
+    assert.match(none.tail, /Use Custom/);
+    assert.match(lost.tail, /Use Custom/);
+    assert.equal(lost.soft, true);
+    for (const v of [none, lost, page.meterView({ meterLinked: false, controller: {} }), page.meterView({ enphaseOk: false, controller: {} })])
+        assert.doesNotMatch(JSON.stringify(v), /enphase|envoy|gateway/i);
+});

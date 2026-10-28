@@ -255,6 +255,7 @@ void setup() {
     webServer.begin();
     bringUpNetwork();
     envoy.configure(credentials.enphaseToken, credentials.envoyIp);
+    api.setMeterLinked(!credentials.enphaseToken.empty() && !credentials.envoyIp.empty());   // "paired" for the dashboard's notices
 
     timeSync.begin(WiFi.gatewayIP().toString().c_str());   // in the background: the dashboard must not wait for the internet
     device::Mdns::start(device::kHostname, config::kOcppPort);
