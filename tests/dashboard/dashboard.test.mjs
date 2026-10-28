@@ -374,3 +374,38 @@ test('in Tesla mode the missing meter points to Custom and never uses the red ba
     for (const v of [none, lost, page.meterView({ meterLinked: false, controller: {} }), page.meterView({ enphaseOk: false, controller: {} })])
         assert.doesNotMatch(JSON.stringify(v), /enphase|envoy|gateway/i);
 });
+
+// ---- theme: Match my phone (default), Light, Dark ----
+
+test('the theme choice defaults to matching the phone; only light and dark are ever kept', () => {
+    assert.equal(page.themeChoice(null), 'auto');
+    assert.equal(page.themeChoice(undefined), 'auto');
+    assert.equal(page.themeChoice('auto'), 'auto');
+    assert.equal(page.themeChoice('nonsense'), 'auto');
+    assert.equal(page.themeChoice('light'), 'light');
+    assert.equal(page.themeChoice('dark'), 'dark');
+});
+
+test('the dark colours are defined once for a forced Dark and again for a phone that is dark, with the same values, and cover every light variable', () => {
+    const vars = block => Object.fromEntries([...block.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)].map(m => [m[1], m[2].trim()]));
+    const light = vars(html.match(/:root \{([^}]*)\}/)[1]);
+    const forced = vars(html.match(/:root\[data-theme="dark"\] \{([^}]*)\}/)[1]);
+    const auto = vars(html.match(/:root:not\(\[data-theme="light"\]\) \{([^}]*)\}/)[1]);
+    assert.deepEqual(auto, forced, 'Dark and the phone-is-dark rule must stay identical');
+    for (const name of Object.keys(light)) assert.ok(name in forced, 'a dark value for --' + name);
+    assert.notEqual(forced.bg, light.bg);
+    assert.notEqual(forced.card, light.card);
+});
+
+test('no light-only colour is left in the styles: everything that changes with the theme goes through a variable', () => {
+    const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>'));
+    const outsideRoot = css.replace(/:root[^{]*\{[^}]*\}/g, '');   // the palettes themselves may hold literals
+    for (const literal of ['#f8fafc', '#eef1f4', '#cbd5e1', '#eaedf1', '#e2e6ea', '#def7ec', '#ffe3e3', '#fef3c7', '#475569', '#374151'])
+        assert.ok(!outsideRoot.includes(literal), literal + ' should be a theme variable');
+    assert.ok(!/background:\s*#fff\b/.test(outsideRoot.replace(/::after[^}]*\}/g, '')), 'a white background should use --card or --field');
+});
+
+test('the chart and the flow arrows take their colours from the theme, not from fixed values', () => {
+    const js = html.slice(html.indexOf('</style>'));
+    for (const literal of ['#eda100', '#e34948', '#2a78d6', '#898781', '#e5e7eb', '#dbeafe', '#f1f5f9']) assert.ok(!js.includes("'" + literal + "'"), literal + ' in the script');
+});
