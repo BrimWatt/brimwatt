@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "history/HistoryService.h"
 
 namespace device {
@@ -33,6 +35,7 @@ private:
     void saveMain(solar::HistoryService& history);
     void saveLong(solar::HistoryService& history);
 
+    std::string main_, mainTemp_, journal_, journalTemp_, long_, longTemp_;   // file names, by profile (see Profile.h)
     size_t longLinesInFile_ = 0;
     bool mounted_ = false;
 };

@@ -677,6 +677,15 @@ void test_tesla_mode_puts_a_paired_car_in_command_and_leaving_it_gives_the_charg
     TEST_ASSERT_FALSE(second.throughCar());
 }
 
+void test_tesla_mode_and_charger_mode_keep_separate_settings_and_history() {
+    TEST_ASSERT_EQUAL_STRING("solar", profileNamespace(false).c_str());   // the name existing boards already use: nothing is lost
+    TEST_ASSERT_EQUAL_STRING("solar-tesla", profileNamespace(true).c_str());
+    TEST_ASSERT_TRUE(profileNamespace(true).size() <= 15);   // the NVS limit
+    TEST_ASSERT_EQUAL_STRING("/history-long.tsv", profileFile(false, "history-long.tsv").c_str());
+    TEST_ASSERT_EQUAL_STRING("/tesla-history-long.tsv", profileFile(true, "history-long.tsv").c_str());
+    TEST_ASSERT_TRUE(profileFile(true, "history.tsv") != profileFile(false, "history.tsv"));
+}
+
 void test_the_hotspot_password_is_ten_easy_characters_and_not_always_the_same() {
     uint32_t n = 0;
     std::string a = generateHotspotPassword([&] { return n += 7919; });
@@ -856,6 +865,7 @@ int main() {
     RUN_TEST(test_an_unpaired_car_is_not_a_charger);
     RUN_TEST(test_tesla_mode_puts_a_paired_car_in_command_and_leaving_it_gives_the_charger_back);
     RUN_TEST(test_the_hotspot_password_is_ten_easy_characters_and_not_always_the_same);
+    RUN_TEST(test_tesla_mode_and_charger_mode_keep_separate_settings_and_history);
     RUN_TEST(test_the_router_sends_everything_to_the_wallbox_until_the_car_is_chosen);
     RUN_TEST(test_switching_to_the_car_releases_the_wallbox_and_hands_over_and_back);
     RUN_TEST(test_allowing_the_wake_is_saved_and_off_by_default);

@@ -31,6 +31,7 @@ Back out at any time: Settings > Tesla > **Control through = Charger**. Pause is
 | G9 | Away from home, Custom 8 A, car in command (section D) | Works without the Envoy and without internet | [ ] |
 | G10 | Dashboard speed with the hotspot open during a Bluetooth read | The page may pause a few seconds; note how long and whether it times out | [ ] |
 | G11 | Open the setup network (hold BOOT 5 s) while Tesla mode is on, then let it close | The hotspot comes back by itself after the setup network closes | [ ] |
+| G13 | Settings are separate: in Tesla mode change the mode, allowance and a price, then switch Tesla mode off | Charger mode shows its old values, not the Tesla ones; switching on again shows the Tesla ones; history, activity and sessions are separate too (first Tesla start has empty history) | [ ] |
 | G12 | Switch Tesla mode off | The board restarts; the badge goes; `wattsync-tesla` is gone; the charger is in command again | [ ] |
 
 ## A. Read only (safe)
