@@ -454,6 +454,17 @@ void test_unknown_setup_paths_are_not_found_and_owned_by_the_setup_api() {
     TEST_ASSERT_FALSE(SetupApi::owns("/setup"));
 }
 
+void test_a_meter_counts_as_paired_by_its_token_alone() {
+    Credentials c;
+    TEST_ASSERT_FALSE(c.hasMeter());                                   // nothing set
+    c.enphaseToken = "paste-your-enphase-token-here";
+    TEST_ASSERT_FALSE(c.hasMeter());                                   // the example file's placeholder
+    c.enphaseToken = "eyJhbGciOi.real.token";
+    TEST_ASSERT_TRUE(c.hasMeter());                                    // no address needed: it is found automatically
+    c.envoyIp = "192.168.1.20";
+    TEST_ASSERT_TRUE(c.hasMeter());
+}
+
 void test_the_setup_network_password_is_a_valid_wpa2_password() {
     size_t length = std::string(kApPassword).size();
     TEST_ASSERT_TRUE(length >= 8 && length <= 63);
@@ -498,5 +509,6 @@ int main() {
     RUN_TEST(test_an_open_network_can_be_saved);
     RUN_TEST(test_unknown_setup_paths_are_not_found_and_owned_by_the_setup_api);
     RUN_TEST(test_the_setup_network_password_is_a_valid_wpa2_password);
+    RUN_TEST(test_a_meter_counts_as_paired_by_its_token_alone);
     return UNITY_END();
 }
