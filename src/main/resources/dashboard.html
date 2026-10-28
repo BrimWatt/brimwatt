@@ -236,9 +236,9 @@
         .subbox { margin: 2px 0 6px 4px; padding-left: 10px; border-left: 2px solid var(--accent-bd); }
         .subbox[hidden] { display: none; }
         #settings-title:focus { outline: none; }
-        .settop { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .settop { display: flex; align-items: center; min-height: 34px; padding-right: 30px; }
         .settop h3 { margin: 0 !important; }
-        .xbtn { flex: none; min-height: 0; width: 36px; height: 36px; padding: 0; border-radius: 50%; background: var(--btn); color: var(--btn-tx); font-size: 1rem; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+        .xbtn { position: absolute; top: 8px; right: 8px; z-index: 3; flex: none; min-height: 0; width: 34px; height: 34px; padding: 0; border-radius: 50%; background: var(--btn); color: var(--btn-tx); font-size: 1rem; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
         .sethead { position: sticky; top: -16px; z-index: 2; margin: -16px -18px 10px; padding: 16px 18px 8px; background: var(--card); border-bottom: 1px solid var(--soft); }
         #set-nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
         #set-nav::-webkit-scrollbar { display: none; }
