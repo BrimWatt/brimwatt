@@ -1190,7 +1190,10 @@ function meterView(data) {
         v.tail = tesla ? "Use Custom to set the car's current." : 'Custom charging still works without it.';
         v.diag = 'No solar meter paired'; v.diagCls = 'warn';
     } else if (data.enphaseOk === false) {
-        v.state = 'lost'; v.title = 'Unable to read solar meter'; v.soft = tesla; v.blockSolar = k.failSafe === true;   // not locked for a short blip
+        v.state = 'lost'; v.title = 'Unable to read solar meter'; v.soft = tesla; 
+        // Locked once the meter has been silent for 2.5 polls (the fail-safe's 150 s), not for a short blip. The fail-safe flag alone is
+        // not enough: Custom ignores it, so with Custom on a lost meter would never lock the solar modes.
+        v.blockSolar = k.failSafe === true || !k.hasReading || (k.readingAgeSeconds || 0) > (k.pollSeconds || 60) * 2.5;
         v.tail = tesla ? "Use Custom to set the car's current." : 'Check that it is on and on the same Wi-Fi. Custom charging still works.';
         v.diag = 'Unable to read solar meter'; v.diagCls = 'bad';
     }
