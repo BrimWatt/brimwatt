@@ -25,11 +25,15 @@ std::string incoming;                    // bytes the car sent, filled on the Bl
 bool disconnected = false;
 std::string wantedName;
 bool found = false;
+uint32_t heardAdverts = 0;   // what the radio heard during the scan (for the "not heard" line)
+uint32_t heardNamed = 0;
 BLEAddress foundAddress("00:00:00:00:00:00");
 esp_ble_addr_type_t foundType = BLE_ADDR_TYPE_PUBLIC;
 
 class Finder : public BLEAdvertisedDeviceCallbacks {
     void onResult(BLEAdvertisedDevice device) override {
+        heardAdverts++;
+        if (device.haveName()) heardNamed++;
         if (wantedName.empty() || !device.haveName() || std::string(device.getName().c_str()) != wantedName) return;
         portENTER_CRITICAL(&lock);
         found = true;
@@ -170,7 +174,7 @@ std::string TeslaCar::startWake() {
 void TeslaCar::begin(Job job) {
     job_ = job;
     stage_ = Stage::Finding;
-    startedAt_ = lastProgress_ = lastActivity_ = millis();
+    startedAt_ = scanStartedAt_ = lastProgress_ = lastActivity_ = millis();
     rx_.clear();
     lastPairState_ = -1;
     portENTER_CRITICAL(&lock);
@@ -184,10 +188,14 @@ void TeslaCar::begin(Job job) {
         radioOn_ = true;
     }
     BLEScan* scan = BLEDevice::getScan();
-    scan->setAdvertisedDeviceCallbacks(&finder, false);
+    // Duplicates on: the car's name can arrive in a scan reply that comes after its first advert; with duplicates off that second packet
+    // would be dropped and the car could go unheard even a few feet away.
+    scan->setAdvertisedDeviceCallbacks(&finder, true);
     scan->setActiveScan(true);
     scan->setInterval(100);
     scan->setWindow(99);
+    scanRound_ = 1;
+    heardAdverts = heardNamed = 0;
     scanFailed_ = !scan->start(kFindSeconds, nullptr, false);
 }
 
@@ -409,7 +417,16 @@ void TeslaCar::loop() {
             }
             return;
         }
-        if (now - startedAt_ > (kFindSeconds + 1) * 1000UL) {
+        if (now - scanStartedAt_ > (kFindSeconds + 1) * 1000UL) {
+            if (scanRound_ < kScanRounds) {   // one more look before giving up: a single scan can miss a car that is right there
+                LOG_WARN("Tesla: car not heard in %u s (radio heard %u adverts, %u with a name); looking once more.", (unsigned)kFindSeconds, (unsigned)heardAdverts, (unsigned)heardNamed);
+                scanRound_++;
+                BLEDevice::getScan()->stop();
+                scanFailed_ = !BLEDevice::getScan()->start(kFindSeconds, nullptr, false);
+                scanStartedAt_ = now;
+                return;
+            }
+            LOG_WARN("Tesla: car not heard after %u looks (last scan: %u adverts, %u with a name).", (unsigned)kScanRounds, (unsigned)heardAdverts, (unsigned)heardNamed);
             finish("The car was not heard. Move the controller closer to the car and try again.");
         }
         return;

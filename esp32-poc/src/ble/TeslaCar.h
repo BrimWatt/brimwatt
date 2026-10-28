@@ -79,6 +79,7 @@ public:
     bool selfTest(std::string& report);
 
     static constexpr uint32_t kFindSeconds = 20;
+    static constexpr int kScanRounds = 2;   // looks for the car before giving up
 
 private:
     enum class Stage { Idle, Finding, Running };
@@ -107,6 +108,8 @@ private:
     Result result_;
     Reading reading_;
     uint32_t startedAt_ = 0;
+    uint32_t scanStartedAt_ = 0;
+    int scanRound_ = 1;
     uint32_t lastActivity_ = 0;
     uint32_t lastProgress_ = 0;
     std::string rx_;
