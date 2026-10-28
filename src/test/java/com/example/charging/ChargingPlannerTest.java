@@ -283,4 +283,39 @@ class ChargingPlannerTest {
         for (int i = 0; i < 6; i++) last = tick(planner, 10).amps();
         assertTrue(last < 32, "should come down once readings stay low, was " + last);
     }
+
+    @Test
+    void countsDownTheStartConfirmationAndHasNoTimerWithoutSurplus() {
+        ChargingPlanner none = new ChargingPlanner(ChargingPolicy.eco());
+        now += 60_000;
+        assertEquals(-1, none.next(now, 0).waitSeconds(), "no surplus: nothing to count");
+        ChargingPlanner planner = new ChargingPlanner(ChargingPolicy.eco());
+        now += 60_000;
+        Decision first = planner.next(now, 15);
+        assertEquals(180, first.waitSeconds(), "the 3 minute confirmation has just begun");
+        now += 60_000;
+        assertEquals(120, planner.next(now, 15).waitSeconds());
+    }
+
+    @Test
+    void countsDownThePauseAfterAStopAndTheDipBeforeIt() {
+        ChargingPlanner planner = new ChargingPlanner(ChargingPolicy.eco());
+        for (int i = 0; i < 6; i++) { now += 60_000; planner.next(now, 15); }   // charging
+        int previous = -1;
+        Decision stop = null;
+        for (int i = 0; i < 12 && stop == null; i++) {
+            now += 60_000;
+            Decision d = planner.next(now, 1);
+            if (d.amps() == 0) { stop = d; break; }
+            if (d.reason().startsWith("dip")) {
+                if (previous > 0) assertEquals(previous - 60, d.waitSeconds(), "the stop timer runs down a minute per reading");
+                else assertEquals(300, d.waitSeconds(), "the 5 minute dip has just begun");
+                previous = d.waitSeconds();
+            }
+        }
+        assertNotNull(stop, "it stops in the end");
+        now += 60_000;
+        Decision after = planner.next(now, 0.5);
+        assertEquals(60, after.waitSeconds(), "one minute of the 2 minute pause is left");
+    }
 }

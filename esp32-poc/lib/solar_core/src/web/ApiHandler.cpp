@@ -713,6 +713,13 @@ HttpResponse ApiHandler::telemetry() {
     ctl["reason"] = control ? control->reason : std::string("waiting for first reading");
     ctl["readingAgeSeconds"] =
         control ? static_cast<int64_t>((platform_.nowMillis() - control->readingAtMillis) / 1000) : int64_t(-1);
+    // Seconds until the controller may start or stop on its own, counted from the latest reading (-1: no timer running).
+    int64_t waitLeft = -1;
+    if (control && control->waitSeconds >= 0) {
+        const int64_t age = static_cast<int64_t>((platform_.nowMillis() - control->readingAtMillis) / 1000);
+        waitLeft = std::max<int64_t>(0, control->waitSeconds - age);
+    }
+    ctl["waitSeconds"] = waitLeft;
     // ECO and MAX_SOLAR both use the allowance; Custom (FAST) ignores it.
     ctl["gridAllowanceWatts"] = state.mode() != ChargingMode::Fast ? state.gridAllowanceWatts() : 0;
     ctl["failSafe"] = state.failSafe();

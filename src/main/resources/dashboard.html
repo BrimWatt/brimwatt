@@ -73,7 +73,7 @@
         /* headline */
         .hero { display: flex; align-items: center; gap: 12px; }
         .hero .badge { width: 46px; height: 46px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: var(--soft); }
-        .hero.good .badge { background: var(--ok-bg); } .hero.warn .badge { background: var(--warn-bg); } .hero.bad .badge { background: var(--bad-bg); }
+        .hero.good .badge { background: var(--ok-bg); } .hero.warn .badge { background: var(--warn-bg); } .hero.bad .badge { background: var(--bad-bg); } .hero.wait .badge { background: var(--info-bg); }
         .hero .txt { flex: 1; min-width: 0; }
         .hero .title { font-size: 1.1rem; font-weight: 700; line-height: 1.25; }
         .hero .sub { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
@@ -671,6 +671,45 @@ function whyText(data) {
     return fmtReason(k.reason);
 }
 
+/** "about 2 min" for a countdown in seconds; '' when there is no countdown (missing or -1). */
+function fmtWait(sec) {
+    if (typeof sec !== 'number' || !(sec >= 0)) return '';
+    return sec < 60 ? 'under a minute' : 'about ' + Math.round(sec / 60) + ' min';
+}
+function kwText(watts) { return (Math.max(0, watts) / 1000).toFixed(1) + ' kW'; }
+/**
+ * The headline for a car that is not charging only because the controller is waiting (Eco and Max solar), or for a charge
+ * riding out a dip: the reason in the title, then the numbers and a countdown. null = nothing to say here, the usual headline applies.
+ */
+function waitView(data) {
+    const c = data.charger, k = data.controller, p = data.power;
+    if (data.paused || data.currentMode === 'FAST' || !k || k.failSafe || !k.hasReading) return null;
+    if (['NONE', 'FAULTED', 'AVAILABLE', 'SUSPENDED_EV', 'SUSPENDED_EVSE', 'FINISHING'].includes(c.status)) return null;
+    const charging = c.status === 'CHARGING' && c.amps > 0;
+    const eco = data.currentMode === 'ECO', volts = p.voltage || 240, allow = k.gridAllowanceWatts || 0;
+    const solar = kwText(p.solarWatts), wait = fmtWait(k.waitSeconds);
+    const homeLine = eco ? 'Home is using ' + kwText(p.homeWatts) + ' of your ' + solar + ' solar.' : 'Solar is ' + solar + '.';
+    if (charging) {
+        if (!String(k.reason).startsWith('dip')) return null;
+        return { cls: 'warn', icon: '🔋', title: 'Low solar, charging at ' + Math.round(c.limitAmps || c.amps) + ' A',
+                 sub: homeLine + (wait ? ' Stops in ' + wait + ' if it stays low.' : ' Stops soon if it stays low.') };
+    }
+    if (!data.daylight.open) return { cls: 'wait', icon: '🌙', title: 'Waiting for sunrise', sub: 'Solar charging starts after sunrise.' };
+    const reason = String(k.reason);
+    const startW = (eco ? 7 : 6) * volts, minW = 6 * volts, needW = Math.max(0, startW - allow);
+    if (reason.startsWith('surplus present'))
+        return { cls: 'wait', icon: '⏳', title: 'Starting soon', sub: 'Enough solar. ' + (wait ? 'Starts in ' + wait + ' if it holds.' : 'Starts shortly if it holds.') };
+    if (reason === 'waiting for surplus' || reason.startsWith('stop:')) {
+        const spare = eco ? p.solarWatts - p.homeWatts + allow : p.solarWatts + allow;
+        if (spare >= startW) return { cls: 'wait', icon: '⏳', title: 'Starting soon', sub: 'Enough solar. ' + (wait ? 'Starts in ' + wait + ' if it holds.' : 'Checking it lasts.') };
+        const restart = wait ? ' Restart possible in ' + wait + '.' : '';
+        if (eco && p.solarWatts + allow >= minW)
+            return { cls: 'wait', icon: '⏳', title: wait ? 'Waiting to restart' : 'Waiting: home is using the solar', sub: homeLine + ' Needs ' + kwText(needW) + ' spare to start.' + restart };
+        return { cls: 'wait', icon: '☁️', title: 'Waiting for more solar', sub: 'Solar is ' + solar + '. Needs about ' + kwText(needW) + ' to start.' + restart };
+    }
+    return null;
+}
+
 // ---- actions ----
 const MODE_NAME = { ECO: 'Eco', MAX_SOLAR: 'Max solar', FAST: 'Custom' };
 const MODE_HELP = { ECO: 'Charges with spare solar.', MAX_SOLAR: 'Follows the sun, ignores the house.', FAST: 'Your speed, sun or not.' };
@@ -1182,6 +1221,7 @@ function renderHeadline(data) {
     if (data.paused) h = { cls: 'warn', icon: '⏸️', title: 'Charging is paused', sub: 'Resume to go back to ' + mode + '.' };
     else if (c.status === 'NONE') h = { cls: 'warn', icon: '🔌', title: 'Charger is offline', sub: 'Waiting for the charger to connect.' };
     else if (c.status === 'FAULTED') h = { cls: 'bad', icon: '⚠️', title: 'Charger has a fault', sub: 'Check the charger.' };
+    else if ((h = waitView(data)) !== null) { /* waiting for solar, or a dip: the reason is in the title */ }
     else if (c.status === 'CHARGING' && c.amps > 0) {
         const carW = p.chargerWatts, sun = Math.min(carW, Math.max(0, p.solarWatts - p.homeWatts)), grid = Math.max(0, carW - sun);
         // This charger may not report its real current; then the number is the limit it was set to, so say "up to".

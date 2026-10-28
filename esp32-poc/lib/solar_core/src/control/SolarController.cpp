@@ -447,7 +447,7 @@ void SolarController::control(uint64_t now, ChargingMode mode, const MeterReadin
              toString(mode), solarWatts, netGridWatts, drawAmps,
              wallbox_.drawIsMeasured() ? "measured" : "assumed from limit", allowanceWatts, availableAmps,
              decision.smoothedAmps, decision.amps, decision.reason.c_str());
-    state_.setControl({availableAmps, decision.smoothedAmps, decision.amps, decision.reason, netGridWatts, now});
+    state_.setControl({availableAmps, decision.smoothedAmps, decision.amps, decision.reason, netGridWatts, now, decision.waitSeconds});
     wallbox_.setCommandContext(reasonForLimit(decision.amps, wallbox_.currentLimitAmps(), solarWatts, homeWatts, mode));
     wallbox_.sendChargingLimit(decision.amps);
     wallbox_.setCommandContext("");

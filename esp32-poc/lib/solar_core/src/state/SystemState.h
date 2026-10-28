@@ -19,6 +19,7 @@ public:
         std::string reason;
         double gridWatts;
         uint64_t readingAtMillis;
+        int waitSeconds = -1;   // see ChargingPlanner::Decision; -1 = no timer (Custom, paused, departure goal)
     };
 
     ChargingMode mode() const { return mode_; }

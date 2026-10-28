@@ -163,8 +163,10 @@ S.append(table(["You see", "It means", "What to do"], [
     ["Paused by you", "You pressed Pause. Nothing will start.", "Tap Resume when you want charging back."],
     ["No car plugged in", "Charging starts by itself once one is plugged in.", "Plug in the car."],
     ["Outside solar hours", "It is too early or too late in the day for Eco or Max solar.", "Wait for the morning, or use Custom to charge now."],
-    ["Home is using the solar", "The sun is out, but the house is using it.", "Nothing; it starts when there is spare power. Or try Max solar."],
-    ["Not enough solar yet", "Panels are not making enough for the minimum charge.", "Wait for brighter sun, or raise the grid allowance."],
+    ["Waiting: home is using the solar", "The solar is on, but the house is using it. The line under it shows the numbers and when it can start.", "Nothing; it starts when there is spare power. Or try Max solar."],
+    ["Waiting for more solar", "Panels are not making enough for the minimum charge.", "Wait for brighter sun, or raise the grid allowance."],
+    ["Starting soon / Waiting to restart", "There is enough solar and it is making sure it lasts, or it has just stopped and must pause for 2 minutes.", "Nothing; the countdown shows how long."],
+    ["Low solar, charging at 6 A", "A cloud or a big load: it keeps going on the minimum for a few minutes before stopping.", "Nothing; it stops by itself if the dip lasts."],
     ["Lost contact with the solar meter: charging stopped", "The controller cannot read your solar gateway.", "Check the gateway is on and on the same Wi-Fi."],
     ["Charger is offline", "The controller cannot reach the charger.", "Check the charger is powered and on the network."],
 ], [1.9 * inch, 2.5 * inch, 2.4 * inch]))
