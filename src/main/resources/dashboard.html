@@ -192,6 +192,31 @@
         .check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 0.9rem; border-bottom: 1px solid #eef1f4; }
         .check input { width: 20px; height: 20px; flex: none; }
 
+        /* settings page: switches, section cards, and a jump bar that stays at the top while the page scrolls */
+        .check { justify-content: space-between; flex-direction: row-reverse; }
+        .check > span { flex: 1 1 auto; min-width: 0; }
+        .check input[type=checkbox] { -webkit-appearance: none; appearance: none; width: 44px; height: 26px; margin: 0; border-radius: 13px; background: #cbd5e1; position: relative; flex: none; cursor: pointer; transition: background 0.15s; }
+        .check input[type=checkbox]::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); transition: transform 0.15s; }
+        .check input[type=checkbox]:checked { background: var(--blue, #2a78d6); }
+        .check input[type=checkbox]:checked::after { transform: translateX(18px); }
+        .check input[type=checkbox]:focus-visible { outline: 2px solid var(--blue, #2a78d6); outline-offset: 2px; }
+        .check input[type=checkbox]:disabled { opacity: 0.5; cursor: default; }
+        @media (prefers-reduced-motion: reduce) { .check input[type=checkbox], .check input[type=checkbox]::after { transition: none; } }
+        .sc { background: #f8fafc; border-radius: 12px; padding: 8px 12px 4px; margin: 0 0 10px; scroll-margin-top: 108px; }
+        .sc > h4 { margin: 0 0 2px; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+        .sc > .field:last-child, .sc > .check:last-child, .subbox > .field:last-child { border-bottom: 0; }
+        .sc > .hint { margin: 2px 0 6px; }
+        .sc > details.more { margin-top: 0; }
+        .subbox { margin: 2px 0 6px 4px; padding-left: 10px; border-left: 2px solid #bfdbfe; }
+        .subbox[hidden] { display: none; }
+        #settings-title:focus { outline: none; }
+        .sethead { position: sticky; top: -16px; z-index: 2; margin: -16px -18px 10px; padding: 16px 18px 8px; background: var(--card); border-bottom: 1px solid #eef1f4; }
+        #set-nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+        #set-nav::-webkit-scrollbar { display: none; }
+        .setchip { flex: none; min-height: 36px; padding: 0 9px; border-radius: 999px; background: #fff; color: var(--ink); border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 600; }
+        .setchip.on { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+        @media (min-width: 900px) { #settingsbox .card { max-width: 780px; } #setbody { columns: 2; column-gap: 14px; } .sc { break-inside: avoid; } }
+
         /* pull to refresh: the WattSync logo slides down and grows as you pull while its sync arrows turn; the bolt pops when you can let go;
            after you let go the arrows spin around the bolt while the page reloads */
         #ptr { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 6px); z-index: 30; width: 64px; height: 64px; margin-left: -32px; border-radius: 50%;
@@ -320,35 +345,44 @@
 <div id="ptr" aria-hidden="true"><svg viewBox="0 0 64 64"><defs><linearGradient id="wgp" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#0d9488"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#wgp)"/><g class="arrows"><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M14.15 25.5A19 19 0 0 1 46.55 19.79"/><path d="M49.85 38.5A19 19 0 0 1 17.45 44.2"/></g><g fill="#fff"><path d="M49.8 23.6L50 16.9L43.1 22.7Z"/><path d="M14.2 40.4L20.9 41.3L14 47.1Z"/></g></g><path class="bolt" d="M36 18L25 34H32L29 47L40 30H33Z" fill="#fde047"/></svg></div>
 <div id="toasts" aria-live="polite"></div>
 <div id="tipbox" role="dialog" aria-modal="true" aria-labelledby="tip-title" hidden><div class="card"><h3 id="tip-title"></h3><div id="tip-text"></div><button type="button" class="gotit" id="tip-close">Got it</button></div></div>
-<div id="settingsbox" class="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden><div class="card"><h3 id="settings-title">Settings</h3>
+<div id="settingsbox" class="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden><div class="card">
+<div class="sethead"><h3 id="settings-title" tabindex="-1">Settings</h3>
+<nav id="set-nav" aria-label="Settings sections"><button type="button" class="setchip on" data-go="sec-charging">Charging</button><button type="button" class="setchip" data-go="sec-money">Money</button><button type="button" class="setchip" data-go="sec-messages">Messages</button><button type="button" class="setchip" data-go="sec-tesla">Tesla</button><button type="button" class="setchip" data-go="sec-more">More</button></nav></div>
+<div id="setbody">
+<section class="sc" id="sec-charging"><h4>Solar hours</h4>
             <label class="check" id="daylight-panel" title="Pause meter reads and charging outside these hours">
                 <input type="checkbox" id="daylight-toggle" onchange="setDaylight(this)">
                 <span>Solar hours only (<span id="daylight-window-text">–</span>)<button type="button" class="info" data-tip="hours" aria-label="What are solar hours?">i</button></span>
             </label>
             <div class="field"><label for="dl-start">Start (minutes after sunrise)</label><span class="edit"><input type="number" id="dl-start" inputmode="numeric" min="0" max="180" step="5" value="30"><button id="dl-save-start" class="savebtn" hidden aria-label="Save solar hours" title="Save" onclick="sendMargins()">✓</button></span></div>
             <div class="field"><label for="dl-end">Stop (minutes before sunset)</label><span class="edit"><input type="number" id="dl-end" inputmode="numeric" min="0" max="180" step="5" value="60"><button id="dl-save-end" class="savebtn" hidden aria-label="Save solar hours" title="Save" onclick="sendMargins()">✓</button></span></div>
-<details class="more opt"><summary>Charge by morning<span class="hint">optional</span></summary>
-            <div class="field"><span><label for="goal-kwh" id="goal-label">Charge by morning (kWh, 0 = off)</label><button type="button" class="info" data-tip="goal" aria-label="What is the departure goal?">i</button></span><span class="edit"><input type="number" id="goal-kwh" inputmode="numeric" min="0" max="100" step="1" value="0" aria-label="Energy to have by the deadline"><button id="goal-save-kwh" class="savebtn" hidden aria-label="Save charging goal" title="Save" onclick="sendGoal()">✓</button></span></div>
+</section>
+<section class="sc" id="sec-ready"><h4>Ready by</h4>
+            <label class="check"><input type="checkbox" id="goal-toggle" onchange="goalSwitch(this)"><span>Have the car ready at a set time<button type="button" class="info" data-tip="goal" aria-label="What does ready by do?">i</button></span></label>
+            <p class="hint">Charges from the grid if the sun is not enough.</p>
+            <div class="subbox" id="goal-fields" hidden>
+            <div class="field"><span><label for="goal-kwh" id="goal-label">Energy to have (kWh)</label></span><span class="edit"><input type="number" id="goal-kwh" inputmode="numeric" min="0" max="100" step="1" value="0" aria-label="Energy to have by the deadline"><button id="goal-save-kwh" class="savebtn" hidden aria-label="Save charging goal" title="Save" onclick="sendGoal()">✓</button></span></div>
             <div class="field sub" id="goal-hint-row" hidden><small class="hint" id="goal-hint"></small></div>
             <div class="field"><label for="goal-time">Ready by</label><span class="edit"><input type="time" id="goal-time" value="07:00"><button id="goal-save-time" class="savebtn" hidden aria-label="Save charging goal" title="Save" onclick="sendGoal()">✓</button></span></div>
-</details>
-<details class="more opt"><summary>Prices<span class="hint">optional</span></summary>
-            <div class="field"><span><label for="rate-input">Price per kWh (cents)</label><button type="button" class="info" data-tip="price" aria-label="What is the electricity price for?">i</button></span><span class="edit"><input type="number" id="rate-input" inputmode="numeric" min="0" max="200" step="1" value="30"><button id="rate-save" class="savebtn" hidden aria-label="Save price" title="Save" onclick="sendRate()">✓</button></span></div>
-            <div class="field"><span><label for="peak-cents">Peak price (cents, 0 = none)</label><button type="button" class="info" data-tip="peak" aria-label="What is the peak price?">i</button></span><span class="edit"><input type="number" id="peak-cents" inputmode="numeric" min="0" max="200" step="1" value="0"><button id="peak-save-cents" class="savebtn" hidden aria-label="Save peak price" title="Save" onclick="sendPeak()">✓</button></span></div>
-            <div class="field peakhours"><label for="peak-start">Peak hours (24 h clock)</label><span class="edit"><input type="number" id="peak-start" inputmode="numeric" min="0" max="23" step="1" value="16" aria-label="Peak starts at hour"><button id="peak-save-start" class="savebtn" hidden aria-label="Save peak hours" title="Save" onclick="sendPeak()">✓</button></span><span class="edit"><input type="number" id="peak-end" inputmode="numeric" min="1" max="24" step="1" value="21" aria-label="Peak ends at hour"><button id="peak-save-end" class="savebtn" hidden aria-label="Save peak hours" title="Save" onclick="sendPeak()">✓</button></span></div>
-</details>
-<details class="more opt"><summary>Limits<span class="hint">optional</span></summary>
+            </div>
+</section>
+<section class="sc" id="sec-limits"><h4>Limits</h4>
             <div class="field"><span><label for="maxamps-input">Maximum current (A)</label><button type="button" class="info" data-tip="maxamps" aria-label="What is the maximum current?">i</button></span><span class="edit"><input type="number" id="maxamps-input" inputmode="numeric" min="6" max="40" step="1" value="40"><button id="maxamps-save" class="savebtn" hidden aria-label="Save maximum current" title="Save" onclick="sendMaxAmps()">✓</button></span></div>
-</details>
-<details class="more opt"><summary>Units<span class="hint">optional</span></summary>
-            <div class="field"><span><label for="unit-select">Show energy as</label><button type="button" class="info" data-tip="units" aria-label="What does show energy as do?">i</button></span><span class="edit"><select id="unit-select"><option value="kwh">kWh</option><option value="miles">Miles</option></select></span></div>
-            <div class="field"><label for="mpk-input">Miles per kWh</label><span class="edit"><input type="number" id="mpk-input" inputmode="decimal" min="1" max="6" step="0.1" value="3"></span></div>
-</details>
-<details class="more opt"><summary>Messages<span class="hint">optional</span></summary>
+</section>
+<section class="sc" id="sec-money"><h4>Money</h4>
+            <div class="field"><span><label for="rate-input">Price per kWh (cents)</label><button type="button" class="info" data-tip="price" aria-label="What is the electricity price for?">i</button></span><span class="edit"><input type="number" id="rate-input" inputmode="numeric" min="0" max="200" step="1" value="30"><button id="rate-save" class="savebtn" hidden aria-label="Save price" title="Save" onclick="sendRate()">✓</button></span></div>
+            <label class="check"><input type="checkbox" id="peak-toggle" onchange="peakSwitch(this)"><span>Higher price at certain hours<button type="button" class="info" data-tip="peak" aria-label="What is the peak price?">i</button></span></label>
+            <div class="subbox" id="peak-fields" hidden>
+            <div class="field"><span><label for="peak-cents">Peak price (cents)</label></span><span class="edit"><input type="number" id="peak-cents" inputmode="numeric" min="0" max="200" step="1" value="0"><button id="peak-save-cents" class="savebtn" hidden aria-label="Save peak price" title="Save" onclick="sendPeak()">✓</button></span></div>
+            <div class="field peakhours"><label for="peak-start">Peak hours (24 h clock)</label><span class="edit"><input type="number" id="peak-start" inputmode="numeric" min="0" max="23" step="1" value="16" aria-label="Peak starts at hour"><button id="peak-save-start" class="savebtn" hidden aria-label="Save peak hours" title="Save" onclick="sendPeak()">✓</button></span><span class="edit"><input type="number" id="peak-end" inputmode="numeric" min="1" max="24" step="1" value="21" aria-label="Peak ends at hour"><button id="peak-save-end" class="savebtn" hidden aria-label="Save peak hours" title="Save" onclick="sendPeak()">✓</button></span></div>
+            </div>
+</section>
+<section class="sc" id="sec-messages"><h4>Messages</h4>
+            <p class="hint">Sends a short message to a web address when charging ends or something needs attention.</p>
             <div class="field"><span><label for="notify-url">Messages to (web address)</label><button type="button" class="info" data-tip="notify" aria-label="What are messages for?">i</button></span><span class="edit"><input type="url" id="notify-url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="not set" maxlength="200" aria-label="Web address to send messages to"><button id="notify-save" class="savebtn" hidden aria-label="Save message address" title="Save" onclick="sendNotify()">✓</button></span></div>
             <div class="field"><label for="notify-test">Send a test message</label><button type="button" id="notify-test" class="smallbtn" onclick="testNotify()">Send test</button></div>
-</details>
-<details class="more opt" id="car-group"><summary>Tesla<span class="hint">optional</span></summary>
+</section>
+<section class="sc" id="sec-tesla"><h4>Tesla</h4>
             <p class="hint" id="car-unsupported" hidden>Car control needs the ESP32 board.</p>
             <div id="car-mode" hidden>
                 <label class="check"><input type="checkbox" id="car-mode-sw" onchange="carMode(this)"><span>Tesla mode<button type="button" class="info" data-tip="carmode" aria-label="What is Tesla mode?">i</button></span></label>
@@ -383,13 +417,19 @@
                 </div>
             </div>
             <p class="hint" id="car-result"></p>
-</details>
+</section>
+<section class="sc" id="sec-more"><h4>Display</h4>
+            <div class="field"><span><label for="unit-select">Show energy as</label><button type="button" class="info" data-tip="units" aria-label="What does show energy as do?">i</button></span><span class="edit"><select id="unit-select"><option value="kwh">kWh</option><option value="miles">Miles</option></select></span></div>
+            <div class="field"><label for="mpk-input">Miles per kWh</label><span class="edit"><input type="number" id="mpk-input" inputmode="decimal" min="1" max="6" step="0.1" value="3"></span></div>
 <details class="more" id="diag"><summary>Diagnostics</summary><dl class="rows" id="diag-rows"><div class="row"><dt>Loading…</dt><dd></dd></div></dl></details>
+</section>
+</div>
 <button type="button" class="gotit" id="settings-close">Done</button></div></div>
 
 <script>
 const el = id => document.getElementById(id);
 let currentSystemMode = 'ECO';
+let goalPending = false, peakPending = false;   // a switch turned on whose numbers are not saved yet
 let notifyEdited = false, goalEdited = false, peakEdited = false, ampsEdited = false, allowanceEdited = false, rateEdited = false, marginsEdited = false, maxAmpsEdited = false;
 let failedPolls = 0, wasOffline = false, busy = false;
 let lastData = null, hist = null;
@@ -410,9 +450,9 @@ const TIPS = {
     carwake: ['Waking the car', ['A car that has been idle for a while goes to sleep and then cannot be told to start or change its charging. With this switched on, WattSync wakes it, but only when charging is wanted and the car was last seen plugged in.', 'A wake keeps the car awake for about 10 to 15 minutes and uses a little battery. WattSync wakes it at most once every 30 minutes. It is off unless you switch it on.']],
     carvin: ['Car VIN', ['The VIN is the 17-character number on the sticker inside the driver door, at the lower corner of the windshield, and in the Tesla app under Software.', 'It is kept on the controller only, shown with the middle hidden, and never sent anywhere. You can remove the car and the key at any time: Forget car here, and Controls > Locks in the car.']],
     notify: ['Messages', ['WattSync can post a short message to a web address when charging ends, the solar meter is lost, or the charger disconnects. Paste a webhook address from Slack, Discord, Home Assistant, IFTTT or Zapier.', 'The address is kept on the controller and never shown back in full. Clear the box and save to turn messages off.']],
-    goal: ['Charge by morning', ['Say how much energy you want and by when, for example 20 kWh by 7:00 am. Until time gets short, charging works as normal, from the sun.', 'When the time left is only just enough, WattSync charges at the lowest speed that still gets there, using the grid if needed, even at night.', 'Only while a car is plugged in, never while paused or in Custom mode. Set 0 to turn it off.']],
+    goal: ['Ready by', ['Say how much energy you want and by when, for example 20 kWh by 7:00 am or by 5:30 pm. Until time gets short, charging works as normal, from the sun.', 'When the time left is only just enough, WattSync charges at the lowest speed that still gets there, using the grid if needed, even at night.', 'Only while a car is plugged in, never while paused or in Custom mode. Turn the switch off to stop.']],
     maxamps: ['Maximum current', ['The most current the charger is ever asked for, in any mode. Set it to what your wiring and breaker can safely carry for charging, for example 16 A on a small circuit.', 'Eco and Max solar also stop at 32 A. The Custom slider cannot go above this number.']],
-    peak: ['Peak price', ['If your power company charges more at certain hours, set that price and those hours here. Money saved then counts the sun at the price of the hour it was used.', 'Leave the price at 0 to use one price all day. The hours use a 24 hour clock, for example 16 to 21 is 4 pm to 9 pm.']],
+    peak: ['Peak price', ['If your power company charges more at certain hours, turn this on and set that price and those hours. Money saved then counts the sun at the price of the hour it was used.', 'Leave it off to use one price all day. The hours use a 24 hour clock, for example 16 to 21 is 4 pm to 9 pm.']],
     units: ['Show energy as', ['Choose kWh or miles for the energy that went into the car. Miles are an estimate: kWh times the miles per kWh you enter, shown with a ~.', 'Use the miles per kWh your car really gets, counted from the wall (it is a little less than the car\'s own figure because charging loses some). 3 is a common starting point.', 'This changes only what you see on this phone. Savings stay in dollars, and the charger, the goal and the export file still use kWh.']],
     price: ['Electricity price', ['What you pay the power company for each kWh, in cents. It is only used to work out how much you saved.']]
 };
@@ -461,7 +501,11 @@ async function loadDiagnostics() {
 }
 el('diag').addEventListener('toggle', () => { if (el('diag').open) loadDiagnostics(); });
 setInterval(() => { if (!el('settingsbox').hidden && el('diag').open) loadDiagnostics(); }, 5000);
-function openSettings() { el('settingsbox').hidden = false; el('settings-close').focus(); }
+function openSettings() {
+    el('settingsbox').hidden = false;
+    el('settingsbox').querySelector('.card').scrollTop = 0;   // always open at the top; focusing Done (at the bottom) would scroll the long page down
+    el('settings-title').focus({ preventScroll: true });
+}
 function closeSettings() { el('settingsbox').hidden = true; el('gear').focus(); }
 document.addEventListener('click', e => {
     const btn = e.target.closest('.info');
@@ -709,7 +753,7 @@ async function sendPeak() {
     const result = await post('/api/rate?peakCents=' + cents + '&peakStart=' + from + '&peakEnd=' + to);
     saves.forEach(b => b.disabled = false);
     if (result.ok) {
-        peakEdited = false; saves.forEach(b => b.hidden = true); document.activeElement.blur();
+        peakEdited = false; peakPending = cents > 0 ? false : peakPending; saves.forEach(b => b.hidden = true); document.activeElement.blur();
         if (lastData) { lastData.peakRateCents = cents; lastData.peakStartHour = from; lastData.peakEndHour = to; }
         toast(cents === 0 ? 'One price all day' : 'Peak ' + cents + '¢, ' + from + ':00 to ' + to + ':00', 'ok'); refresh(); refreshHistory();
     } else toast("Couldn't save", 'err', result.text);
@@ -953,6 +997,41 @@ async function testNotify() {
     b.disabled = false;
     toast(result.ok ? 'Test message sent' : "Couldn't send", result.ok ? 'ok' : 'err', result.ok ? undefined : result.text);
 }
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) { /* not saved */ } }
+/** Ready by switch. On: show the boxes with the last goal (or 10 kWh) and wait for the check mark. Off: clear the goal now. */
+async function goalSwitch(cb) {
+    if (cb.checked) {
+        goalPending = true; goalEdited = true;
+        el('goal-fields').hidden = false;
+        el('goal-kwh').value = goalToBox(Number(lsGet('goalLast')) || 10);
+        el('goal-save-kwh').hidden = false; el('goal-save-time').hidden = false;
+        showGoalHint();
+        return;
+    }
+    goalPending = false; goalEdited = false;
+    const g = lastData && lastData.goal;
+    if (!g || g.kwh === 0) { el('goal-fields').hidden = true; el('goal-save-kwh').hidden = true; el('goal-save-time').hidden = true; return; }
+    const result = await post('/api/goal?kwh=0&byMinutes=' + g.byMinutes);
+    if (result.ok) { toast('Ready by is off', 'ok'); } else { cb.checked = true; toast("Couldn't save", 'err', result.text); }
+    refresh();
+}
+/** Peak price switch. On: show the boxes with the last peak price (or 1.5 times the price) and wait for the check mark. Off: one price all day. */
+async function peakSwitch(cb) {
+    if (cb.checked) {
+        peakPending = true; peakEdited = true;
+        el('peak-fields').hidden = false;
+        el('peak-cents').value = Number(lsGet('peakLast')) || Math.max(1, Math.round((Number(el('rate-input').value) || 30) * 1.5));
+        el('peak-save-cents').hidden = false;
+        return;
+    }
+    peakPending = false; peakEdited = false;
+    const d = lastData || {};
+    if (!(d.peakRateCents > 0)) { el('peak-fields').hidden = true; ['peak-save-cents', 'peak-save-start', 'peak-save-end'].forEach(i => { el(i).hidden = true; }); return; }
+    const result = await post('/api/rate?peakCents=0&peakStart=' + d.peakStartHour + '&peakEnd=' + d.peakEndHour);
+    if (result.ok) { toast('One price all day', 'ok'); } else { cb.checked = true; toast("Couldn't save", 'err', result.text); }
+    refresh(); refreshHistory();
+}
 async function sendGoal() {
     const kwhInput = el('goal-kwh'), timeInput = el('goal-time'), typed = Number(kwhInput.value.trim()), n = goalFromBox(typed);
     const t = /^(\d\d):(\d\d)$/.exec(timeInput.value);
@@ -961,7 +1040,7 @@ async function sendGoal() {
     const minutes = Number(t[1]) * 60 + Number(t[2]);
     const result = await post('/api/goal?kwh=' + n + '&byMinutes=' + minutes);
     if (result.ok) {
-        goalEdited = false; el('goal-save-kwh').hidden = true; el('goal-save-time').hidden = true;
+        goalEdited = false; goalPending = false; el('goal-save-kwh').hidden = true; el('goal-save-time').hidden = true;
         kwhInput.blur(); timeInput.blur();
         toast(n === 0 ? 'Goal off' : goalText(n) + (unitMiles ? ' range' : '') + ' by ' + fmtClock(t[1] + ':' + t[2]), 'ok'); refresh();
     } else toast("Couldn't save", 'err', result.text);
@@ -1528,12 +1607,20 @@ async function refresh() {
         if (!peakEdited && !['peak-cents', 'peak-start', 'peak-end'].includes(document.activeElement.id) && data.peakRateCents !== undefined) {
             el('peak-cents').value = data.peakRateCents; el('peak-start').value = data.peakStartHour; el('peak-end').value = data.peakEndHour;
         }
+        if (data.peakRateCents !== undefined) {
+            if (data.peakRateCents > 0) { peakPending = false; lsSet('peakLast', data.peakRateCents); }
+            const on = data.peakRateCents > 0 || peakPending;
+            el('peak-toggle').checked = on; el('peak-fields').hidden = !on;
+        }
         if (data.notifyTo !== undefined) {
             const ni = el('notify-url');
             ni.placeholder = data.notifyTo ? 'set: ' + data.notifyTo : 'not set';
             el('notify-test').disabled = !data.notifyTo;
         }
         if (data.goal) {
+            if (data.goal.kwh > 0) { goalPending = false; lsSet('goalLast', data.goal.kwh); }
+            const on = data.goal.kwh > 0 || goalPending;
+            el('goal-toggle').checked = on; el('goal-fields').hidden = !on;
             if (!goalEdited && document.activeElement !== el('goal-kwh') && document.activeElement !== el('goal-time')) {
                 el('goal-kwh').value = goalToBox(data.goal.kwh); el('goal-time').value = minutesToTime(data.goal.byMinutes);
                 showGoalHint();
@@ -1594,7 +1681,7 @@ function applyUnits() {
     el('unit-select').value = unitMiles ? 'miles' : 'kwh';
     el('mpk-input').value = milesPerKwh;
     el('mpk-input').closest('.field').style.display = unitMiles ? 'flex' : 'none';
-    el('goal-label').textContent = unitMiles ? 'Range by morning (miles, 0 = off)' : 'Charge by morning (kWh, 0 = off)';
+    el('goal-label').textContent = unitMiles ? 'Range to have (miles)' : 'Energy to have (kWh)';
     el('st-car-label').textContent = unitMiles ? 'Range today' : 'Car today';
     const g = lastData && lastData.goal;
     // A half-typed goal means something else in the other unit, so drop it and show the saved goal again.
@@ -1611,6 +1698,20 @@ el('mpk-input').addEventListener('change', () => {
     if (el('mpk-input').value.trim() === '' || !(m >= 1 && m <= 6)) { toast('Enter 1 to 6 miles per kWh', 'err'); el('mpk-input').value = milesPerKwh; return; }
     milesPerKwh = Math.round(m * 10) / 10; saveUnits(); applyUnits();
 });
+// the jump bar: tap a name to scroll to its section; the name of the section in view is highlighted
+(function () {
+    const card = el('settingsbox').querySelector('.card'), chips = [...document.querySelectorAll('#set-nav .setchip')];
+    const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    chips.forEach(c => c.addEventListener('click', () => { const t = el(c.dataset.go); if (t) t.scrollIntoView({ block: 'start', behavior: calm ? 'auto' : 'smooth' }); }));
+    function mark() {
+        let cur = chips[0];
+        const top = card.getBoundingClientRect().top + 120;
+        for (const c of chips) { const t = el(c.dataset.go); if (t && t.getBoundingClientRect().top <= top) cur = c; }
+        if (card.scrollTop + card.clientHeight >= card.scrollHeight - 4) cur = chips[chips.length - 1];
+        chips.forEach(c => c.classList.toggle('on', c === cur));
+    }
+    card.addEventListener('scroll', mark, { passive: true });
+})();
 applyUnits();
 ['goal-kwh', 'goal-time'].forEach(id => {
     el(id).addEventListener('input', () => {

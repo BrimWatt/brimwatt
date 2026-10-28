@@ -228,7 +228,7 @@ NOTES = {
         ("#diag", "Diagnostics", "A short health list: uptime, restarts, memory and Wi-Fi signal."),
     ],
     "settings-goal": [
-        ("#goal-kwh@.field", "How much", "The energy you want by morning. 0 turns the goal off."),
+        ("#goal-kwh@.field", "How much", "The energy you want by then. Turn the switch off to stop."),
         ("#goal-time@.field", "By when", "The time you need the car ready."),
         ("#unit-select@.field", "Units", "Show energy as kWh or as estimated miles."),
     ],
@@ -344,7 +344,7 @@ NOTES = {
         ("#diag", "Diagnostics", "A short health list: uptime, restarts, memory and Wi-Fi signal."),
     ],
     "settings-goal": [
-        ("#goal-kwh@.field", "How much", "The energy you want by morning. 0 turns the goal off."),
+        ("#goal-kwh@.field", "How much", "The energy you want by then. Turn the switch off to stop."),
         ("#goal-time@.field", "By when", "The time you need the car ready."),
         ("#unit-select@.field", "Units", "Show energy as kWh or as estimated miles."),
     ],
