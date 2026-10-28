@@ -1,9 +1,11 @@
+#include <cstring>
 // Host tests for "Control through: Car": the commander that turns the planner's wish into Bluetooth jobs, its rules for a car that cannot
 // be reached, and the router that makes sure only one device is in command.
 #include "../support/TestSupport.h"
 
 #include "car/CarCommander.h"
 #include "car/ChargeRouter.h"
+#include "car/TeslaMode.h"
 #include "control/SolarController.h"
 #include "history/HistoryService.h"
 
@@ -646,6 +648,45 @@ public:
 };
 }  // namespace
 
+void test_tesla_mode_puts_a_paired_car_in_command_and_leaving_it_gives_the_charger_back() {
+    FakePlatform platform;
+    RecordingDevice wallbox;
+    FakeCar car;
+    CarCommander commander(platform, car);
+    ChargeRouter router(wallbox, commander, car);
+    MemoryCarSettings settings;
+    router.setSettings(&settings);
+    car.snap.paired = false;
+    router.enforceMode(true);                       // nothing paired yet: nothing to command
+    TEST_ASSERT_FALSE(router.throughCar());
+    car.snap.paired = true;                         // paired while Tesla mode is on: it takes command by itself
+    router.enforceMode(true);
+    TEST_ASSERT_TRUE(router.throughCar());
+    TEST_ASSERT_TRUE(settings.through);
+    router.enforceMode(true);                       // calling it again changes nothing
+    TEST_ASSERT_TRUE(router.throughCar());
+    router.enforceMode(false);                      // Tesla mode off: the charger is back, also after a restart that restored the car
+    TEST_ASSERT_FALSE(router.throughCar());
+    TEST_ASSERT_FALSE(settings.through);
+    ChargeRouter second(wallbox, commander, car);
+    second.setSettings(&settings);
+    settings.through = true;
+    second.restore();
+    TEST_ASSERT_TRUE(second.throughCar());
+    second.enforceMode(false);
+    TEST_ASSERT_FALSE(second.throughCar());
+}
+
+void test_the_hotspot_password_is_ten_easy_characters_and_not_always_the_same() {
+    uint32_t n = 0;
+    std::string a = generateHotspotPassword([&] { return n += 7919; });
+    std::string b = generateHotspotPassword([&] { return n += 104729; });
+    TEST_ASSERT_EQUAL(10, (int)a.size());
+    TEST_ASSERT_EQUAL(10, (int)b.size());
+    TEST_ASSERT_TRUE(a != b);
+    for (char c : a + b) TEST_ASSERT_TRUE(std::strchr("abcdefghjkmnpqrstuvwxyz23456789", c) != nullptr);
+}
+
 void test_the_router_sends_everything_to_the_wallbox_until_the_car_is_chosen() {
     FakePlatform platform;
     RecordingDevice wallbox;
@@ -813,6 +854,8 @@ int main() {
     RUN_TEST(test_a_car_that_is_asleep_is_not_an_outage);
     RUN_TEST(test_nothing_happens_while_the_car_is_not_in_command);
     RUN_TEST(test_an_unpaired_car_is_not_a_charger);
+    RUN_TEST(test_tesla_mode_puts_a_paired_car_in_command_and_leaving_it_gives_the_charger_back);
+    RUN_TEST(test_the_hotspot_password_is_ten_easy_characters_and_not_always_the_same);
     RUN_TEST(test_the_router_sends_everything_to_the_wallbox_until_the_car_is_chosen);
     RUN_TEST(test_switching_to_the_car_releases_the_wallbox_and_hands_over_and_back);
     RUN_TEST(test_allowing_the_wake_is_saved_and_off_by_default);

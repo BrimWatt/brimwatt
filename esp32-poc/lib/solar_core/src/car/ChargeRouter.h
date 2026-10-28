@@ -33,6 +33,11 @@ public:
     CarResult setThroughCar(bool car);
     void setOnReturn(CarOnReturn policy);
     void setAllowWake(bool on);
+    /**
+     * Keeps the command in line with Tesla mode: on means the car is in command as soon as one is paired, off means the charger. Cheap to call
+     * about once a second.
+     */
+    void enforceMode(bool teslaMode);
     /** At start-up: applies the saved choice (never the car if it is no longer paired). */
     void restore();
 

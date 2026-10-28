@@ -76,6 +76,8 @@ HttpResponse ApiHandler::handle(const std::string& method, const std::string& pa
     if (path == "/api/events" && method == "GET") return events(query);
     if (path == "/api/diagnostics" && method == "GET") return diagnostics();
     if (path == "/api/export.csv" && method == "GET") return exportCsv();
+    if (path == "/api/car/hotspot" && method == "GET") return hotspot();
+    if (path == "/api/clock" && method == "POST") return setClock(query);
     if (path.rfind("/api/car/", 0) == 0 && method == "POST") return car(path, query);
     return text(404, "Not found");
 }
@@ -437,7 +439,7 @@ HttpResponse ApiHandler::updatePause(const Params& query) {
 
 namespace {
 
-void addCarToTelemetry(JsonObject root, const CarControl* car, const ChargeRouter* router) {
+void addCarToTelemetry(JsonObject root, const CarControl* car, const ChargeRouter* router, TeslaModeControl* mode, bool clockSet) {
     JsonObject out = root["car"].to<JsonObject>();
     if (!car) {
         out["supported"] = false;
@@ -446,6 +448,16 @@ void addCarToTelemetry(JsonObject root, const CarControl* car, const ChargeRoute
     const CarSnapshot s = car->snapshot();
     out["supported"] = s.supported;
     if (!s.supported) return;
+    if (mode) {
+        JsonObject m = out["mode"].to<JsonObject>();
+        m["enabled"] = mode->enabled();
+        m["restartPending"] = mode->restartPending();
+        m["clockSet"] = clockSet;
+        m["hotspot"] = kTeslaHotspotName;
+        const HotspotInfo h = mode->hotspot();
+        m["hotspotUp"] = h.up;
+        m["hotspotClients"] = h.clients;
+    }
     out["paired"] = s.paired;
     out["vin"] = s.vin;                 // masked
     out["key"] = s.key;
@@ -511,10 +523,48 @@ std::string cleanVin(const std::string& raw) {
 
 }  // namespace
 
+HttpResponse ApiHandler::teslaMode(const Params& query) {
+    if (!mode_) return text(400, "Tesla mode needs the ESP32 board.");
+    const std::string* enabled = find(query, "enabled");
+    if (!enabled || (*enabled != "true" && *enabled != "false")) return text(400, "enabled must be true or false");
+    const bool on = *enabled == "true";
+    const std::string* confirm = find(query, "confirm");
+    if (!confirm || *confirm != "yes") return text(400, "Changing Tesla mode restarts the board and needs confirm=yes.");
+    if (on == mode_->enabled()) return text(200, on ? "Tesla mode is already on" : "Tesla mode is already off");
+    if (mode_->restartPending()) return text(409, "The board is already restarting.");
+    mode_->setEnabled(on);
+    return text(200, on ? "Tesla mode is on. The board is restarting." : "Tesla mode is off. The board is restarting.");
+}
+
+HttpResponse ApiHandler::hotspot() {
+    if (!mode_ || !mode_->enabled()) return text(400, "Tesla mode is off.");
+    JsonDocument doc;
+    doc["ssid"] = kTeslaHotspotName;
+    doc["password"] = mode_->hotspotPassword();
+    HttpResponse response;
+    response.contentType = "application/json";
+    serializeJson(doc, response.body);
+    return response;
+}
+
+HttpResponse ApiHandler::setClock(const Params& query) {
+    if (!mode_) return text(400, "Setting the clock needs the ESP32 board.");
+    const std::string* raw = find(query, "epoch");
+    // Ten digits: more than parseWholeNumber takes.
+    bool digits = raw && raw->size() == 10;
+    for (size_t i = 0; digits && i < raw->size(); i++) digits = std::isdigit(static_cast<unsigned char>((*raw)[i])) != 0;
+    const long long epoch = digits ? std::atoll(raw->c_str()) : 0;
+    if (!digits || epoch < 1700000000LL || epoch > 4000000000LL) return text(400, "epoch must be the time in seconds since 1970.");
+    return text(200, mode_->setClock(epoch) ? "Clock set" : "The board already has the time");
+}
+
 HttpResponse ApiHandler::car(const std::string& path, const Params& query) {
     if (!car_) return text(400, "Car control needs the ESP32 board.");
     const CarSnapshot now = car_->snapshot();
     if (!now.supported) return text(400, "Car control needs the ESP32 board.");
+    if (path == "/api/car/mode") return teslaMode(query);
+    // With Tesla mode off Bluetooth is never started, so nothing that talks to the car is offered. Forgetting the car only deletes our key.
+    if (mode_ && !mode_->enabled() && path != "/api/car/forget") return text(400, "Tesla mode is off. Turn it on in Settings > Tesla first.");
 
     auto answer = [](const CarResult& r, const char* ok) {
         if (r.ok) return text(200, ok);
@@ -542,6 +592,7 @@ HttpResponse ApiHandler::car(const std::string& path, const Params& query) {
         if (!router_) return text(400, "Car control needs the ESP32 board.");
         const std::string* mode = find(query, "mode");
         if (!mode || (*mode != "charger" && *mode != "car")) return text(400, "mode must be charger or car");
+        if (*mode == "charger" && mode_ && mode_->enabled()) return text(400, "Tesla mode keeps the car in command. Turn Tesla mode off to use the charger.");
         if (*mode == "car") {
             if (!now.paired) return text(400, "No car is paired yet.");
             const std::string* confirm = find(query, "confirm");
@@ -665,7 +716,7 @@ HttpResponse ApiHandler::telemetry() {
     ctl["gridAllowanceWatts"] = state.mode() != ChargingMode::Fast ? state.gridAllowanceWatts() : 0;
     ctl["failSafe"] = state.failSafe();
     ctl["pollSeconds"] = config::kPollIntervalSeconds;
-    addCarToTelemetry(doc.as<JsonObject>(), car_, router_);
+    addCarToTelemetry(doc.as<JsonObject>(), car_, router_, mode_, platform_.epochSeconds() > 1700000000);
 
     HttpResponse response;
     response.contentType = "application/json";

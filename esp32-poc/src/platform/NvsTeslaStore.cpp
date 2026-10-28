@@ -103,7 +103,40 @@ void NvsTeslaStore::saveAllowWake(bool on) {
 void NvsTeslaStore::clear() {
     Preferences prefs;
     if (!prefs.begin(kNamespace, /*readOnly=*/false)) return;
-    prefs.clear();
+    // Only the car and its key: Tesla mode, the hotspot password and the other choices are about this board, not about one car.
+    prefs.remove("key");
+    prefs.remove("vin");
+    prefs.remove("through");
+    prefs.end();
+}
+
+bool NvsTeslaStore::loadTeslaMode() {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return false;
+    bool on = prefs.getBool("mode", false);
+    prefs.end();
+    return on;
+}
+
+void NvsTeslaStore::saveTeslaMode(bool on) {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return;
+    prefs.putBool("mode", on);
+    prefs.end();
+}
+
+std::string NvsTeslaStore::loadHotspotPassword() {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return "";
+    std::string password = prefs.getString("appw", "").c_str();
+    prefs.end();
+    return password;
+}
+
+void NvsTeslaStore::saveHotspotPassword(const std::string& password) {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return;
+    prefs.putString("appw", password.c_str());
     prefs.end();
 }
 

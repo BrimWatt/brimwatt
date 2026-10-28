@@ -43,6 +43,7 @@ void SerialConsole::printHelp() {
     Serial.println("  wifi              which network the board is on (never the password)");
     Serial.println("  setup             open the setup network (WattSync-Setup) to change Wi-Fi, the Enphase token, the Envoy address");
     Serial.println("  setup clear       forget everything saved from the setup page (secrets.h applies again) and restart");
+    Serial.println("  tesla mode on|off            Tesla mode (off by default): Bluetooth, the wattsync-tesla Wi-Fi and the car in command; restarts the board");
     Serial.println("  tesla scan [seconds]         list every Tesla in range with its signal (no VIN needed; 10-300 s, default 60)");
     Serial.println("  tesla scan <VIN> [seconds]   listen for your own car only; nothing is sent to the car");
     Serial.println("  tesla pair <VIN>    add this controller's own key to your car (you tap your key card in the car); VIN is never printed");
@@ -115,6 +116,11 @@ void SerialConsole::run(const std::string& line) {
             delay(300);
             ESP.restart();
         }
+    } else if (line == "tesla mode on" || line == "tesla mode off") {
+        const bool on = line == "tesla mode on";
+        if (!teslaMode_) LOG_WARN("Console: Tesla mode is not available.");
+        else if (teslaMode_->enabled() == on) LOG_INFO("Tesla mode is already %s.", on ? "on" : "off");
+        else teslaMode_->setEnabled(on);
     } else if (line == "tesla stop") {
         if (teslaCar_ && teslaCar_->busy()) teslaCar_->cancel();
         else if (teslaScan_ && teslaScan_->running()) teslaScan_->cancel();

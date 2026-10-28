@@ -1,5 +1,7 @@
 #include "ble/TeslaScan.h"
 
+#include "ble/BleGate.h"
+
 #include <BLEAdvertisedDevice.h>
 #include <BLEDevice.h>
 #include <BLEScan.h>
@@ -39,6 +41,7 @@ NameMatcher matcher;
 }  // namespace
 
 std::string TeslaScan::start(const std::string& vin, uint32_t seconds) {
+    if (!BleGate::on()) return BleGate::offText();
     if (running_) return "A scan is already running. Type \"tesla stop\" to end it.";
     if (!solar::tesla::isValidVin(vin)) return "That is not a VIN (17 letters and digits, no I, O or Q).";
     if (seconds < kMinSeconds || seconds > kMaxSeconds) return "Scan time must be between 10 and 300 seconds.";
@@ -52,6 +55,7 @@ std::string TeslaScan::start(const std::string& vin, uint32_t seconds) {
 }
 
 std::string TeslaScan::startDiscover(uint32_t seconds) {
+    if (!BleGate::on()) return BleGate::offText();
     if (running_) return "A scan is already running. Type \"tesla stop\" to end it.";
     if (seconds < kMinSeconds || seconds > kMaxSeconds) return "Scan time must be between 10 and 300 seconds.";
     discover_ = true;

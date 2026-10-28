@@ -818,6 +818,123 @@ void test_watch_cancel_and_forget_work_and_car_posts_need_the_safe_header() {
     TEST_ASSERT_EQUAL(404, r.api.handle("GET", "/api/car/forget", {}).status);          // wrong method
 }
 
+class FakeMode : public TeslaModeControl {
+public:
+    bool on = false;
+    bool restarting = false;
+    bool clockWasSet = false;
+    int64_t clockValue = 0;
+    bool acceptsClock = true;
+    bool enabled() const override { return on; }
+    bool restartPending() const override { return restarting; }
+    void setEnabled(bool v) override { on = v; restarting = true; }
+    HotspotInfo hotspot() const override { return {on, on ? 1 : 0}; }
+    std::string hotspotPassword() override { return "secret1234"; }
+    bool setClock(int64_t epoch) override { clockWasSet = true; clockValue = epoch; return acceptsClock; }
+};
+
+void test_with_tesla_mode_off_nothing_talks_to_the_car_but_the_key_can_be_forgotten() {
+    Rig r;
+    FakeCar car;
+    FakeMode mode;
+    r.api.setCar(&car);
+    r.api.setTeslaMode(&mode);
+    car.snap.paired = true;
+    for (const char* path : {"/api/car/pair", "/api/car/refresh", "/api/car/test", "/api/car/watch", "/api/car/wake", "/api/car/through", "/api/car/policy", "/api/car/allowwake", "/api/car/cancel"}) {
+        HttpResponse reply = r.post(path, {{"action", "stop"}, {"vin", "5YJYGDEE2MF284667"}, {"enabled", "true"}, {"mode", "car"}, {"confirm", "yes"}, {"onReturn", "keep"}});
+        TEST_ASSERT_EQUAL(400, reply.status);
+        TEST_ASSERT_TRUE(reply.body.find("Tesla mode is off") != std::string::npos);
+    }
+    testing::check("", car.lastCall);
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/forget").status);
+    testing::check("forget", car.lastCall);
+    JsonDocument t = r.telemetry();
+    TEST_ASSERT_FALSE(t["car"]["mode"]["enabled"].as<bool>());
+    testing::check("wattsync-tesla", t["car"]["mode"]["hotspot"] | "");
+}
+
+void test_tesla_mode_needs_confirmation_then_saves_and_restarts() {
+    Rig r;
+    FakeCar car;
+    FakeMode mode;
+    r.api.setCar(&car);
+    r.api.setTeslaMode(&mode);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/mode", {{"enabled", "true"}}).status);                       // no confirmation
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/mode", {{"enabled", "maybe"}, {"confirm", "yes"}}).status);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/mode", {{"confirm", "yes"}}).status);
+    TEST_ASSERT_FALSE(mode.on);
+    TEST_ASSERT_EQUAL(403, r.api.handle("POST", "/api/car/mode", {{"enabled", "true"}, {"confirm", "yes"}}, false).status);
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/mode", {{"enabled", "true"}, {"confirm", "yes"}}).status);
+    TEST_ASSERT_TRUE(mode.on);
+    TEST_ASSERT_TRUE(r.telemetry()["car"]["mode"]["restartPending"].as<bool>());
+    TEST_ASSERT_EQUAL(409, r.post("/api/car/mode", {{"enabled", "false"}, {"confirm", "yes"}}).status);   // already restarting
+    TEST_ASSERT_TRUE(mode.on);
+    // Once it is on and restarted, the car endpoints work again and asking for the same state changes nothing.
+    mode.restarting = false;
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/mode", {{"enabled", "true"}, {"confirm", "yes"}}).status);
+    TEST_ASSERT_FALSE(mode.restarting);
+    car.snap.paired = true;
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/refresh").status);
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/mode", {{"enabled", "false"}, {"confirm", "yes"}}).status);
+    TEST_ASSERT_FALSE(mode.on);
+}
+
+void test_in_tesla_mode_the_charger_cannot_be_chosen_back() {
+    Rig r;
+    FakeCar car;
+    FakeMode mode;
+    r.api.setCar(&car);
+    r.api.setTeslaMode(&mode);
+    CarCommander commander(r.platform, car);
+    ChargeRouter router(r.wallbox, commander, car);
+    r.api.setRouter(&router);
+    car.snap.paired = true;
+    mode.on = true;
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/through", {{"mode", "car"}, {"confirm", "yes"}}).status);
+    HttpResponse reply = r.post("/api/car/through", {{"mode", "charger"}});
+    TEST_ASSERT_EQUAL(400, reply.status);
+    TEST_ASSERT_TRUE(reply.body.find("Turn Tesla mode off") != std::string::npos);
+    TEST_ASSERT_TRUE(router.throughCar());
+}
+
+void test_the_hotspot_password_is_only_given_on_request_and_never_in_telemetry() {
+    Rig r;
+    FakeCar car;
+    FakeMode mode;
+    r.api.setCar(&car);
+    r.api.setTeslaMode(&mode);
+    TEST_ASSERT_EQUAL(400, r.api.handle("GET", "/api/car/hotspot", {}).status);          // mode off
+    mode.on = true;
+    HttpResponse reply = r.api.handle("GET", "/api/car/hotspot", {});
+    TEST_ASSERT_EQUAL(200, reply.status);
+    JsonDocument doc;
+    deserializeJson(doc, reply.body);
+    testing::check("wattsync-tesla", doc["ssid"] | "");
+    testing::check("secret1234", doc["password"] | "");
+    HttpResponse raw = r.api.handle("GET", "/api/telemetry", {});
+    TEST_ASSERT_TRUE(raw.body.find("secret1234") == std::string::npos);
+}
+
+void test_the_phone_can_set_the_clock_only_when_the_board_has_none() {
+    Rig r;
+    FakeCar car;
+    FakeMode mode;
+    r.api.setCar(&car);
+    r.api.setTeslaMode(&mode);
+    TEST_ASSERT_EQUAL(400, r.post("/api/clock", {}).status);
+    TEST_ASSERT_EQUAL(400, r.post("/api/clock", {{"epoch", "12345"}}).status);
+    TEST_ASSERT_EQUAL(400, r.post("/api/clock", {{"epoch", "99999999999"}}).status);
+    TEST_ASSERT_EQUAL(400, r.post("/api/clock", {{"epoch", "abcdefghij"}}).status);
+    TEST_ASSERT_FALSE(mode.clockWasSet);
+    TEST_ASSERT_EQUAL(200, r.post("/api/clock", {{"epoch", "1793125686"}}).status);
+    TEST_ASSERT_EQUAL(1793125686LL, (long long)mode.clockValue);
+    TEST_ASSERT_EQUAL(403, r.api.handle("POST", "/api/clock", {{"epoch", "1793125686"}}, false).status);
+    r.platform.epoch = 100;   // a board that has not got the time
+    TEST_ASSERT_FALSE(r.telemetry()["car"]["mode"]["clockSet"].as<bool>());
+    r.platform.epoch = 1760000000;
+    TEST_ASSERT_TRUE(r.telemetry()["car"]["mode"]["clockSet"].as<bool>());
+}
+
 void test_the_choice_of_who_is_in_command_is_validated_confirmed_and_shown() {
     Rig r;
     FakeCar car;
@@ -949,5 +1066,10 @@ int main() {
     RUN_TEST(test_sessions_can_be_paged_with_an_offset);
     RUN_TEST(test_diagnostics_are_404_without_a_source_and_list_only_what_the_platform_knows);
     RUN_TEST(test_unknown_paths_and_wrong_methods_are_not_found);
+    RUN_TEST(test_with_tesla_mode_off_nothing_talks_to_the_car_but_the_key_can_be_forgotten);
+    RUN_TEST(test_tesla_mode_needs_confirmation_then_saves_and_restarts);
+    RUN_TEST(test_in_tesla_mode_the_charger_cannot_be_chosen_back);
+    RUN_TEST(test_the_hotspot_password_is_only_given_on_request_and_never_in_telemetry);
+    RUN_TEST(test_the_phone_can_set_the_clock_only_when_the_board_has_none);
     return UNITY_END();
 }
