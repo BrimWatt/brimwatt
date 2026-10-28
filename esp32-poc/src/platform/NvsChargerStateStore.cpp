@@ -4,11 +4,11 @@
 #include <Preferences.h>
 
 #include "common/Log.h"
+#include "platform/Profile.h"
 
 namespace device {
 
 namespace {
-constexpr const char* kNamespace = "solar";
 constexpr const char* kKey = "chargers";
 }  // namespace
 
@@ -16,7 +16,7 @@ std::map<std::string, solar::ChargerSnapshot> NvsChargerStateStore::load() {
     std::map<std::string, solar::ChargerSnapshot> result;
     Preferences prefs;
     // Read-write on purpose, so a namespace that does not exist yet is created instead of logging an error.
-    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return result;
+    if (!prefs.begin(Profile::nvsNamespace().c_str(), /*readOnly=*/false)) return result;
     String text = prefs.getString(kKey, "");
     prefs.end();
     if (text.isEmpty()) return result;
@@ -52,7 +52,7 @@ void NvsChargerStateStore::save(const std::map<std::string, solar::ChargerSnapsh
     serializeJson(doc, text);
 
     Preferences prefs;
-    if (!prefs.begin(kNamespace, /*readOnly=*/false)) {
+    if (!prefs.begin(Profile::nvsNamespace().c_str(), /*readOnly=*/false)) {
         LOG_ERROR("Charger state: could not open flash storage; it will be lost on restart.");
         return;
     }

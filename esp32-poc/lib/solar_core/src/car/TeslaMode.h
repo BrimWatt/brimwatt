@@ -41,4 +41,12 @@ inline std::string generateHotspotPassword(const std::function<uint32_t()>& rand
     return out;
 }
 
+/**
+ * Tesla mode and charger mode are two separate setups: each keeps its own settings (mode, current, allowance, hours, prices, goal, messages,
+ * charger state) and its own history (samples, activity, sessions, savings). Switching restarts the board, so one is chosen at start-up by
+ * these names. Shared on purpose: the Wi-Fi/meter/update credentials, the Tesla key and pairing, and the hotspot password (they belong to the board).
+ */
+inline std::string profileNamespace(bool tesla) { return tesla ? "solar-tesla" : "solar"; }   // NVS names hold up to 15 characters
+inline std::string profileFile(bool tesla, const std::string& name) { return (tesla ? "/tesla-" : "/") + name; }
+
 }  // namespace solar

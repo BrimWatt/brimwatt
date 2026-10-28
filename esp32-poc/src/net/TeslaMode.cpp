@@ -5,6 +5,7 @@
 #include <sys/time.h>
 
 #include "ble/BleGate.h"
+#include "platform/Profile.h"
 #include "common/Log.h"
 #include "net/TimeSync.h"
 
@@ -13,6 +14,7 @@ namespace device {
 void TeslaMode::begin() {
     on_ = store_.loadTeslaMode();
     BleGate::on() = on_;
+    Profile::tesla() = on_;   // which settings and history this run uses (before any store is opened)
     if (!on_) {
         LOG_INFO("Tesla mode: off. Bluetooth stays off.");
         return;

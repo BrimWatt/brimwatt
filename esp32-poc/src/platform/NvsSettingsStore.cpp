@@ -3,18 +3,18 @@
 #include <Preferences.h>
 
 #include "common/Log.h"
+#include "platform/Profile.h"
 
 namespace device {
 
 namespace {
-constexpr const char* kNamespace = "solar";
 }
 
 std::optional<solar::Settings> NvsSettingsStore::load() {
     Preferences prefs;
     // Opened read-write on purpose: a read-only open of a namespace that does not exist yet fails and logs an
     // error on the very first boot. Opening it for writing just creates it empty.
-    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return std::nullopt;
+    if (!prefs.begin(Profile::nvsNamespace().c_str(), /*readOnly=*/false)) return std::nullopt;
     std::optional<solar::Settings> result;
     if (prefs.isKey("mode")) {
         solar::Settings settings;
@@ -41,7 +41,7 @@ std::optional<solar::Settings> NvsSettingsStore::load() {
 
 void NvsSettingsStore::save(const solar::Settings& settings) {
     Preferences prefs;
-    if (!prefs.begin(kNamespace, /*readOnly=*/false)) {
+    if (!prefs.begin(Profile::nvsNamespace().c_str(), /*readOnly=*/false)) {
         LOG_ERROR("Settings: could not open flash storage; the change will be lost on restart.");
         return;
     }
