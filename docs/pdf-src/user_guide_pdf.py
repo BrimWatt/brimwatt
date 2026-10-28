@@ -220,7 +220,7 @@ S.append(table(["Setting", "What it does"], [
     ["Ready by", "A switch. On: the energy (or miles) you want and the time you want it by, any time of day. Off: no goal. See section 4."],
     ["Money", "Your price per kWh in cents, and a switch for an optional peak price with its hours. Only used to work out savings."],
     ["Limits", "Maximum current the charger is ever asked for, in any mode (6 to 40 A). Set it to what your wiring and car can take."],
-    ["Display", "kWh or miles, and miles per kWh. See section 6."],
+    ["Display", "Theme (Match my phone, Light or Dark; it only changes how the page looks on this phone) and kWh or miles, with miles per kWh. See section 6."],
     ["Messages", "An optional web address (Slack, Discord, Home Assistant and similar). WattSync posts a short message when charging ends, the solar meter is lost or returns, the charger disconnects, or the goal takes over. "
                  "The same message is sent at most once per 10 minutes. Use <i>Send test</i> to check it. Only the address's host is shown afterwards."],
     ["Diagnostics", "A short health list: setup check (solar meter, charger, clock), how long it has been running, why it last restarted, free memory and Wi-Fi signal."],

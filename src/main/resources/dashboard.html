@@ -10,9 +10,33 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="WattSync">
     <meta name="theme-color" content="#2563eb">
+    <meta name="color-scheme" content="light dark">
+    <script id="theme-boot">try { var t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) { /* follows the phone */ }</script>
     <style>
-        :root { --bg: #f4f6f9; --card: #fff; --ink: #1f2937; --muted: #64748b; --line: #e2e8f0; --blue: #2563eb;
-                --green: #047857; --red: #b91c1c; --solar: #eda100; --car: #2a78d6; --home: #898781; --grid: #e34948; }
+        :root { --bg: #f4f6f9; --card: #fff; --ink: #1f2937; --muted: #64748b; --line: #e2e8f0; --blue: #2563eb; --link: #2563eb;
+                --green: #047857; --green-fill: #047857; --red: #b91c1c; --solar: #eda100; --car: #2a78d6; --home: #898781; --grid: #e34948;
+                --soft: #eef1f4; --field: #fff; --bd2: #cbd5e1; --tint: #f8fafc; --btn: #eaedf1; --btnh: #e2e6ea; --btn-tx: #374151; --sub: #475569; --faint: #94a3b8;
+                --ok-bg: #def7ec; --ok-tx: #03543f; --bad-bg: #ffe3e3; --bad-tx: #b91c1c; --bad-hover: #fecaca; --warn-bg: #fef3c7; --warn-tx: #92400e; --tesla-bg: #ede9fe; --tesla-tx: #5b21b6;
+                --info-bg: #eef2ff; --info-btn: #e0e7ff; --info-tx: #3730a3; --info-hover: #c7d2fe; --accent-bd: #bfdbfe; --chip-on-bg: #dbeafe; --chip-on-bd: #93c5fd; --chip-on-tx: #1e40af;
+                --band: #dbeafe; --ribbon: #f1f5f9; --theme-color: #2563eb;
+                color-scheme: light dark; }
+        :root[data-theme="light"] { color-scheme: light; }
+        :root[data-theme="dark"] { --bg: #0b1220; --card: #151e2e; --ink: #e5e7eb; --muted: #94a3b8; --line: #263244; --blue: #2563eb; --link: #60a5fa;
+                --green: #34d399; --green-fill: #047857; --red: #f87171; --solar: #f5b82e; --car: #5aa0ee; --home: #9ca3af; --grid: #f26a6a;
+                --soft: #222d3d; --field: #0f1827; --bd2: #3a4a60; --tint: #1b2638; --btn: #243146; --btnh: #2c3a52; --btn-tx: #e5e7eb; --sub: #cbd5e1; --faint: #94a3b8;
+                --ok-bg: #064e3b; --ok-tx: #a7f3d0; --bad-bg: #4a1519; --bad-tx: #fca5a5; --bad-hover: #5b1d22; --warn-bg: #3b2a08; --warn-tx: #fcd34d; --tesla-bg: #2e1065; --tesla-tx: #ddd6fe;
+                --info-bg: #1b2745; --info-btn: #26345c; --info-tx: #a5b4fc; --info-hover: #31427a; --accent-bd: #2b4c85; --chip-on-bg: #1e3a8a; --chip-on-bd: #3b5bb5; --chip-on-tx: #bfdbfe;
+                --band: #1e3a5f; --ribbon: #1b2638; --theme-color: #0b1220;
+                color-scheme: dark; }
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) { --bg: #0b1220; --card: #151e2e; --ink: #e5e7eb; --muted: #94a3b8; --line: #263244; --blue: #2563eb; --link: #60a5fa;
+                --green: #34d399; --green-fill: #047857; --red: #f87171; --solar: #f5b82e; --car: #5aa0ee; --home: #9ca3af; --grid: #f26a6a;
+                --soft: #222d3d; --field: #0f1827; --bd2: #3a4a60; --tint: #1b2638; --btn: #243146; --btnh: #2c3a52; --btn-tx: #e5e7eb; --sub: #cbd5e1; --faint: #94a3b8;
+                --ok-bg: #064e3b; --ok-tx: #a7f3d0; --bad-bg: #4a1519; --bad-tx: #fca5a5; --bad-hover: #5b1d22; --warn-bg: #3b2a08; --warn-tx: #fcd34d; --tesla-bg: #2e1065; --tesla-tx: #ddd6fe;
+                --info-bg: #1b2745; --info-btn: #26345c; --info-tx: #a5b4fc; --info-hover: #31427a; --accent-bd: #2b4c85; --chip-on-bg: #1e3a8a; --chip-on-bd: #3b5bb5; --chip-on-tx: #bfdbfe;
+                --band: #1e3a5f; --ribbon: #1b2638; --theme-color: #0b1220;
+                color-scheme: dark; }
+        }
         * { box-sizing: border-box; }
         html, body { max-width: 100%; overflow-x: hidden; }   /* never let the page pan sideways (an iPhone does it for the smallest overflow) */
         body { margin: 0; padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); background: var(--bg); color: var(--ink);
@@ -21,26 +45,26 @@
         header { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 0 2px 10px; }
         .brand { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1.25rem; font-weight: 700; }
         .brand .logo { width: 32px; height: 32px; flex: none; }
-        .brand .sync { color: var(--blue); }
+        .brand .sync { color: var(--link); }
         .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; white-space: nowrap; }
         .pill::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
-        .pill.on { background: #def7ec; color: #03543f; }
-        .pill.off { background: #ffe3e3; color: #e02424; }
-        .pill.warn { background: #fef3c7; color: #92400e; }
+        .pill.on { background: var(--ok-bg); color: var(--ok-tx); }
+        .pill.off { background: var(--bad-bg); color: var(--bad-tx); }
+        .pill.warn { background: var(--warn-bg); color: var(--warn-tx); }
         .hdr-right { display: flex; align-items: center; gap: 8px; }
-        .gear { min-height: 0; width: 44px; height: 44px; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--card); box-shadow: 0 0 0 1px var(--line); color: #475569; }
-        .gear:hover:not(:disabled) { background: #eef2f7; }
-        .pill.tesla { background: #ede9fe; color: #5b21b6; } .pill[hidden] { display: none; }
+        .gear { min-height: 0; width: 44px; height: 44px; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--card); box-shadow: 0 0 0 1px var(--line); color: var(--sub); }
+        .gear:hover:not(:disabled) { background: var(--btnh); }
+        .pill.tesla { background: var(--tesla-bg); color: var(--tesla-tx); } .pill[hidden] { display: none; }
         @media (max-width: 380px) { .pill.tesla { padding: 4px 8px; font-size: 0.72rem; } .pill.tesla::before { display: none; } .pill.tesla .m { display: none; } .hdr-right { gap: 6px; } }
-        .pill.wait { background: #eef1f4; color: var(--muted); }
+        .pill.wait { background: var(--soft); color: var(--muted); }
 
-        button { font: inherit; padding: 0 10px; white-space: nowrap; min-height: 44px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.9rem; background: #eaedf1; color: #374151; transition: background 0.15s; touch-action: manipulation; }
-        button:hover:not(:disabled) { background: #e2e6ea; }
+        button { font: inherit; padding: 0 10px; white-space: nowrap; min-height: 44px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.9rem; background: var(--btn); color: var(--btn-tx); transition: background 0.15s; touch-action: manipulation; }
+        button:hover:not(:disabled) { background: var(--btnh); }
         button:disabled { cursor: progress; opacity: 0.7; }
         button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
 
-        .notice { display: none; margin: 0 0 10px; padding: 10px 14px; border-radius: 12px; background: #ffe3e3; color: #9b1c1c; font-weight: 600; font-size: 0.9rem; }
-        .notice.soft { background: #eef1f4; color: #334155; }
+        .notice { display: none; margin: 0 0 10px; padding: 10px 14px; border-radius: 12px; background: var(--bad-bg); color: var(--bad-tx); font-weight: 600; font-size: 0.9rem; }
+        .notice.soft { background: var(--soft); color: var(--sub); }
 
         .dash { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
         .tile { background: var(--card); border-radius: 14px; padding: 10px 12px; box-shadow: 0 0 0 1px var(--line); min-width: 0; }
@@ -48,20 +72,20 @@
 
         /* headline */
         .hero { display: flex; align-items: center; gap: 12px; }
-        .hero .badge { width: 46px; height: 46px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #eef1f4; }
-        .hero.good .badge { background: #def7ec; } .hero.warn .badge { background: #fef3c7; } .hero.bad .badge { background: #ffe3e3; }
+        .hero .badge { width: 46px; height: 46px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: var(--soft); }
+        .hero.good .badge { background: var(--ok-bg); } .hero.warn .badge { background: var(--warn-bg); } .hero.bad .badge { background: var(--bad-bg); }
         .hero .txt { flex: 1; min-width: 0; }
         .hero .title { font-size: 1.1rem; font-weight: 700; line-height: 1.25; }
         .hero .sub { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
-        #pause-btn { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 108px; height: 44px; padding: 0 14px; font-size: 0.9rem; background: #fee2e2; color: #b91c1c; }
+        #pause-btn { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 108px; height: 44px; padding: 0 14px; font-size: 0.9rem; background: var(--bad-bg); color: var(--bad-tx); }
         #pause-btn .ic { width: 16px; height: 16px; fill: currentColor; flex: none; }
-        #pause-btn:hover:not(:disabled) { background: #fecaca; }
-        #pause-btn.resume { background: var(--green); color: #fff; }
+        #pause-btn:hover:not(:disabled) { background: var(--bad-hover); }
+        #pause-btn.resume { background: var(--green-fill); color: #fff; }
         #pause-btn.resume:hover:not(:disabled) { background: #065f46; }
 
         /* power flow: four tiles joined by straight arrows through the supply, top to bottom (sources, supply, loads), on every screen size */
         .flowgrid { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 26px auto 26px auto; column-gap: 10px; }
-        .ft { background: #f8fafc; border-radius: 12px; padding: 6px 10px; border-left: 4px solid var(--c); min-width: 0; }
+        .ft { background: var(--tint); border-radius: 12px; padding: 6px 10px; border-left: 4px solid var(--c); min-width: 0; }
         .ft .fl { font-size: 0.7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
         .ft b { display: block; font-size: 1.25rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
         .ft small { display: block; font-size: 0.72rem; color: var(--muted); min-height: 1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -69,11 +93,11 @@
         .ft.grid { --c: var(--grid); grid-column: 2; grid-row: 1; }
         .ft.home { --c: var(--home); grid-column: 1; grid-row: 5; }
         .ft.car { --c: var(--car); grid-column: 2; grid-row: 5; }
-        .ft.grid.export { --c: #047857; }
-        .ft.grid b.import { color: #b45309; } .ft.grid b.export { color: var(--green); }
-        .hub { grid-column: 1 / span 2; grid-row: 3; display: flex; align-items: center; justify-content: center; gap: 8px; background: #fef3c7; border-radius: 999px; padding: 3px 12px; z-index: 1; }
+        .ft.grid.export { --c: var(--green); }
+        .ft.grid b.import { color: var(--warn-tx); } .ft.grid b.export { color: var(--green); }
+        .hub { grid-column: 1 / span 2; grid-row: 3; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--warn-bg); border-radius: 999px; padding: 3px 12px; z-index: 1; }
         .hub .dot { font-size: 1rem; }
-        .hub small { font-size: 0.72rem; font-weight: 600; color: #92400e; text-transform: uppercase; letter-spacing: 0.04em; }
+        .hub small { font-size: 0.72rem; font-weight: 600; color: var(--warn-tx); text-transform: uppercase; letter-spacing: 0.04em; }
         #flowsvg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
         .flow.stale .ft b { color: #94a3b8; }
 
@@ -92,9 +116,9 @@
         .seg button.active { background: var(--blue); color: #fff; }
         .seg button.locked { opacity: 0.45; cursor: not-allowed; }
         .info { min-height: 0; width: 24px; height: 24px; padding: 0; margin-left: 6px; border-radius: 50%; position: relative; vertical-align: middle;
-                background: #e0e7ff; color: #3730a3; font-size: 0.72rem; font-weight: 700; font-style: italic; font-family: Georgia, serif; line-height: 24px; text-transform: none; letter-spacing: 0; }
+                background: var(--info-btn); color: var(--info-tx); font-size: 0.72rem; font-weight: 700; font-style: italic; font-family: Georgia, serif; line-height: 24px; text-transform: none; letter-spacing: 0; }
         .info::before { content: ""; position: absolute; inset: -12px; }   /* a finger-sized tap area around the small circle */
-        .info:hover:not(:disabled) { background: #c7d2fe; }
+        .info:hover:not(:disabled) { background: var(--info-hover); }
         .hub .info { margin-left: 8px; pointer-events: auto; }
         .stat { position: relative; } .stat:has(> .info) small { padding-right: 20px; }
         .stat > .info { position: absolute; right: 6px; bottom: 7px; margin: 0; }
@@ -108,12 +132,12 @@
         #tipbox .gotit:hover:not(:disabled), #settingsbox .gotit:hover:not(:disabled) { background: #1d4ed8; }
         @media (min-width: 900px) { #tipbox, #settingsbox { align-items: center; } }
         .help { margin: 8px 0 0; font-size: 0.82rem; color: var(--muted); }
-        .setting { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #f8fafc; border: 1px solid var(--line); display: none; }
-        .setting .top { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; font-size: 0.85rem; color: #475569; }
+        .setting { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--tint); border: 1px solid var(--line); display: none; }
+        .setting .top { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; font-size: 0.85rem; color: var(--sub); }
         .setting output { font-size: 1.05rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
         input[type=range] { width: 100%; height: 34px; margin: 2px 0 0; accent-color: var(--blue); cursor: pointer; touch-action: pan-y; }
         .hint { margin: 2px 0 0; font-size: 0.75rem; color: var(--muted); }
-        .hint.ok { color: var(--green); } .hint.bad { color: var(--red); } .hint.warn { color: #b45309; }
+        .hint.ok { color: var(--green); } .hint.bad { color: var(--red); } .hint.warn { color: var(--warn-tx); }
 
         /* chart */
         .tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; }
@@ -121,7 +145,7 @@
         .tabs button.active { background: var(--blue); color: #fff; }
         .charthead { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
         .charthead h2 { margin: 0 0 6px; }
-        .chip { min-height: 30px; padding: 0 10px; font-size: 0.78rem; border-radius: 999px; background: #eef2ff; color: var(--blue); }
+        .chip { min-height: 30px; padding: 0 10px; font-size: 0.78rem; border-radius: 999px; background: var(--info-bg); color: var(--link); }
         .chip[hidden] { display: none; }
         .summary { margin: 0 0 6px; font-size: 0.82rem; color: var(--ink); font-variant-numeric: tabular-nums; }
         .summary b { font-weight: 700; } .summary .sv { color: var(--green); }
@@ -142,85 +166,87 @@
         .pager { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 0.78rem; color: var(--muted); }
         .pager[hidden] { display: none; }
         .pager .chip:disabled { opacity: 0.4; cursor: default; }
-        .feed li { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid #eef1f4; font-size: 0.85rem; }
+        .feed li { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--soft); font-size: 0.85rem; }
         .feed li:last-child { border-bottom: none; }
         .feed .t { color: var(--muted); min-width: 62px; font-variant-numeric: tabular-nums; flex: none; }
 
         /* charging sessions */
-        .sess { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #eef1f4; font-size: 0.85rem; }
+        .sess { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--soft); font-size: 0.85rem; }
         .sess:last-child { border-bottom: none; }
         .sess small { display: block; margin-top: 1px; font-size: 0.75rem; color: var(--muted); }
         .sess .k { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
         .sess.now .when::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--green); }
 
         /* the settings sheet */
-        .field { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; font-size: 0.9rem; border-bottom: 1px solid #eef1f4; }
-        .field input[type=number] { width: 86px; min-height: 40px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; font-size: 16px; font-weight: 600; text-align: center; }   /* 16px: smaller makes iOS zoom the whole page in when you tap the box */
-        .field input[type=url], .field input[type=text] { width: 170px; min-height: 40px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; font-size: 16px; }
-        .field select { min-height: 40px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; font: inherit; font-size: 16px; font-weight: 600; }
+        input, select, textarea { background: var(--field); color: var(--ink); }
+        input::placeholder { color: var(--faint); }
+        .field { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; font-size: 0.9rem; border-bottom: 1px solid var(--soft); }
+        .field input[type=number] { width: 86px; min-height: 40px; padding: 6px 8px; border: 1px solid var(--bd2); border-radius: 8px; font: inherit; font-size: 16px; font-weight: 600; text-align: center; }   /* 16px: smaller makes iOS zoom the whole page in when you tap the box */
+        .field input[type=url], .field input[type=text] { width: 170px; min-height: 40px; padding: 6px 8px; border: 1px solid var(--bd2); border-radius: 8px; font: inherit; font-size: 16px; }
+        .field select { min-height: 40px; padding: 6px 8px; border: 1px solid var(--bd2); border-radius: 8px; background: var(--field); font: inherit; font-size: 16px; font-weight: 600; }
         .field.sub { border-bottom: 0; padding-top: 0; } .field.sub[hidden], .field[hidden] { display: none; }
-        .field input[type=time] { min-height: 40px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; font-size: 16px; font-weight: 600; }
+        .field input[type=time] { min-height: 40px; padding: 6px 8px; border: 1px solid var(--bd2); border-radius: 8px; font: inherit; font-size: 16px; font-weight: 600; }
         .smallbtn { min-height: 40px; padding: 0 14px; background: var(--blue, #2a78d6); color: #fff; font-weight: 600; }
         .smallbtn:disabled { opacity: 0.45; }
         .smallbtn.danger { background: #b91c1c; }
         .carmain { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
         .carmain b { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
         .carmain .st { color: var(--muted); font-size: 0.9rem; flex: 1 1 auto; min-width: 0; }
-        .carbar { position: relative; height: 6px; margin: 9px 0 3px; border-radius: 3px; background: #e2e8f0; }
+        .carbar { position: relative; height: 6px; margin: 9px 0 3px; border-radius: 3px; background: var(--line); }
         .carbar i { display: block; height: 100%; border-radius: 3px; background: var(--green); }
         .carbar u { position: absolute; top: -3px; width: 2px; height: 12px; background: var(--ink); opacity: 0.55; }
         .carbar[hidden] { display: none; }
-        .carbox { margin: 8px 0; padding: 10px 12px; border-radius: 10px; background: #eef2ff; font-size: 0.9rem; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .carbox { margin: 8px 0; padding: 10px 12px; border-radius: 10px; background: var(--info-bg); font-size: 0.9rem; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         .carbox[hidden], #car-paired[hidden], #car-setup[hidden] { display: none; }
         #car-result { white-space: pre-line; }
         .edit { display: inline-flex; align-items: center; gap: 6px; }
-        .savebtn { min-width: 40px; min-height: 40px; padding: 0; background: var(--green); color: #fff; font-size: 1.15rem; line-height: 1; }
+        .savebtn { min-width: 40px; min-height: 40px; padding: 0; background: var(--green-fill); color: #fff; font-size: 1.15rem; line-height: 1; }
         .savebtn:hover:not(:disabled) { background: #065f46; }
         .savebtn[hidden] { display: none; }
         details.more { margin-top: 8px; }
-        details.opt { border-top: 1px solid #eef1f4; margin-top: 4px; }
+        details.opt { border-top: 1px solid var(--soft); margin-top: 4px; }
         details.opt > summary .hint { margin-left: 8px; font-weight: 400; font-size: 0.78rem; color: var(--muted); opacity: 0.8; }
         details.more > summary { cursor: pointer; font-weight: 600; font-size: 0.9rem; color: var(--muted); min-height: 44px; display: flex; align-items: center; }
         .rows { margin: 4px 0 0; }
-        .row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid #eef1f4; font-size: 0.85rem; }
+        .row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--soft); font-size: 0.85rem; }
         .row:last-child { border-bottom: none; }
         .row dt { color: var(--muted); margin: 0; flex: none; }
         .row dd { margin: 0; font-weight: 600; text-align: right; min-width: 0; overflow-wrap: anywhere; }
         .row.head dt { color: var(--ink); font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; padding-top: 6px; }
-        .row dd.ok { color: var(--green); } .row dd.warn { color: #b45309; } .row dd.bad { color: var(--red); }
+        .row dd.ok { color: var(--green); } .row dd.warn { color: var(--warn-tx); } .row dd.bad { color: var(--red); }
         .field.peakhours { gap: 6px; } .field.peakhours > label { flex: 1; }
-        .check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 0.9rem; border-bottom: 1px solid #eef1f4; }
+        .check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 0.9rem; border-bottom: 1px solid var(--soft); }
         .check input { width: 20px; height: 20px; flex: none; }
 
         /* settings page: switches, section cards, and a jump bar that stays at the top while the page scrolls */
         .check { justify-content: space-between; flex-direction: row-reverse; }
         .check > span { flex: 1 1 auto; min-width: 0; }
-        .check input[type=checkbox] { -webkit-appearance: none; appearance: none; width: 44px; height: 26px; margin: 0; border-radius: 13px; background: #cbd5e1; position: relative; flex: none; cursor: pointer; transition: background 0.15s; }
+        .check input[type=checkbox] { -webkit-appearance: none; appearance: none; width: 44px; height: 26px; margin: 0; border-radius: 13px; background: var(--bd2); position: relative; flex: none; cursor: pointer; transition: background 0.15s; }
         .check input[type=checkbox]::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); transition: transform 0.15s; }
         .check input[type=checkbox]:checked { background: var(--blue, #2a78d6); }
         .check input[type=checkbox]:checked::after { transform: translateX(18px); }
         .check input[type=checkbox]:focus-visible { outline: 2px solid var(--blue, #2a78d6); outline-offset: 2px; }
         .check input[type=checkbox]:disabled { opacity: 0.5; cursor: default; }
         @media (prefers-reduced-motion: reduce) { .check input[type=checkbox], .check input[type=checkbox]::after { transition: none; } }
-        .sc { background: #f8fafc; border-radius: 12px; padding: 8px 12px 4px; margin: 0 0 10px; scroll-margin-top: 108px; }
+        .sc { background: var(--tint); border-radius: 12px; padding: 8px 12px 4px; margin: 0 0 10px; scroll-margin-top: 108px; }
         .sc > h4 { margin: 0 0 2px; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
         .sc > .field:last-child, .sc > .check:last-child, .subbox > .field:last-child { border-bottom: 0; }
         .sc > .hint { margin: 2px 0 6px; }
         .sc > details.more { margin-top: 0; }
-        .subbox { margin: 2px 0 6px 4px; padding-left: 10px; border-left: 2px solid #bfdbfe; }
+        .subbox { margin: 2px 0 6px 4px; padding-left: 10px; border-left: 2px solid var(--accent-bd); }
         .subbox[hidden] { display: none; }
         #settings-title:focus { outline: none; }
-        .sethead { position: sticky; top: -16px; z-index: 2; margin: -16px -18px 10px; padding: 16px 18px 8px; background: var(--card); border-bottom: 1px solid #eef1f4; }
+        .sethead { position: sticky; top: -16px; z-index: 2; margin: -16px -18px 10px; padding: 16px 18px 8px; background: var(--card); border-bottom: 1px solid var(--soft); }
         #set-nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
         #set-nav::-webkit-scrollbar { display: none; }
-        .setchip { flex: none; min-height: 36px; padding: 0 9px; border-radius: 999px; background: #fff; color: var(--ink); border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 600; }
-        .setchip.on { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+        .setchip { flex: none; min-height: 36px; padding: 0 9px; border-radius: 999px; background: var(--field); color: var(--ink); border: 1px solid var(--bd2); font-size: 0.82rem; font-weight: 600; }
+        .setchip.on { background: var(--chip-on-bg); border-color: var(--chip-on-bd); color: var(--chip-on-tx); }
         @media (min-width: 900px) { #settingsbox .card { max-width: 780px; } #setbody { columns: 2; column-gap: 14px; } .sc { break-inside: avoid; } }
 
         /* pull to refresh: the WattSync logo slides down and grows as you pull while its sync arrows turn; the bolt pops when you can let go;
            after you let go the arrows spin around the bolt while the page reloads */
         #ptr { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 6px); z-index: 30; width: 64px; height: 64px; margin-left: -32px; border-radius: 50%;
-               background: #fff; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--line); pointer-events: none;
+               background: var(--card); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--line); pointer-events: none;
                display: flex; align-items: center; justify-content: center; opacity: 0; transform: translateY(-80px); --p: 0; }
         #ptr svg { width: 46px; height: 46px; display: block; transform: scale(calc(0.6 + 0.4 * var(--p))); }
         #ptr .arrows { transform-origin: 32px 32px; transform: rotate(calc(var(--p) * 150deg)); }
@@ -419,6 +445,7 @@
             <p class="hint" id="car-result"></p>
 </section>
 <section class="sc" id="sec-more"><h4>Display</h4>
+            <div class="field"><span><label for="theme-select">Theme</label><button type="button" class="info" data-tip="theme" aria-label="What does theme do?">i</button></span><span class="edit"><select id="theme-select"><option value="auto">Match my phone</option><option value="light">Light</option><option value="dark">Dark</option></select></span></div>
             <div class="field"><span><label for="unit-select">Show energy as</label><button type="button" class="info" data-tip="units" aria-label="What does show energy as do?">i</button></span><span class="edit"><select id="unit-select"><option value="kwh">kWh</option><option value="miles">Miles</option></select></span></div>
             <div class="field"><label for="mpk-input">Miles per kWh</label><span class="edit"><input type="number" id="mpk-input" inputmode="decimal" min="1" max="6" step="0.1" value="3"></span></div>
 <details class="more" id="diag"><summary>Diagnostics</summary><dl class="rows" id="diag-rows"><div class="row"><dt>Loading…</dt><dd></dd></div></dl></details>
@@ -453,6 +480,7 @@ const TIPS = {
     goal: ['Ready by', ['Say how much energy you want and by when, for example 20 kWh by 7:00 am or by 5:30 pm. Until time gets short, charging works as normal, from the sun.', 'When the time left is only just enough, WattSync charges at the lowest speed that still gets there, using the grid if needed, even at night.', 'Only while a car is plugged in, never while paused or in Custom mode. Turn the switch off to stop.']],
     maxamps: ['Maximum current', ['The most current the charger is ever asked for, in any mode. Set it to what your wiring and breaker can safely carry for charging, for example 16 A on a small circuit.', 'Eco and Max solar also stop at 32 A. The Custom slider cannot go above this number.']],
     peak: ['Peak price', ['If your power company charges more at certain hours, turn this on and set that price and those hours. Money saved then counts the sun at the price of the hour it was used.', 'Leave it off to use one price all day. The hours use a 24 hour clock, for example 16 to 21 is 4 pm to 9 pm.']],
+    theme: ['Theme', ['Match my phone follows your phone\'s light or dark setting and changes with it, for example when your phone goes dark in the evening.', 'Light or Dark keeps this page that way on this phone, whatever the phone does.', 'This changes only how the page looks, on this phone.']],
     units: ['Show energy as', ['Choose kWh or miles for the energy that went into the car. Miles are an estimate: kWh times the miles per kWh you enter, shown with a ~.', 'Use the miles per kWh your car really gets, counted from the wall (it is a little less than the car\'s own figure because charging loses some). 3 is a common starting point.', 'This changes only what you see on this phone. Savings stay in dollars, and the charger, the goal and the export file still use kWh.']],
     price: ['Electricity price', ['What you pay the power company for each kWh, in cents. It is only used to work out how much you saved.']]
 };
@@ -1218,7 +1246,7 @@ function drawFlow() {
     svg.innerHTML = '';
     const draw = (x1, y1, x2, y2, watts, color) => {
         const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len, nx = -uy, ny = ux;
-        const on = watts >= 30, c = on ? color : '#cbd5e1', sw = thick(watts), head = 4 + sw;
+        const on = watts >= 30, c = on ? color : cv('--bd2'), sw = thick(watts), head = 4 + sw;
         svgEl(svg, 'line', { x1, y1, x2: x2 - ux * head * 0.6, y2: y2 - uy * head * 0.6, stroke: c, 'stroke-width': sw, 'stroke-linecap': 'round', 'stroke-dasharray': on ? '' : '4 4' });
         const bx = x2 - ux * head, by = y2 - uy * head;
         const pts = [[x2, y2], [bx + nx * head * 0.6, by + ny * head * 0.6], [bx - nx * head * 0.6, by - ny * head * 0.6]];
@@ -1228,11 +1256,11 @@ function drawFlow() {
     const carW = w(d.charger.amps > 0 ? p.chargerWatts : 0);
     const gap = 3;
     // straight arrows: down from the sources into the supply bar, down from it to the loads
-    draw(solar.cx, solar.b + gap, solar.cx, hubBox.t - gap, w(p.solarWatts), '#eda100');
-    if (exporting) draw(gridT.cx, hubBox.t - gap, gridT.cx, gridT.b + gap, w(-p.gridWatts), '#047857');
-    else draw(gridT.cx, gridT.b + gap, gridT.cx, hubBox.t - gap, w(p.gridWatts), '#e34948');
-    draw(home.cx, hubBox.b + gap, home.cx, home.t - gap, w(p.homeWatts), '#2a78d6');
-    draw(car.cx, hubBox.b + gap, car.cx, car.t - gap, carW, '#2a78d6');
+    draw(solar.cx, solar.b + gap, solar.cx, hubBox.t - gap, w(p.solarWatts), cv('--solar'));
+    if (exporting) draw(gridT.cx, hubBox.t - gap, gridT.cx, gridT.b + gap, w(-p.gridWatts), cv('--green'));
+    else draw(gridT.cx, gridT.b + gap, gridT.cx, hubBox.t - gap, w(p.gridWatts), cv('--grid'));
+    draw(home.cx, hubBox.b + gap, home.cx, home.t - gap, w(p.homeWatts), cv('--car'));
+    draw(car.cx, hubBox.b + gap, car.cx, car.t - gap, carW, cv('--car'));
 }
 
 function renderStats() {
@@ -1324,29 +1352,29 @@ function drawChart(h) {
     box.innerHTML = '';
     const svg = svgEl(box, 'svg', { viewBox: '0 0 ' + width + ' ' + height, width: width, height: height, role: 'img',
         'aria-label': "Today's solar, car, home and grid power" });
-    if (h.daylight) svgEl(svg, 'rect', { x: X(h.daylight.start), y: T, width: Math.max(0, X(h.daylight.end) - X(h.daylight.start)), height: plotB - T, fill: '#dbeafe', opacity: 0.45 });
+    if (h.daylight) svgEl(svg, 'rect', { x: X(h.daylight.start), y: T, width: Math.max(0, X(h.daylight.end) - X(h.daylight.start)), height: plotB - T, fill: cv('--band'), opacity: 0.45 });
     const ticks = ymax <= 4000 ? 1000 : 2000;
     for (let w = 0; w <= ymax; w += ticks) {
-        svgEl(svg, 'line', { x1: L, x2: width - R, y1: Y(w), y2: Y(w), stroke: '#e5e7eb', 'stroke-width': 1 });
-        svgEl(svg, 'text', { x: L - 5, y: Y(w) + 4, 'text-anchor': 'end', 'font-size': 11, fill: '#94a3b8' }, (w / 1000) + (w + ticks > ymax ? ' kW' : ''));
+        svgEl(svg, 'line', { x1: L, x2: width - R, y1: Y(w), y2: Y(w), stroke: cv('--line'), 'stroke-width': 1 });
+        svgEl(svg, 'text', { x: L - 5, y: Y(w) + 4, 'text-anchor': 'end', 'font-size': 11, fill: cv('--faint') }, (w / 1000) + (w + ticks > ymax ? ' kW' : ''));
     }
     const stepH = narrow ? 3 : 2;
     for (let h = Math.ceil((lo - day0) / 3600 / stepH) * stepH; day0 + h * 3600 <= hi; h += stepH) {
         const hh = h % 24;
-        svgEl(svg, 'text', { x: X(day0 + h * 3600), y: height - B - ribbon + 12, 'text-anchor': 'middle', 'font-size': 11, fill: '#94a3b8' }, ((hh + 11) % 12 + 1) + (hh < 12 ? 'a' : 'p'));
+        svgEl(svg, 'text', { x: X(day0 + h * 3600), y: height - B - ribbon + 12, 'text-anchor': 'middle', 'font-size': 11, fill: cv('--faint') }, ((hh + 11) % 12 + 1) + (hh < 12 ? 'a' : 'p'));
     }
     const S = h.samples;
     const line = (idx, color, w) => svgEl(svg, 'path', { d: S.map((s, i) => (i ? 'L' : 'M') + X(s[0]).toFixed(1) + ' ' + Y(Math.max(0, s[idx])).toFixed(1)).join(' '), fill: 'none', stroke: color, 'stroke-width': w, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
     let area = 'M' + X(S[0][0]) + ' ' + plotB; S.forEach(s => area += ' L' + X(s[0]).toFixed(1) + ' ' + Y(s[1]).toFixed(1)); area += ' L' + X(S[S.length - 1][0]) + ' ' + plotB + 'Z';
-    svgEl(svg, 'path', { d: area, fill: '#eda100', opacity: 0.18 });
+    svgEl(svg, 'path', { d: area, fill: cv('--solar'), opacity: 0.18 });
     const bw = Math.max(2, Math.min(6, (width - L - R) / ((hi - lo) / 300) - 1));
-    S.forEach(s => { if (s[3] > 60) svgEl(svg, 'rect', { x: X(s[0]) - bw / 2, y: Y(s[3]), width: bw, height: plotB - Y(s[3]), fill: '#e34948', opacity: 0.7 }); });
-    line(1, '#eda100', 2); line(2, '#898781', 1.6); line(4, '#2a78d6', 2);
+    S.forEach(s => { if (s[3] > 60) svgEl(svg, 'rect', { x: X(s[0]) - bw / 2, y: Y(s[3]), width: bw, height: plotB - Y(s[3]), fill: cv('--grid'), opacity: 0.7 }); });
+    line(1, cv('--solar'), 2); line(2, cv('--home'), 1.6); line(4, cv('--car'), 2);
     // charging ribbon: when the car was charging (blue) or charging was paused (grey)
-    svgEl(svg, 'rect', { x: L, y: height - ribbon - 2, width: width - L - R, height: ribbon, rx: 3, fill: '#f1f5f9' });
-    S.forEach(s => { if (s[6] & 1 || s[6] & 2) svgEl(svg, 'rect', { x: X(s[0]) - 3, y: height - ribbon - 2, width: 6, height: ribbon, fill: s[6] & 2 ? '#cbd5e1' : '#2a78d6' }); });
+    svgEl(svg, 'rect', { x: L, y: height - ribbon - 2, width: width - L - R, height: ribbon, rx: 3, fill: cv('--ribbon') });
+    S.forEach(s => { if (s[6] & 1 || s[6] & 2) svgEl(svg, 'rect', { x: X(s[0]) - 3, y: height - ribbon - 2, width: 6, height: ribbon, fill: s[6] & 2 ? cv('--bd2') : cv('--car') }); });
     // reading cursor
-    const cursor = svgEl(svg, 'line', { y1: T, y2: plotB, stroke: '#64748b', 'stroke-width': 1, 'stroke-dasharray': '3 3', visibility: 'hidden' });
+    const cursor = svgEl(svg, 'line', { y1: T, y2: plotB, stroke: cv('--muted'), 'stroke-width': 1, 'stroke-dasharray': '3 3', visibility: 'hidden' });
     const show = evt => {
         const r = svg.getBoundingClientRect(), x = (evt.clientX - r.left) / r.width * width;
         let best = S[0], bd = 1e9; S.forEach(s => { const d = Math.abs(X(s[0]) - x); if (d < bd) { bd = d; best = s; } });
@@ -1483,8 +1511,8 @@ function drawBars() {
     box.innerHTML = '';
     const svg = svgEl(box, 'svg', { viewBox: '0 0 ' + width + ' ' + height, width: width, height: height, role: 'img', 'aria-label': (unitMiles ? 'Daily range added to the car, from the sun and from the grid' : 'Daily energy that charged the car, from the sun and from the grid') });
     for (let v = 0; v <= ymax; v += ticks) {
-        svgEl(svg, 'line', { x1: L, x2: width - R, y1: Y(v), y2: Y(v), stroke: '#e5e7eb' });
-        svgEl(svg, 'text', { x: L - 5, y: Y(v) + 4, 'text-anchor': 'end', 'font-size': 11, fill: '#94a3b8' }, String(v));
+        svgEl(svg, 'line', { x1: L, x2: width - R, y1: Y(v), y2: Y(v), stroke: cv('--line') });
+        svgEl(svg, 'text', { x: L - 5, y: Y(v) + 4, 'text-anchor': 'end', 'font-size': 11, fill: cv('--faint') }, String(v));
     }
     rows.forEach((r, i) => {
         const x = L + slot * i + (slot - bw) / 2;
@@ -1492,10 +1520,10 @@ function drawBars() {
         const g = svgEl(svg, 'g', { style: r.daysAgo !== null ? 'cursor:pointer' : '' });
         if (r.daysAgo !== null) { g.addEventListener('click', () => showPastDay(r.daysAgo)); }
         svgEl(g, 'rect', { x: x, y: T, width: bw, height: plotB - T, fill: 'transparent' });   // a generous tap target
-        if (r.sun > 0.01) svgEl(g, 'rect', { x: x, y: plotB - sunH, width: bw, height: sunH, rx: 3, fill: '#eda100' });
-        if (r.grid > 0.01) svgEl(g, 'rect', { x: x, y: plotB - sunH - gridH - 1, width: bw, height: gridH, rx: 3, fill: '#e34948', opacity: 0.85 });
-        if (r.label) svgEl(svg, 'text', { x: x + bw / 2, y: height - 6, 'text-anchor': 'middle', 'font-size': 11, fill: '#94a3b8' }, r.label);
-        if (rows.length <= 7 && r.car >= 0.1) svgEl(svg, 'text', { x: x + bw / 2, y: plotB - sunH - gridH - 5, 'text-anchor': 'middle', 'font-size': 10, fill: '#475569' }, unitMiles ? String(Math.round(r.car)) : r.car.toFixed(1));
+        if (r.sun > 0.01) svgEl(g, 'rect', { x: x, y: plotB - sunH, width: bw, height: sunH, rx: 3, fill: cv('--solar') });
+        if (r.grid > 0.01) svgEl(g, 'rect', { x: x, y: plotB - sunH - gridH - 1, width: bw, height: gridH, rx: 3, fill: cv('--grid'), opacity: 0.85 });
+        if (r.label) svgEl(svg, 'text', { x: x + bw / 2, y: height - 6, 'text-anchor': 'middle', 'font-size': 11, fill: cv('--faint') }, r.label);
+        if (rows.length <= 7 && r.car >= 0.1) svgEl(svg, 'text', { x: x + bw / 2, y: plotB - sunH - gridH - 5, 'text-anchor': 'middle', 'font-size': 10, fill: cv('--sub') }, unitMiles ? String(Math.round(r.car)) : r.car.toFixed(1));
     });
     el('readout').textContent = range === '365' ? '' : 'Tap a day to see its curve.';
 }
@@ -1713,6 +1741,27 @@ el('mpk-input').addEventListener('change', () => {
     card.addEventListener('scroll', mark, { passive: true });
 })();
 applyUnits();
+
+// ---- theme: Match my phone (default), Light or Dark ----
+/** The saved choice: only 'light' or 'dark' are ever stored; anything else means follow the phone. */
+function themeChoice(v) { return v === 'light' || v === 'dark' ? v : 'auto'; }
+/** A colour from the current theme (the chart and the flow arrows are drawn in script, so they ask the page's own variables). */
+function cv(name) { return typeof getComputedStyle === 'function' ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#888' : '#888'; }
+function applyTheme() {
+    const choice = themeChoice(lsGet('theme')), root = document.documentElement;
+    if (choice === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', choice);
+    el('theme-select').value = choice;
+    const m = document.querySelector('meta[name=theme-color]');
+    if (m) m.setAttribute('content', cv('--theme-color') || '#2563eb');
+    if (lastData) { drawFlow(); redrawChartArea(); }   // drawn in script, so they need the new colours; with no data yet there is nothing to redraw
+}
+el('theme-select').addEventListener('change', () => {
+    const v = themeChoice(el('theme-select').value);
+    try { if (v === 'auto') localStorage.removeItem('theme'); else localStorage.setItem('theme', v); } catch (e) { /* not saved: still applies until the page is closed */ }
+    applyTheme();
+});
+try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme); } catch (e) { /* an old browser: the page follows the phone on its next load */ }
+applyTheme();
 ['goal-kwh', 'goal-time'].forEach(id => {
     el(id).addEventListener('input', () => {
         goalEdited = true;
