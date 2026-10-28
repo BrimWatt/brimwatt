@@ -13,3 +13,7 @@ Send with `wattsync-tesla-pitch.mp4` (46 s, made-up sample numbers; rebuild with
 Shorter version for a text message:
 
 > Hey [name], I built a little solar-charging box that can set a Tesla's charging current over Bluetooth, and I need a second Tesla to test it on. About 30 minutes once in your driveway, you tap your key card to approve it, and I remove the key afterwards if you like. No Tesla account involved. Here's a 45 s video. Would you be up for it? Totally fine to say no.
+
+Very short and informal:
+
+> Hey [name]! Quick favor: I built a little box that can control a Tesla's charging over Bluetooth, and I need a second Tesla to test it on. Takes about 30 min once, you just tap your key card to approve it, and I'll remove the key after. No Tesla account or anything. 45 sec video attached. Up for it? Totally fine if not!
