@@ -478,7 +478,7 @@ async function loadDiagnostics() {
         const ld = lastData || {};
         const rows = [['Setup check', '', 'head'],
             ['Solar meter', meterView(ld).diag, meterView(ld).diagCls],
-            ['Wallbox', ld.chargerConnected ? 'Connected' : 'Not connected yet', ld.chargerConnected ? 'ok' : 'warn'],
+            ['Charger', ld.chargerConnected ? 'Connected' : 'Not connected yet', ld.chargerConnected ? 'ok' : 'warn'],
             ['Clock', d.clockSet === false ? 'Waiting for network time' : 'Set', d.clockSet === false ? 'warn' : 'ok']];
         if (ld.enphaseOk === false && ld.meterLinked !== false && ld.enphaseMessage) rows.push(['Meter details', ld.enphaseMessage, 'warn']);
         rows.push(['About this device', '', 'head']);
