@@ -409,3 +409,75 @@ test('the chart and the flow arrows take their colours from the theme, not from 
     const js = html.slice(html.indexOf('</style>'));
     for (const literal of ['#eda100', '#e34948', '#2a78d6', '#898781', '#e5e7eb', '#dbeafe', '#f1f5f9']) assert.ok(!js.includes("'" + literal + "'"), literal + ' in the script');
 });
+
+// ---- waiting states: the reason in the title, the numbers, a countdown ----
+const idle = mutate => {
+    const d = base();
+    d.charger = { status: 'PREPARING', amps: 0, limitAmps: 0 };
+    d.controller.reason = 'waiting for surplus';
+    mutate(d);
+    return page.waitView(d);
+};
+
+test('countdowns are short and say nothing when there is no timer', () => {
+    assert.equal(page.fmtWait(-1), '');
+    assert.equal(page.fmtWait(undefined), '');
+    assert.equal(page.fmtWait(0), 'under a minute');
+    assert.equal(page.fmtWait(45), 'under a minute');
+    assert.equal(page.fmtWait(60), 'about 1 min');
+    assert.equal(page.fmtWait(130), 'about 2 min');
+});
+
+test('Eco: the house is using the solar, and the title says so', () => {
+    const v = idle(d => { d.power.solarWatts = 5000; d.power.homeWatts = 4900; d.controller.gridAllowanceWatts = 1000; });
+    assert.equal(v.title, 'Waiting: home is using the solar');
+    assert.equal(v.sub, 'Home is using 4.9 kW of your 5.0 kW solar. Needs 0.7 kW spare to start.');
+    assert.equal(v.cls, 'wait');
+});
+
+test('Eco: just stopped, the title says it is waiting to restart and for how long', () => {
+    const v = idle(d => { d.power.solarWatts = 5000; d.power.homeWatts = 4900; d.controller.gridAllowanceWatts = 1000; d.controller.waitSeconds = 70; });
+    assert.equal(v.title, 'Waiting to restart');
+    assert.match(v.sub, /Restart possible in about 1 min\./);
+});
+
+test('Max solar ignores the house and talks about the solar alone', () => {
+    const v = idle(d => { d.currentMode = 'MAX_SOLAR'; d.power.solarWatts = 100; d.power.homeWatts = 4200; d.controller.gridAllowanceWatts = 1000; });
+    assert.equal(v.title, 'Waiting for more solar');
+    assert.equal(v.sub, 'Solar is 0.1 kW. Needs about 0.4 kW to start.');
+});
+
+test('enough solar and the planner is confirming it lasts', () => {
+    const v = idle(d => { d.controller.reason = 'surplus present, confirming it lasts'; d.controller.waitSeconds = 120; });
+    assert.equal(v.title, 'Starting soon');
+    assert.equal(v.sub, 'Enough solar. Starts in about 2 min if it holds.');
+    assert.equal(idle(d => { d.controller.reason = 'surplus present, confirming it lasts'; }).sub, 'Enough solar. Starts shortly if it holds.');
+});
+
+test('night: waiting for sunrise', () => {
+    const v = idle(d => { d.daylight.open = false; });
+    assert.equal(v.title, 'Waiting for sunrise');
+});
+
+test('a dip while charging warns and counts down to the stop', () => {
+    const d = base();
+    d.controller.reason = 'dip: at the minimum, waiting before stopping';
+    d.controller.waitSeconds = 200;
+    d.power = { voltage: 240, solarWatts: 5000, homeWatts: 4600, chargerWatts: 1440, gridWatts: 0 };
+    d.charger = { status: 'CHARGING', amps: 6, limitAmps: 6 };
+    const v = page.waitView(d);
+    assert.equal(v.title, 'Low solar, charging at 6 A');
+    assert.equal(v.cls, 'warn');
+    assert.equal(v.sub, 'Home is using 4.6 kW of your 5.0 kW solar. Stops in about 3 min if it stays low.');
+    d.controller.reason = 'track surplus';
+    assert.equal(page.waitView(d), null);
+});
+
+test('waiting view stays out of the way for other states', () => {
+    assert.equal(idle(d => { d.paused = true; }), null);
+    assert.equal(idle(d => { d.currentMode = 'FAST'; }), null);
+    assert.equal(idle(d => { d.charger.status = 'AVAILABLE'; }), null);
+    assert.equal(idle(d => { d.charger.status = 'SUSPENDED_EV'; }), null);
+    assert.equal(idle(d => { d.controller.failSafe = true; }), null);
+    assert.equal(idle(d => { d.controller.hasReading = false; }), null);
+});

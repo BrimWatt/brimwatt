@@ -120,6 +120,31 @@ void test_eco_does_not_restart_during_the_minimum_off_time() {
     TEST_ASSERT_TRUE(later.back() >= 6);            // and then it starts again
 }
 
+void test_the_start_confirmation_counts_down_and_no_surplus_has_no_timer() {
+    Feed none(ChargingPolicy::eco());
+    TEST_ASSERT_EQUAL_INT(-1, none.tick(0).waitSeconds);    // no surplus: nothing to count
+    Feed f(ChargingPolicy::eco());
+    TEST_ASSERT_EQUAL_INT(180, f.tick(15).waitSeconds);     // the 3 minute confirmation has just begun
+    TEST_ASSERT_EQUAL_INT(120, f.tick(15).waitSeconds);
+}
+
+void test_the_dip_and_the_pause_after_a_stop_count_down() {
+    Feed f(ChargingPolicy::eco());
+    f.run(15, 6);                                           // charging
+    int previous = -1;
+    bool stopped = false;
+    for (int i = 0; i < 12 && !stopped; i++) {
+        auto d = f.tick(1);
+        if (d.amps == 0) { stopped = true; break; }
+        if (testing::contains(d.reason, "dip")) {
+            TEST_ASSERT_EQUAL_INT(previous > 0 ? previous - 60 : 300, d.waitSeconds);
+            previous = d.waitSeconds;
+        }
+    }
+    TEST_ASSERT_TRUE(stopped);
+    TEST_ASSERT_EQUAL_INT(60, f.tick(0.5).waitSeconds);     // one minute of the 2 minute pause is left
+}
+
 // ---- already-running charges ----
 
 void test_a_charge_found_running_is_adopted_not_stopped() {
@@ -239,6 +264,8 @@ void tearDown() {}
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_eco_waits_while_there_is_no_surplus);
+    RUN_TEST(test_the_start_confirmation_counts_down_and_no_surplus_has_no_timer);
+    RUN_TEST(test_the_dip_and_the_pause_after_a_stop_count_down);
     RUN_TEST(test_eco_starts_only_after_the_surplus_has_lasted_three_minutes);
     RUN_TEST(test_a_single_spike_never_starts_a_charge);
     RUN_TEST(test_eco_runs_at_the_minimum_through_a_dip_and_stops_after_five_minutes);

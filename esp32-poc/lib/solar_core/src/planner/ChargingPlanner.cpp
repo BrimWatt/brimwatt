@@ -74,13 +74,17 @@ int ChargingPlanner::topUpCandidate(double solarAmps, double topUpAmps) const {
 ChargingPlanner::Decision ChargingPlanner::whileIdle(int64_t now, int candidate, double smoothed) {
     if (candidate < policy_.startAmps) {
         aboveSince_.reset();
-        return {0, smoothed, "waiting for surplus"};
+        return {0, smoothed, "waiting for surplus", secondsLeft(static_cast<int64_t>(policy_.minOffMillis) - (now - stoppedAt_))};
     }
     if (!aboveSince_) aboveSince_ = now;
 
     bool sustained = now - *aboveSince_ >= static_cast<int64_t>(policy_.startSustainMillis);
     bool offLongEnough = now - stoppedAt_ >= static_cast<int64_t>(policy_.minOffMillis);
-    if (!sustained || !offLongEnough) return {0, smoothed, "surplus present, confirming it lasts"};
+    if (!sustained || !offLongEnough) {
+        int64_t left = std::max(static_cast<int64_t>(policy_.startSustainMillis) - (now - *aboveSince_),
+                                static_cast<int64_t>(policy_.minOffMillis) - (now - stoppedAt_));
+        return {0, smoothed, "surplus present, confirming it lasts", secondsLeft(left)};
+    }
 
     applied_ = clamp(candidate);
     lastLimitChange_ = now;
@@ -101,7 +105,9 @@ ChargingPlanner::Decision ChargingPlanner::whileCharging(int64_t now, int candid
             belowSince_.reset();
             return {0, smoothed, "stop: surplus below the minimum, would import more than the allowance"};
         }
-        return adjust(now, policy_.minAmps, smoothed, "dip: at the minimum, waiting before stopping", "dip: holding the minimum");
+        Decision d = adjust(now, policy_.minAmps, smoothed, "dip: at the minimum, waiting before stopping", "dip: holding the minimum");
+        d.waitSeconds = secondsLeft(static_cast<int64_t>(policy_.stopSustainMillis) - (now - *belowSince_));
+        return d;
     }
     belowSince_.reset();
     return adjust(now, clamp(candidate), smoothed, "track surplus", "no change");

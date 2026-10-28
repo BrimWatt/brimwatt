@@ -100,7 +100,7 @@ S += section("D. Max solar and mode switching", [
     (12, "Max solar ignores the house", "Switch to Max solar (the sun button) in daylight, with a big house load on (oven or dryer).",
      "It starts after about 3 minutes once solar plus the allowance can reach 6 A, and charges at roughly the solar output whatever the house uses (anything the house needs beyond the panels comes from the grid). With 1 kW of sun and a 600 W allowance it charges at 6 A; with 0 W allowance and the same sun it stays off. After the sun is gone for 5 minutes it stops.", False),
     (12.5, "Home load only matters in Eco", "In Eco switch on a big load, then do the same in Max solar.",
-     "Eco lowers and stops (the headline says <i>Home is using the solar</i>); Max solar keeps following the panels and never mentions the house.", False),
+     "Eco lowers and stops (the headline says <i>Waiting: home is using the solar</i> or <i>Low solar, charging at 6 A</i>); Max solar keeps following the panels and never mentions the house.", False),
     (13, "Switch while charging", "Switch Custom to ECO during a charge, then back.",
      "On the first reading it adjusts to what surplus supports, with no stop and start gap and no leftover value from the old mode.", False)])
 
@@ -158,7 +158,7 @@ S += section("J. Dashboard feedback", [
     (32, "On the phone", "Open the dashboard on your iPhone.",
      "Order is power, then mode controls, then status. Buttons are easy to tap and nothing scrolls sideways.", False),
     (33, "Headline explains why", "Look at the headline in Eco, Max solar and Custom.",
-     "The headline says what is happening in plain words (<i>Charging at 10 A</i> with <i>Using 2.40 kW: 2.03 kW from the sun</i> under it, or the reason it is not charging). Switch on a big load (oven) in Eco while the sun is out and it says <i>Home is using the solar</i>; under cloud or at dusk it says <i>Not enough solar yet</i>. The pill at the top is green <i>Live</i>; unplug the Envoy in the daytime and after a few minutes it turns amber and reads <i>Meter 5m old</i>.", False),
+     "The headline says what is happening in plain words (<i>Charging at 10 A</i> with <i>Using 2.40 kW: 2.03 kW from the sun</i> under it, or the reason it is not charging). Switch on a big load (oven) in Eco while the sun is out and it says <i>Waiting: home is using the solar</i> (or <i>Low solar, charging at 6 A</i> with a countdown while it is still charging); under cloud it says <i>Waiting for more solar</i>, and at dusk <i>Waiting for sunrise</i>. The pill at the top is green <i>Live</i>; unplug the Envoy in the daytime and after a few minutes it turns amber and reads <i>Meter 5m old</i>.", False),
     (34, "Custom still shows live meters", "Choose Custom while the car is charging, by day or by night.",
      "Solar, Home and Grid show real values and <i>Updated ... ago</i>. The log shows <font face='Courier'>[FAST]</font> lines. "
      "Nothing is sent to the charger because of them, and unplugging the Envoy shows an error line but never a fail-safe.", False),

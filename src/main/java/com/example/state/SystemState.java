@@ -28,7 +28,13 @@ public class SystemState {
 
     /** Result of the latest control decision, shown on the dashboard. */
     public record Control(double availableAmps, double smoothedAmps, int targetAmps, String reason,
-                          double gridWatts, long readingAtMillis) {}
+                          double gridWatts, long readingAtMillis, int waitSeconds) {
+        /** No timer is running (-1), as in Custom, paused or a departure goal. */
+        public Control(double availableAmps, double smoothedAmps, int targetAmps, String reason,
+                       double gridWatts, long readingAtMillis) {
+            this(availableAmps, smoothedAmps, targetAmps, reason, gridWatts, readingAtMillis, -1);
+        }
+    }
 
     private volatile Control control;
     private volatile boolean failSafe;

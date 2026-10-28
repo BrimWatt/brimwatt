@@ -23,6 +23,7 @@ public:
         int amps;               // target current, 0 meaning "not charging"
         double smoothedAmps;
         std::string reason;
+        int waitSeconds = -1;   // seconds until a start (confirming, or the pause after a stop) or a stop (dip) can happen; -1 = no timer
     };
 
     explicit ChargingPlanner(ChargingPolicy policy) : policy_(policy), ceilingAmps_(policy.maxAmps) { reset(0, std::nullopt); }
@@ -57,6 +58,7 @@ private:
     Decision whileCharging(int64_t now, int candidate, double smoothed);
     Decision adjust(int64_t now, int desired, double smoothed, const char* reason, const char* unchangedReason);
     int clamp(int amps) const;
+    static int secondsLeft(int64_t millisLeft) { return millisLeft > 0 ? static_cast<int>((millisLeft + 999) / 1000) : -1; }
 
     ChargingPolicy policy_;
     int ceilingAmps_;   // the policy's own maximum; the installation's limit can only lower it

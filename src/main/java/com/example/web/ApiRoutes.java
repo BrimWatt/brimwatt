@@ -613,6 +613,10 @@ public class ApiRoutes {
         controller.put("reason", control == null ? "waiting for first reading" : control.reason());
         controller.put("readingAgeSeconds",
                 control == null ? -1 : (System.currentTimeMillis() - control.readingAtMillis()) / 1000);
+        // Seconds until the controller may start or stop on its own, counted from the latest reading (-1: no timer running).
+        long waitLeft = control == null || control.waitSeconds() < 0 ? -1
+                : Math.max(0, control.waitSeconds() - (System.currentTimeMillis() - control.readingAtMillis()) / 1000);
+        controller.put("waitSeconds", waitLeft);
         // ECO and MAX_SOLAR both use the allowance; Custom (FAST) ignores it.
         controller.put("gridAllowanceWatts", state.mode() != ChargingMode.FAST ? state.gridAllowanceWatts() : 0);
         controller.put("failSafe", state.failSafe());

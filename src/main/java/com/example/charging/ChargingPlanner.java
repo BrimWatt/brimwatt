@@ -12,8 +12,14 @@ package com.example.charging;
  */
 public class ChargingPlanner {
 
-    /** @param amps target current, 0 meaning "not charging" */
-    public record Decision(int amps, double smoothedAmps, String reason) {}
+    /**
+     * @param amps        target current, 0 meaning "not charging"
+     * @param waitSeconds seconds until a start (while confirming, or the pause after a stop) or a stop (during a dip) can
+     *                    happen if nothing changes; -1 when no timer is running
+     */
+    public record Decision(int amps, double smoothedAmps, String reason, int waitSeconds) {
+        public Decision(int amps, double smoothedAmps, String reason) { this(amps, smoothedAmps, reason, -1); }
+    }
 
     /** Lets a smoothed value that is converging on a whole number (19.9 -> 20) round to it. */
     private static final double ROUNDING_TOLERANCE_AMPS = 0.25;
@@ -129,14 +135,15 @@ public class ChargingPlanner {
     private Decision whileIdle(long now, int candidate, double smoothed) {
         if (candidate < policy.startAmps()) {
             aboveSince = -1;
-            return new Decision(0, smoothed, "waiting for surplus");
+            return new Decision(0, smoothed, "waiting for surplus", secondsLeft(policy.minOffMillis() - (now - stoppedAt)));
         }
         if (aboveSince < 0) aboveSince = now;
 
         boolean sustained = now - aboveSince >= policy.startSustainMillis();
         boolean offLongEnough = now - stoppedAt >= policy.minOffMillis();
         if (!sustained || !offLongEnough) {
-            return new Decision(0, smoothed, "surplus present, confirming it lasts");
+            long left = Math.max(policy.startSustainMillis() - (now - aboveSince), policy.minOffMillis() - (now - stoppedAt));
+            return new Decision(0, smoothed, "surplus present, confirming it lasts", secondsLeft(left));
         }
         applied = clamp(candidate);
         lastLimitChange = now;
@@ -157,7 +164,8 @@ public class ChargingPlanner {
                 belowSince = -1;
                 return new Decision(0, smoothed, "stop: surplus below the minimum, would import more than the allowance");
             }
-            return adjust(now, policy.minAmps(), smoothed, "dip: at the minimum, waiting before stopping", "dip: holding the minimum");
+            Decision d = adjust(now, policy.minAmps(), smoothed, "dip: at the minimum, waiting before stopping", "dip: holding the minimum");
+            return new Decision(d.amps(), d.smoothedAmps(), d.reason(), secondsLeft(policy.stopSustainMillis() - (now - belowSince)));
         }
         belowSince = -1;
         return adjust(now, clamp(candidate), smoothed, "track surplus", "no change");
@@ -176,6 +184,11 @@ public class ChargingPlanner {
             return new Decision(applied, smoothed, reason);
         }
         return new Decision(applied, smoothed, unchangedReason);
+    }
+
+    /** Whole seconds left on a timer, or -1 when it has run out (nothing to count down). */
+    private static int secondsLeft(long millisLeft) {
+        return millisLeft > 0 ? (int) Math.ceil(millisLeft / 1000.0) : -1;
     }
 
     private int clamp(int amps) {

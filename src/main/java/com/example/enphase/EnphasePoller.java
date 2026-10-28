@@ -301,7 +301,7 @@ public class EnphasePoller {
                 Math.round(allowanceWatts), String.format("%.1f", availableAmps), String.format("%.1f", decision.smoothedAmps()),
                 decision.amps(), decision.reason());
         state.setControl(new SystemState.Control(availableAmps, decision.smoothedAmps(), decision.amps(),
-                decision.reason(), netGridWatts, now));
+                decision.reason(), netGridWatts, now, decision.waitSeconds()));
         wallbox.setCommandContext(reasonForLimit(decision.amps(), wallbox.currentLimitAmps(), solarWatts, mode));
         wallbox.sendChargingLimit(decision.amps());
         wallbox.setCommandContext("");
