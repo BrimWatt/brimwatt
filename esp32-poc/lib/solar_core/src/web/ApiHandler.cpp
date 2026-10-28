@@ -673,6 +673,7 @@ HttpResponse ApiHandler::telemetry() {
     goal["forcedAmps"] = state.goalForcedAmps();
     doc["gridAllowanceWatts"] = state.gridAllowanceWatts();
     doc["chargerConnected"] = connected;
+    doc["meterLinked"] = meterLinked_;
     doc["enphaseOk"] = state.enphaseOk();
     doc["enphaseMessage"] = state.enphaseMessage();
 

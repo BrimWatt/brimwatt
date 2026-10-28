@@ -833,6 +833,13 @@ public:
     bool setClock(int64_t epoch) override { clockWasSet = true; clockValue = epoch; return acceptsClock; }
 };
 
+void test_telemetry_says_whether_a_solar_meter_is_linked() {
+    Rig r;
+    TEST_ASSERT_TRUE(r.telemetry()["meterLinked"].as<bool>());   // linked unless the board says otherwise
+    r.api.setMeterLinked(false);
+    TEST_ASSERT_FALSE(r.telemetry()["meterLinked"].as<bool>());
+}
+
 void test_with_tesla_mode_off_nothing_talks_to_the_car_but_the_key_can_be_forgotten() {
     Rig r;
     FakeCar car;
@@ -1066,6 +1073,7 @@ int main() {
     RUN_TEST(test_sessions_can_be_paged_with_an_offset);
     RUN_TEST(test_diagnostics_are_404_without_a_source_and_list_only_what_the_platform_knows);
     RUN_TEST(test_unknown_paths_and_wrong_methods_are_not_found);
+    RUN_TEST(test_telemetry_says_whether_a_solar_meter_is_linked);
     RUN_TEST(test_with_tesla_mode_off_nothing_talks_to_the_car_but_the_key_can_be_forgotten);
     RUN_TEST(test_tesla_mode_needs_confirmation_then_saves_and_restarts);
     RUN_TEST(test_in_tesla_mode_the_charger_cannot_be_chosen_back);
