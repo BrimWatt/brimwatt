@@ -690,7 +690,7 @@ public:
 void test_car_endpoints_say_not_supported_without_a_car_link() {
     Rig r;
     TEST_ASSERT_FALSE(r.telemetry()["car"]["supported"].as<bool>());
-    HttpResponse reply = r.post("/api/car/pair", {{"vin", "5YJYGDEE2MF284667"}});
+    HttpResponse reply = r.post("/api/car/pair", {{"vin", "5YJ3E1EA8KF000001"}});
     TEST_ASSERT_EQUAL(400, reply.status);
     TEST_ASSERT_TRUE(reply.body.find("ESP32") != std::string::npos);
     TEST_ASSERT_EQUAL(400, r.post("/api/car/test", {{"action", "stop"}}).status);
@@ -728,7 +728,7 @@ void test_telemetry_shows_the_car_without_the_vin_or_key() {
     TEST_ASSERT_EQUAL(18, c["restoreAmps"].as<int>());
     TEST_ASSERT_TRUE(c["pair"].isNull());                       // only while pairing
     HttpResponse raw = r.api.handle("GET", "/api/telemetry", {});
-    TEST_ASSERT_TRUE(raw.body.find("5YJYGDEE") == std::string::npos);   // the whole VIN never appears
+    TEST_ASSERT_TRUE(raw.body.find("5YJ3E1EA") == std::string::npos);   // the whole VIN never appears
 }
 
 void test_pairing_progress_and_the_last_result_are_in_telemetry() {
@@ -757,11 +757,11 @@ void test_pairing_cleans_and_checks_the_vin_and_never_echoes_it() {
     Rig r;
     FakeCar car;
     r.api.setCar(&car);
-    TEST_ASSERT_EQUAL(200, r.post("/api/car/pair", {{"vin", " 5yj-ygdee2 mf284667 "}}).status);
-    testing::check("5YJYGDEE2MF284667", car.lastVin);          // spaces and dashes dropped, capitals
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/pair", {{"vin", " 5yj-3e1ea8 kf000001 "}}).status);
+    testing::check("5YJ3E1EA8KF000001", car.lastVin);          // spaces and dashes dropped, capitals
     testing::check("pair", car.lastCall);
     car.lastCall.clear();
-    for (const char* bad : {"", "5YJYGDEE2MF28466", "5YJYGDEE2MF2846677", "5YJYGDEE2MF28466O", "5YJYGDEE2MF28466!"}) {
+    for (const char* bad : {"", "5YJ3E1EA8KF00000", "5YJ3E1EA8KF0000017", "5YJ3E1EA8KF00000O", "5YJ3E1EA8KF00000!"}) {
         HttpResponse reply = r.post("/api/car/pair", {{"vin", bad}});
         TEST_ASSERT_EQUAL(400, reply.status);
         TEST_ASSERT_TRUE(reply.body.find(bad[0] ? bad : "@@") == std::string::npos);   // not echoed
@@ -769,7 +769,7 @@ void test_pairing_cleans_and_checks_the_vin_and_never_echoes_it() {
     TEST_ASSERT_EQUAL(400, r.post("/api/car/pair", {}).status);
     testing::check("", car.lastCall);                           // nothing started
     car.refuseBusy = true;
-    TEST_ASSERT_EQUAL(409, r.post("/api/car/pair", {{"vin", "5YJYGDEE2MF284667"}}).status);
+    TEST_ASSERT_EQUAL(409, r.post("/api/car/pair", {{"vin", "5YJ3E1EA8KF000001"}}).status);
 }
 
 void test_the_test_commands_need_a_paired_car_and_check_their_values() {
@@ -812,7 +812,7 @@ void test_watch_cancel_and_forget_work_and_car_posts_need_the_safe_header() {
     car.lastCall.clear();
     car.snap.paired = true;
     for (const char* path : {"/api/car/forget", "/api/car/test", "/api/car/pair", "/api/car/cancel", "/api/car/watch", "/api/car/refresh", "/api/car/through", "/api/car/policy"}) {
-        TEST_ASSERT_EQUAL(403, r.api.handle("POST", path, {{"action", "stop"}, {"vin", "5YJYGDEE2MF284667"}, {"enabled", "true"}}, false).status);
+        TEST_ASSERT_EQUAL(403, r.api.handle("POST", path, {{"action", "stop"}, {"vin", "5YJ3E1EA8KF000001"}, {"enabled", "true"}}, false).status);
     }
     testing::check("", car.lastCall);
     TEST_ASSERT_EQUAL(404, r.api.handle("GET", "/api/car/forget", {}).status);          // wrong method
@@ -848,7 +848,7 @@ void test_with_tesla_mode_off_nothing_talks_to_the_car_but_the_key_can_be_forgot
     r.api.setTeslaMode(&mode);
     car.snap.paired = true;
     for (const char* path : {"/api/car/pair", "/api/car/refresh", "/api/car/test", "/api/car/watch", "/api/car/wake", "/api/car/through", "/api/car/policy", "/api/car/allowwake", "/api/car/cancel"}) {
-        HttpResponse reply = r.post(path, {{"action", "stop"}, {"vin", "5YJYGDEE2MF284667"}, {"enabled", "true"}, {"mode", "car"}, {"confirm", "yes"}, {"onReturn", "keep"}});
+        HttpResponse reply = r.post(path, {{"action", "stop"}, {"vin", "5YJ3E1EA8KF000001"}, {"enabled", "true"}, {"mode", "car"}, {"confirm", "yes"}, {"onReturn", "keep"}});
         TEST_ASSERT_EQUAL(400, reply.status);
         TEST_ASSERT_TRUE(reply.body.find("Tesla mode is off") != std::string::npos);
     }
