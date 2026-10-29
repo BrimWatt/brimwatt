@@ -250,9 +250,9 @@ test('pairing progress tells the owner when to tap the key card', () => {
 
 test('the VIN is checked in the page the same way as on the board, and travels in the body, not the address', () => {
     const cleanVin = read('cleanVin'), VIN_OK = read('VIN_OK');   // top-level consts are not properties of the context
-    assert.equal(cleanVin(' 5yj-ygdee2 mf284667 '), '5YJYGDEE2MF284667');
-    assert.ok(VIN_OK.test('5YJYGDEE2MF284667'));
-    for (const bad of ['', '5YJYGDEE2MF28466', '5YJYGDEE2MF28466O', '5YJYGDEE2MF28466I', '5YJYGDEE2MF28466Q', '5YJYGDEE2MF28466!']) assert.ok(!VIN_OK.test(bad), bad);
+    assert.equal(cleanVin(' 5yj-3e1ea8 kf000001 '), '5YJ3E1EA8KF000001');
+    assert.ok(VIN_OK.test('5YJ3E1EA8KF000001'));
+    for (const bad of ['', '5YJ3E1EA8KF00000', '5YJ3E1EA8KF00000O', '5YJ3E1EA8KF00000I', '5YJ3E1EA8KF00000Q', '5YJ3E1EA8KF00000!']) assert.ok(!VIN_OK.test(bad), bad);
     assert.ok(!/api\/car\/pair\?/.test(html), 'the VIN must never be put in a URL');
     assert.match(script, /carStart\('\/api\/car\/pair', \{ vin \}/);
     assert.match(script, /fields \? await postForm\(url, fields\)/, 'fields go through the body helper');
