@@ -524,3 +524,25 @@ test('the graph ends where the daylight window ends, so the shaded hours reach b
 test('the graph never starts before the day itself', () => {
     assert.equal(page.chartSpan(dayWith(0))[0], 0);
 });
+
+test('quiet overnight readings do not stretch the graph, but a night charge does', () => {
+    const quiet = [[H(0), 0, 300, 300, 0, 0, 0], [H(3), 0, 320, 320, 0, 0, 0]];
+    const day = [[H(7.7), 200, 300, 100, 0, 0, 0], [H(14.5), 5000, 400, -4000, 0, 0, 0]];
+    assert.equal(page.chartSpan(dayWith(0, { samples: quiet.concat(day) }))[0], H(7.7) - 300);
+    const nightCharge = [[H(0), 0, 300, 300, 0, 0, 0], [H(1), 0, 300, 7500, 7200, 0, 1]];
+    assert.equal(page.chartSpan(dayWith(0, { samples: nightCharge.concat(day) }))[0], H(1) - 300);
+});
+
+test('a running charge counts as activity, a pause alone does not', () => {
+    const charging = [[H(2), 0, 300, 300, 0, 0, 1], [H(8), 100, 300, 200, 0, 0, 0]];
+    assert.equal(page.chartSpan(dayWith(0, { samples: charging }))[0], H(2) - 300);
+    const paused = [[H(2), 0, 300, 300, 0, 0, 2], [H(8), 10, 300, 290, 0, 0, 0]];
+    assert.equal(page.chartSpan(dayWith(0, { samples: paused }))[0], H(2) - 300);   // nothing active at all: starts at the first reading
+    const pausedThenSun = [[H(2), 0, 300, 300, 0, 0, 2], [H(8), 400, 300, -100, 0, 0, 0]];
+    assert.equal(page.chartSpan(dayWith(0, { samples: pausedThenSun }))[0], H(8) - 300);
+});
+
+test('a day with no active reading starts at its first reading', () => {
+    const none = [[H(3), 0, 300, 300, 0, 0, 0], [H(14.5), 10, 300, 290, 0, 0, 0]];
+    assert.equal(page.chartSpan(dayWith(0, { samples: none }))[0], H(3) - 300);
+});
