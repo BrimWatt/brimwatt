@@ -515,9 +515,9 @@ test('the graph starts just before the first reading', () => {
     assert.equal(page.chartSpan(dayWith(9))[0], H(9) - 300);
 });
 
-test('the graph ends an hour after the daylight window, or just past now if later', () => {
-    assert.equal(page.chartSpan(dayWith(7.5))[1], H(18));
-    assert.equal(page.chartSpan(dayWith(7.5, { now: H(19.2), samples: [[H(7.5), 0, 0, 0, 0, 0, 0], [H(19.2), 1, 1, 0, 0, 0, 0]] }))[1], H(20));
+test('the graph ends where the daylight window ends, so the shaded hours reach both edges', () => {
+    assert.equal(page.chartSpan(dayWith(7.5))[1], H(17));
+    assert.equal(page.chartSpan(dayWith(7.5, { now: H(19.2), samples: [[H(7.5), 0, 0, 0, 0, 0, 0], [H(19.2), 1, 1, 0, 0, 0, 0]] }))[1], H(19.2) + 600);   // later readings are never cut off
     assert.equal(page.chartSpan(dayWith(7.5, { daylight: null }))[1], H(20));
 });
 

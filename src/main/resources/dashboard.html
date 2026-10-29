@@ -1386,15 +1386,15 @@ function exportFloor(minGridWatts, ymax) {
 }
 
 /**
- * The time span the day graph covers: from just before the day's first reading (often the start of the solar hours) to an hour
- * after the daylight window ends or just past now, whichever is later.
+ * The time span the day graph covers: from just before the day's first reading (often the start of the solar hours) to the end of
+ * the daylight window, or just past the latest reading if that is later, so the shaded solar hours reach both edges.
  */
 function chartSpan(h) {
     const day0 = h.dayStart, first = h.samples[0][0];
     let hi = day0 + 20 * 3600;
-    if (h.daylight) hi = h.daylight.end + 3600;
+    if (h.daylight) hi = h.daylight.end;
     hi = Math.max(hi, (h.daysAgo > 0 ? 0 : h.now) + 600, h.samples[h.samples.length - 1][0] + 300);
-    return [Math.max(day0, first - 300), Math.min(day0 + 86400, Math.ceil(hi / 3600) * 3600)];
+    return [Math.max(day0, first - 300), Math.min(day0 + 86400, hi)];
 }
 
 function drawChart(h) {
