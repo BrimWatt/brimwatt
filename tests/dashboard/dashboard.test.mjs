@@ -481,3 +481,25 @@ test('waiting view stays out of the way for other states', () => {
     assert.equal(idle(d => { d.controller.failSafe = true; }), null);
     assert.equal(idle(d => { d.controller.hasReading = false; }), null);
 });
+
+// ---- the day graph: export hangs below zero only on days that have some ----
+test('the chart has no room below zero unless there is export', () => {
+    assert.equal(page.exportFloor(0, 8000), 0);
+    assert.equal(page.exportFloor(60, 8000), 0);            // import only
+    assert.equal(page.exportFloor(-50, 8000), 0);           // a trickle is not worth the space
+    assert.equal(page.exportFloor(-2400, 8000), -3000);
+    assert.equal(page.exportFloor(-900, 8000), -1000);
+});
+
+test('export never takes more than half the height of the top side', () => {
+    assert.equal(page.exportFloor(-20000, 8000), -4000);
+    assert.equal(page.exportFloor(-20000, 10000), -5000);
+});
+
+test('the new graph colours exist in every palette and the dark ones are not the near-invisible greys', () => {
+    const html = fs.readFileSync(new URL('../../src/main/resources/dashboard.html', import.meta.url), 'utf8');
+    for (const v of ['--homeline', '--stop', '--zero']) {
+        assert.equal((html.match(new RegExp(v + ':', 'g')) || []).length, 3, v + ' must be in the light palette and both dark ones');
+    }
+    assert.ok(!/--line: #263244/.test(html) && !/--ribbon: #1b2638/.test(html) && !/--band: #1e3a5f/.test(html), 'old dark greys are gone');
+});
