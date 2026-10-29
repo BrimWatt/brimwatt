@@ -210,7 +210,10 @@ The project is a git repository (created 2026-10-23; before that it was not unde
 main                            current work
 before-setup-network            branch: the code as it was before the ESP32 setup network
 snapshot-before-setup-network   tag on that same commit (a fixed marker; a branch can move, a tag does not)
+before-tesla-car-control        tag on main as it was before the Tesla work was merged (2026-10-29, fast-forward; roll back with git checkout before-tesla-car-control)
 ```
+
+The `tesla-car-control` branch (Tesla pairing, status, charge commands, Tesla mode, Control through: Car, the profile isolation, the Settings redesign, dark theme, waiting headline, new day graph) was merged into `main` on 2026-10-29 after a review (secrets scan of the whole history, all three test suites, route registration check). Nothing has been pushed (there is no remote).
 
 - `before-setup-network` is a **reconstruction**. Nothing had been saved before the setup network was added, so the old code was rebuilt by undoing each of
   those edits (every undo checked against the current text). The rebuilt code builds as firmware and passes the 206 host tests that existed then.
