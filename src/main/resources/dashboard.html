@@ -14,27 +14,27 @@
     <script id="theme-boot">try { var t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) { /* follows the phone */ }</script>
     <style>
         :root { --bg: #f4f6f9; --card: #fff; --ink: #1f2937; --muted: #64748b; --line: #e2e8f0; --blue: #2563eb; --link: #2563eb;
-                --green: #047857; --green-fill: #047857; --red: #b91c1c; --solar: #eda100; --car: #2a78d6; --home: #898781; --grid: #e34948;
+                --green: #047857; --green-fill: #047857; --red: #b91c1c; --solar: #eda100; --car: #2a78d6; --home: #898781; --homeline: #7c3aed; --stop: #94a3b8; --zero: #94a3b8; --grid: #e34948;
                 --soft: #eef1f4; --field: #fff; --bd2: #cbd5e1; --tint: #f8fafc; --btn: #eaedf1; --btnh: #e2e6ea; --btn-tx: #374151; --sub: #475569; --faint: #94a3b8;
                 --ok-bg: #def7ec; --ok-tx: #03543f; --bad-bg: #ffe3e3; --bad-tx: #b91c1c; --bad-hover: #fecaca; --warn-bg: #fef3c7; --warn-tx: #92400e; --tesla-bg: #ede9fe; --tesla-tx: #5b21b6;
                 --info-bg: #eef2ff; --info-btn: #e0e7ff; --info-tx: #3730a3; --info-hover: #c7d2fe; --accent-bd: #bfdbfe; --chip-on-bg: #dbeafe; --chip-on-bd: #93c5fd; --chip-on-tx: #1e40af;
                 --band: #dbeafe; --ribbon: #f1f5f9; --theme-color: #2563eb;
                 color-scheme: light dark; }
         :root[data-theme="light"] { color-scheme: light; }
-        :root[data-theme="dark"] { --bg: #0b1220; --card: #151e2e; --ink: #e5e7eb; --muted: #94a3b8; --line: #263244; --blue: #2563eb; --link: #60a5fa;
-                --green: #34d399; --green-fill: #047857; --red: #f87171; --solar: #f5b82e; --car: #5aa0ee; --home: #9ca3af; --grid: #f26a6a;
+        :root[data-theme="dark"] { --bg: #0b1220; --card: #151e2e; --ink: #e5e7eb; --muted: #94a3b8; --line: #334155; --blue: #2563eb; --link: #60a5fa;
+                --green: #34d399; --green-fill: #047857; --red: #f87171; --solar: #f5b82e; --car: #5aa0ee; --home: #9ca3af; --homeline: #a78bfa; --stop: #64748b; --zero: #64748b; --grid: #f26a6a;
                 --soft: #222d3d; --field: #0f1827; --bd2: #3a4a60; --tint: #1b2638; --btn: #243146; --btnh: #2c3a52; --btn-tx: #e5e7eb; --sub: #cbd5e1; --faint: #94a3b8;
                 --ok-bg: #064e3b; --ok-tx: #a7f3d0; --bad-bg: #4a1519; --bad-tx: #fca5a5; --bad-hover: #5b1d22; --warn-bg: #3b2a08; --warn-tx: #fcd34d; --tesla-bg: #2e1065; --tesla-tx: #ddd6fe;
                 --info-bg: #1b2745; --info-btn: #26345c; --info-tx: #a5b4fc; --info-hover: #31427a; --accent-bd: #2b4c85; --chip-on-bg: #1e3a8a; --chip-on-bd: #3b5bb5; --chip-on-tx: #bfdbfe;
-                --band: #1e3a5f; --ribbon: #1b2638; --theme-color: #0b1220;
+                --band: #2a5282; --ribbon: #2a374d; --theme-color: #0b1220;
                 color-scheme: dark; }
         @media (prefers-color-scheme: dark) {
-            :root:not([data-theme="light"]) { --bg: #0b1220; --card: #151e2e; --ink: #e5e7eb; --muted: #94a3b8; --line: #263244; --blue: #2563eb; --link: #60a5fa;
-                --green: #34d399; --green-fill: #047857; --red: #f87171; --solar: #f5b82e; --car: #5aa0ee; --home: #9ca3af; --grid: #f26a6a;
+            :root:not([data-theme="light"]) { --bg: #0b1220; --card: #151e2e; --ink: #e5e7eb; --muted: #94a3b8; --line: #334155; --blue: #2563eb; --link: #60a5fa;
+                --green: #34d399; --green-fill: #047857; --red: #f87171; --solar: #f5b82e; --car: #5aa0ee; --home: #9ca3af; --homeline: #a78bfa; --stop: #64748b; --zero: #64748b; --grid: #f26a6a;
                 --soft: #222d3d; --field: #0f1827; --bd2: #3a4a60; --tint: #1b2638; --btn: #243146; --btnh: #2c3a52; --btn-tx: #e5e7eb; --sub: #cbd5e1; --faint: #94a3b8;
                 --ok-bg: #064e3b; --ok-tx: #a7f3d0; --bad-bg: #4a1519; --bad-tx: #fca5a5; --bad-hover: #5b1d22; --warn-bg: #3b2a08; --warn-tx: #fcd34d; --tesla-bg: #2e1065; --tesla-tx: #ddd6fe;
                 --info-bg: #1b2745; --info-btn: #26345c; --info-tx: #a5b4fc; --info-hover: #31427a; --accent-bd: #2b4c85; --chip-on-bg: #1e3a8a; --chip-on-bd: #3b5bb5; --chip-on-tx: #bfdbfe;
-                --band: #1e3a5f; --ribbon: #1b2638; --theme-color: #0b1220;
+                --band: #2a5282; --ribbon: #2a374d; --theme-color: #0b1220;
                 color-scheme: dark; }
         }
         * { box-sizing: border-box; }
@@ -91,7 +91,7 @@
         .ft small { display: block; font-size: 0.72rem; color: var(--muted); min-height: 1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .ft.solar { --c: var(--solar); grid-column: 1; grid-row: 1; }
         .ft.grid { --c: var(--grid); grid-column: 2; grid-row: 1; }
-        .ft.home { --c: var(--home); grid-column: 1; grid-row: 5; }
+        .ft.home { --c: var(--homeline); grid-column: 1; grid-row: 5; }
         .ft.car { --c: var(--car); grid-column: 2; grid-row: 5; }
         .ft.grid.export { --c: var(--green); }
         .ft.grid b.import { color: var(--warn-tx); } .ft.grid b.export { color: var(--green); }
@@ -148,7 +148,7 @@
         .chip { min-height: 30px; padding: 0 10px; font-size: 0.78rem; border-radius: 999px; background: var(--info-bg); color: var(--link); }
         .chip[hidden] { display: none; }
         .summary { margin: 0 0 6px; font-size: 0.82rem; color: var(--ink); font-variant-numeric: tabular-nums; }
-        .summary b { font-weight: 700; } .summary .sv { color: var(--green); }
+        .summary b { font-weight: 700; } .summary .imp { color: var(--warn-tx); } .summary .si { display: inline-block; margin-right: 12px; white-space: nowrap; } .summary .sv { color: var(--green); }
         .legend[hidden], .summary[hidden] { display: none; }
         #chartcard { display: flex; flex-direction: column; }
         #chart { position: relative; flex: 1 1 180px; min-height: 180px; max-width: 100%; overflow: hidden; }
@@ -358,7 +358,7 @@
                 <button role="tab" id="tab-365" aria-selected="false" onclick="setRange('365')">Year</button>
             </div>
             <div class="charthead"><h2 id="chart-title">Today</h2><button id="chart-back" class="chip" hidden onclick="backToRange()">‹ Back</button></div>
-            <div class="legend" id="legend-curve"><span><i style="background:var(--solar)"></i>Solar</span><span><i style="background:var(--car)"></i>Car</span><span><i style="background:var(--home)"></i>Home</span><span><i style="background:var(--grid)"></i>From the grid</span></div>
+            <div class="legend" id="legend-curve"><span><i style="background:var(--solar)"></i>Solar</span><span><i style="background:var(--car)"></i>Car</span><span><i style="background:var(--homeline)"></i>Home</span><span><i style="background:var(--grid)"></i>From the grid</span><span><i style="background:var(--green)"></i>To the grid</span></div>
             <div class="legend" id="legend-bars" hidden><span>Charging the car used:<button type="button" class="info" data-tip="bars" aria-label="What do the bars show?">i</button></span><span><i style="background:var(--solar)"></i>☀️ Sun</span><span><i style="background:var(--grid)"></i>🔌 Grid</span></div>
             <div id="range-summary" class="summary" hidden></div>
             <div id="chart"><div class="empty">Collecting data…</div></div>
@@ -1289,7 +1289,7 @@ function drawFlow() {
     svg.innerHTML = '';
     const draw = (x1, y1, x2, y2, watts, color) => {
         const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len, nx = -uy, ny = ux;
-        const on = watts >= 30, c = on ? color : cv('--bd2'), sw = thick(watts), head = 4 + sw;
+        const on = watts >= 30, c = on ? color : cv('--stop'), sw = thick(watts), head = 4 + sw;
         svgEl(svg, 'line', { x1, y1, x2: x2 - ux * head * 0.6, y2: y2 - uy * head * 0.6, stroke: c, 'stroke-width': sw, 'stroke-linecap': 'round', 'stroke-dasharray': on ? '' : '4 4' });
         const bx = x2 - ux * head, by = y2 - uy * head;
         const pts = [[x2, y2], [bx + nx * head * 0.6, by + ny * head * 0.6], [bx - nx * head * 0.6, by - ny * head * 0.6]];
@@ -1377,30 +1377,44 @@ function svgEl(parent, tag, attrs, text) {
 }
 function niceMax(w) { const steps = [1000, 2000, 3000, 4000, 5000, 6000, 8000, 10000, 12000]; for (const s of steps) if (w <= s) return s; return Math.ceil(w / 2000) * 2000; }
 
+/** The lowest value (watts, zero or negative) of the chart: room for export only on days that have some, never more than half the top side. */
+function exportFloor(minGridWatts, ymax) {
+    const room = Math.min(-minGridWatts, ymax / 2);
+    return room >= 100 ? -niceMax(room) : 0;
+}
+
 function drawChart(h) {
     const box = el('chart');
-    if (!h || !h.samples.length) { box.innerHTML = '<div class="empty">' + (h && h.daysAgo > 0 ? 'No data for this day.' : 'Collecting data… the first points appear within a minute or two.') + '</div>'; return; }
+    if (!h || !h.samples.length) { el('range-summary').hidden = true; box.innerHTML = '<div class="empty">' + (h && h.daysAgo > 0 ? 'No data for this day.' : 'Collecting data… the first points appear within a minute or two.') + '</div>'; return; }
     const width = Math.max(260, Math.floor(box.clientWidth)), narrow = width < 460, height = Math.max(narrow ? 180 : 170, Math.floor(box.clientHeight));
-    const L = 34, R = 8, T = 8, B = 22;
+    let L = 34;
+    const R = 8, T = 8, B = 22;
     const ribbon = 8, plotB = height - B - ribbon - 4;
     const day0 = h.dayStart;
     let lo = day0 + 6 * 3600, hi = day0 + 20 * 3600;
     if (h.daylight) { lo = h.daylight.start - 3600; hi = h.daylight.end + 3600; }
     lo = Math.min(lo, h.samples[0][0] - 600); hi = Math.max(hi, (h.daysAgo > 0 ? 0 : h.now) + 600);   // a past day ends with its own daylight
     lo = Math.max(day0, Math.floor(lo / 3600) * 3600); hi = Math.min(day0 + 86400, Math.ceil(hi / 3600) * 3600);
-    let max = 0; h.samples.forEach(s => { max = Math.max(max, s[1], s[2], s[4], Math.max(0, s[3])); });
+    let max = 0, minGrid = 0; h.samples.forEach(s => { max = Math.max(max, s[1], s[2], s[4], Math.max(0, s[3])); minGrid = Math.min(minGrid, s[3]); });
     const ymax = niceMax(max);
-    const X = t => L + (t - lo) / (hi - lo) * (width - L - R), Y = w => plotB - w / ymax * (plotB - T);
+    if (ymax >= 10000) L = 42;
+    // room below zero for export, only on days that have some (never more than half the height of the top side)
+    const ymin = exportFloor(minGrid, ymax);
+    const X = t => L + (t - lo) / (hi - lo) * (width - L - R), Y = w => plotB - (w - ymin) / (ymax - ymin) * (plotB - T), y0 = Y(0);
 
     box.innerHTML = '';
     const svg = svgEl(box, 'svg', { viewBox: '0 0 ' + width + ' ' + height, width: width, height: height, role: 'img',
-        'aria-label': "Today's solar, car, home and grid power" });
-    if (h.daylight) svgEl(svg, 'rect', { x: X(h.daylight.start), y: T, width: Math.max(0, X(h.daylight.end) - X(h.daylight.start)), height: plotB - T, fill: cv('--band'), opacity: 0.45 });
+        'aria-label': "Today's solar, car, home and grid power, with grid import above zero and export below" });
+    if (h.daylight) svgEl(svg, 'rect', { x: X(h.daylight.start), y: T, width: Math.max(0, X(h.daylight.end) - X(h.daylight.start)), height: plotB - T, fill: cv('--band'), opacity: 0.55 });
     const ticks = ymax <= 4000 ? 1000 : 2000;
-    for (let w = 0; w <= ymax; w += ticks) {
-        svgEl(svg, 'line', { x1: L, x2: width - R, y1: Y(w), y2: Y(w), stroke: cv('--line'), 'stroke-width': 1 });
-        svgEl(svg, 'text', { x: L - 5, y: Y(w) + 4, 'text-anchor': 'end', 'font-size': 11, fill: cv('--faint') }, (w / 1000) + (w + ticks > ymax ? ' kW' : ''));
-    }
+    const gridW = [], negStep = -ymin <= 2000 ? 1000 : 2000;
+    for (let w = 0; w <= ymax; w += ticks) gridW.push(w);
+    for (let w = -negStep; w >= ymin; w -= negStep) gridW.push(w);
+    gridW.forEach(w => {
+        const zero = w === 0 && ymin < 0;
+        svgEl(svg, 'line', { x1: L, x2: width - R, y1: Y(w), y2: Y(w), stroke: cv(zero ? '--zero' : '--line'), 'stroke-width': zero ? 1.3 : 1 });
+        svgEl(svg, 'text', { x: L - 5, y: Y(w) + 4, 'text-anchor': 'end', 'font-size': 11, fill: cv('--faint') }, (w / 1000) + (w >= 0 && w + ticks > ymax ? ' kW' : ''));
+    });
     const stepH = narrow ? 3 : 2;
     for (let h = Math.ceil((lo - day0) / 3600 / stepH) * stepH; day0 + h * 3600 <= hi; h += stepH) {
         const hh = h % 24;
@@ -1408,24 +1422,37 @@ function drawChart(h) {
     }
     const S = h.samples;
     const line = (idx, color, w) => svgEl(svg, 'path', { d: S.map((s, i) => (i ? 'L' : 'M') + X(s[0]).toFixed(1) + ' ' + Y(Math.max(0, s[idx])).toFixed(1)).join(' '), fill: 'none', stroke: color, 'stroke-width': w, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
-    let area = 'M' + X(S[0][0]) + ' ' + plotB; S.forEach(s => area += ' L' + X(s[0]).toFixed(1) + ' ' + Y(s[1]).toFixed(1)); area += ' L' + X(S[S.length - 1][0]) + ' ' + plotB + 'Z';
+    let area = 'M' + X(S[0][0]) + ' ' + y0; S.forEach(s => area += ' L' + X(s[0]).toFixed(1) + ' ' + Y(s[1]).toFixed(1)); area += ' L' + X(S[S.length - 1][0]) + ' ' + y0 + 'Z';
     svgEl(svg, 'path', { d: area, fill: cv('--solar'), opacity: 0.18 });
     const bw = Math.max(2, Math.min(6, (width - L - R) / ((hi - lo) / 300) - 1));
-    S.forEach(s => { if (s[3] > 60) svgEl(svg, 'rect', { x: X(s[0]) - bw / 2, y: Y(s[3]), width: bw, height: plotB - Y(s[3]), fill: cv('--grid'), opacity: 0.7 }); });
-    line(1, cv('--solar'), 2); line(2, cv('--home'), 1.6); line(4, cv('--car'), 2);
+    // grid power: import (red) stands up from the zero line, export (green) hangs down from it
+    S.forEach(s => {
+        if (s[3] > 60) svgEl(svg, 'rect', { x: X(s[0]) - bw / 2, y: Y(s[3]), width: bw, height: y0 - Y(s[3]), fill: cv('--grid') });
+        else if (s[3] < -60) svgEl(svg, 'rect', { x: X(s[0]) - bw / 2, y: y0, width: bw, height: Y(Math.max(s[3], ymin)) - y0, fill: cv('--green'), opacity: 0.9 });
+    });
+    line(1, cv('--solar'), 2); line(2, cv('--homeline'), 2); line(4, cv('--car'), 2);
     // charging ribbon: when the car was charging (blue) or charging was paused (grey)
     svgEl(svg, 'rect', { x: L, y: height - ribbon - 2, width: width - L - R, height: ribbon, rx: 3, fill: cv('--ribbon') });
-    S.forEach(s => { if (s[6] & 1 || s[6] & 2) svgEl(svg, 'rect', { x: X(s[0]) - 3, y: height - ribbon - 2, width: 6, height: ribbon, fill: s[6] & 2 ? cv('--bd2') : cv('--car') }); });
+    S.forEach(s => { if (s[6] & 1 || s[6] & 2) svgEl(svg, 'rect', { x: X(s[0]) - 3, y: height - ribbon - 2, width: 6, height: ribbon, fill: s[6] & 2 ? cv('--stop') : cv('--car') }); });
     // reading cursor
     const cursor = svgEl(svg, 'line', { y1: T, y2: plotB, stroke: cv('--muted'), 'stroke-width': 1, 'stroke-dasharray': '3 3', visibility: 'hidden' });
+    const reading = (s, lead) => lead + ' · Solar ' + fmtPower(s[1]) + ' · Home ' + fmtPower(s[2]) + ' · Car ' + fmtPower(s[4]) + ' · Grid ' + (s[3] >= 0 ? fmtPower(s[3]) + ' in' : fmtPower(-s[3]) + ' out');
+    const idleReading = () => { el('readout').textContent = h.daysAgo > 0 ? '' : reading(S[S.length - 1], 'Now'); };
     const show = evt => {
         const r = svg.getBoundingClientRect(), x = (evt.clientX - r.left) / r.width * width;
         let best = S[0], bd = 1e9; S.forEach(s => { const d = Math.abs(X(s[0]) - x); if (d < bd) { bd = d; best = s; } });
         cursor.setAttribute('x1', X(best[0])); cursor.setAttribute('x2', X(best[0])); cursor.setAttribute('visibility', 'visible');
-        el('readout').textContent = siteTime(best[0]) + ' · Solar ' + fmtPower(best[1]) + ' · Home ' + fmtPower(best[2]) + ' · Car ' + fmtPower(best[4]) + ' · Grid ' + (best[3] >= 0 ? fmtPower(best[3]) + ' in' : fmtPower(-best[3]) + ' out');
+        el('readout').textContent = reading(best, siteTime(best[0]));
     };
     svg.addEventListener('pointermove', show); svg.addEventListener('pointerdown', show);
-    svg.addEventListener('pointerleave', () => { cursor.setAttribute('visibility', 'hidden'); el('readout').textContent = ''; });
+    // a mouse leaving puts the "Now" reading back; a finger lifting keeps what it tapped until the next tap
+    svg.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { cursor.setAttribute('visibility', 'hidden'); idleReading(); } });
+    idleReading();
+    const sumEl = el('range-summary'), t = h.totals;
+    if (t) {
+        sumEl.innerHTML = '<span class="si">Solar <b>' + t.solarKwh.toFixed(1) + ' kWh</b></span><span class="si">Car <b>' + fmtEnergy(t.carKwh) + '</b></span><span class="si imp">Imported <b>' + t.importKwh.toFixed(1) + ' kWh</b></span><span class="si sv">Exported <b>' + t.exportKwh.toFixed(1) + ' kWh</b></span>';
+        sumEl.hidden = false;
+    } else sumEl.hidden = true;
 }
 
 const FEED_PAGE_SIZE = 5;
@@ -1476,7 +1503,7 @@ function showMode() {
     const curve = range === 'day' || pastDay !== null;
     ['day', '7', '30', '365'].forEach(r => { const b = el('tab-' + r); b.classList.toggle('active', r === range); b.setAttribute('aria-selected', r === range); });
     el('legend-curve').hidden = !curve; el('legend-bars').hidden = curve;
-    el('range-summary').hidden = curve;
+    el('range-summary').hidden = false;
     el('chart-back').hidden = pastDay === null;
     el('readout').textContent = '';
     if (pastDay !== null && pastHist) {
