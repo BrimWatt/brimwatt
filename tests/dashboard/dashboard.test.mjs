@@ -487,8 +487,9 @@ test('the chart has no room below zero unless there is export', () => {
     assert.equal(page.exportFloor(0, 8000), 0);
     assert.equal(page.exportFloor(60, 8000), 0);            // import only
     assert.equal(page.exportFloor(-50, 8000), 0);           // a trickle is not worth the space
-    assert.equal(page.exportFloor(-2400, 8000), -3000);
+    assert.equal(page.exportFloor(-2400, 8000), -2500);     // 500 W steps, so a small export does not waste half the chart
     assert.equal(page.exportFloor(-900, 8000), -1000);
+    assert.equal(page.exportFloor(-1437, 4000), -1500);
 });
 
 test('export never takes more than half the height of the top side', () => {
@@ -502,4 +503,24 @@ test('the new graph colours exist in every palette and the dark ones are not the
         assert.equal((html.match(new RegExp(v + ':', 'g')) || []).length, 3, v + ' must be in the light palette and both dark ones');
     }
     assert.ok(!/--line: #263244/.test(html) && !/--ribbon: #1b2638/.test(html) && !/--band: #1e3a5f/.test(html), 'old dark greys are gone');
+});
+
+// ---- the day graph starts at the first reading, not at 6 am ----
+const H = h => h * 3600;
+const dayWith = (firstHour, extra = {}) => Object.assign({ dayStart: 0, daysAgo: 0, now: H(14.5), daylight: { start: H(7), end: H(17) },
+    samples: [[H(firstHour), 0, 0, 0, 0, 0, 0], [H(14.5), 1, 1, 0, 0, 0, 0]] }, extra);
+
+test('the graph starts just before the first reading', () => {
+    assert.equal(page.chartSpan(dayWith(7.5))[0], H(7.5) - 300);
+    assert.equal(page.chartSpan(dayWith(9))[0], H(9) - 300);
+});
+
+test('the graph ends an hour after the daylight window, or just past now if later', () => {
+    assert.equal(page.chartSpan(dayWith(7.5))[1], H(18));
+    assert.equal(page.chartSpan(dayWith(7.5, { now: H(19.2), samples: [[H(7.5), 0, 0, 0, 0, 0, 0], [H(19.2), 1, 1, 0, 0, 0, 0]] }))[1], H(20));
+    assert.equal(page.chartSpan(dayWith(7.5, { daylight: null }))[1], H(20));
+});
+
+test('the graph never starts before the day itself', () => {
+    assert.equal(page.chartSpan(dayWith(0))[0], 0);
 });

@@ -148,16 +148,18 @@
         .chip { min-height: 30px; padding: 0 10px; font-size: 0.78rem; border-radius: 999px; background: var(--info-bg); color: var(--link); }
         .chip[hidden] { display: none; }
         .summary { margin: 0 0 6px; font-size: 0.82rem; color: var(--ink); font-variant-numeric: tabular-nums; }
-        .summary b { font-weight: 700; } .summary .imp { color: var(--warn-tx); } .summary .si { display: inline-block; margin-right: 12px; white-space: nowrap; } .summary .sv { color: var(--green); }
+        .summary b { font-weight: 700; } .summary .imp { color: var(--warn-tx); } .summary.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; } .summary .si { display: block; white-space: nowrap; } .summary .sv { color: var(--green); }
         .legend[hidden], .summary[hidden] { display: none; }
         #chartcard { display: flex; flex-direction: column; }
-        #chart { position: relative; flex: 1 1 180px; min-height: 180px; max-width: 100%; overflow: hidden; }
+        #chart { position: relative; flex: 1 1 250px; min-height: 250px; max-width: 100%; overflow: hidden; }
         #chart svg { position: absolute; left: 0; top: 0; max-width: 100%; }   /* drawn at the box's own size, so a taller box means a taller graph */
         .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; }
         .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
         #chart { width: 100%; touch-action: pan-y; }
         #chart svg { display: block; width: 100%; height: auto; }
         #readout { min-height: 1.2em; margin-top: 4px; font-size: 0.78rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+        #readout.rd { display: grid; grid-template-columns: auto repeat(4, minmax(0, 1fr)); gap: 0 8px; align-items: end; min-height: 34px; }
+        #readout .rl { display: block; font-size: 0.66rem; color: var(--muted); white-space: nowrap; } #readout b { font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
         .empty { color: var(--muted); font-size: 0.85rem; padding: 20px 0; text-align: center; }
 
         /* activity */
@@ -1377,10 +1379,22 @@ function svgEl(parent, tag, attrs, text) {
 }
 function niceMax(w) { const steps = [1000, 2000, 3000, 4000, 5000, 6000, 8000, 10000, 12000]; for (const s of steps) if (w <= s) return s; return Math.ceil(w / 2000) * 2000; }
 
-/** The lowest value (watts, zero or negative) of the chart: room for export only on days that have some, never more than half the top side. */
+/** The lowest value (watts, zero or negative) of the chart: room for export in 500 W steps, only on days that have some, never more than half the top side. */
 function exportFloor(minGridWatts, ymax) {
     const room = Math.min(-minGridWatts, ymax / 2);
-    return room >= 100 ? -niceMax(room) : 0;
+    return room >= 100 ? -Math.ceil(room / 500) * 500 : 0;
+}
+
+/**
+ * The time span the day graph covers: from just before the day's first reading (often the start of the solar hours) to an hour
+ * after the daylight window ends or just past now, whichever is later.
+ */
+function chartSpan(h) {
+    const day0 = h.dayStart, first = h.samples[0][0];
+    let hi = day0 + 20 * 3600;
+    if (h.daylight) hi = h.daylight.end + 3600;
+    hi = Math.max(hi, (h.daysAgo > 0 ? 0 : h.now) + 600, h.samples[h.samples.length - 1][0] + 300);
+    return [Math.max(day0, first - 300), Math.min(day0 + 86400, Math.ceil(hi / 3600) * 3600)];
 }
 
 function drawChart(h) {
@@ -1391,10 +1405,7 @@ function drawChart(h) {
     const R = 8, T = 8, B = 22;
     const ribbon = 8, plotB = height - B - ribbon - 4;
     const day0 = h.dayStart;
-    let lo = day0 + 6 * 3600, hi = day0 + 20 * 3600;
-    if (h.daylight) { lo = h.daylight.start - 3600; hi = h.daylight.end + 3600; }
-    lo = Math.min(lo, h.samples[0][0] - 600); hi = Math.max(hi, (h.daysAgo > 0 ? 0 : h.now) + 600);   // a past day ends with its own daylight
-    lo = Math.max(day0, Math.floor(lo / 3600) * 3600); hi = Math.min(day0 + 86400, Math.ceil(hi / 3600) * 3600);
+    const [lo, hi] = chartSpan(h);
     let max = 0, minGrid = 0; h.samples.forEach(s => { max = Math.max(max, s[1], s[2], s[4], Math.max(0, s[3])); minGrid = Math.min(minGrid, s[3]); });
     const ymax = niceMax(max);
     if (ymax >= 10000) L = 42;
@@ -1405,7 +1416,7 @@ function drawChart(h) {
     box.innerHTML = '';
     const svg = svgEl(box, 'svg', { viewBox: '0 0 ' + width + ' ' + height, width: width, height: height, role: 'img',
         'aria-label': "Today's solar, car, home and grid power, with grid import above zero and export below" });
-    if (h.daylight) svgEl(svg, 'rect', { x: X(h.daylight.start), y: T, width: Math.max(0, X(h.daylight.end) - X(h.daylight.start)), height: plotB - T, fill: cv('--band'), opacity: 0.55 });
+    if (h.daylight) svgEl(svg, 'rect', { x: Math.max(L, X(h.daylight.start)), y: T, width: Math.max(0, X(h.daylight.end) - Math.max(L, X(h.daylight.start))), height: plotB - T, fill: cv('--band'), opacity: 0.55 });
     const ticks = ymax <= 4000 ? 1000 : 2000;
     const gridW = [], negStep = -ymin <= 2000 ? 1000 : 2000;
     for (let w = 0; w <= ymax; w += ticks) gridW.push(w);
@@ -1436,13 +1447,15 @@ function drawChart(h) {
     S.forEach(s => { if (s[6] & 1 || s[6] & 2) svgEl(svg, 'rect', { x: X(s[0]) - 3, y: height - ribbon - 2, width: 6, height: ribbon, fill: s[6] & 2 ? cv('--stop') : cv('--car') }); });
     // reading cursor
     const cursor = svgEl(svg, 'line', { y1: T, y2: plotB, stroke: cv('--muted'), 'stroke-width': 1, 'stroke-dasharray': '3 3', visibility: 'hidden' });
-    const reading = (s, lead) => lead + ' · Solar ' + fmtPower(s[1]) + ' · Home ' + fmtPower(s[2]) + ' · Car ' + fmtPower(s[4]) + ' · Grid ' + (s[3] >= 0 ? fmtPower(s[3]) + ' in' : fmtPower(-s[3]) + ' out');
-    const idleReading = () => { el('readout').textContent = h.daysAgo > 0 ? '' : reading(S[S.length - 1], 'Now'); };
+    const col = (label, value) => '<span><span class="rl">' + label + '</span><b>' + value + '</b></span>';
+    const reading = (s, lead) => col('&nbsp;', lead) + col('Solar', fmtPower(s[1])) + col('Home', fmtPower(s[2])) + col('Car', fmtPower(s[4])) + col(s[3] >= 0 ? 'Grid in' : 'Grid out', fmtPower(Math.abs(s[3])));
+    const setReading = html => { const r = el('readout'); r.className = html ? 'rd' : ''; r.innerHTML = html; };
+    const idleReading = () => setReading(h.daysAgo > 0 ? '' : reading(S[S.length - 1], 'Now'));
     const show = evt => {
         const r = svg.getBoundingClientRect(), x = (evt.clientX - r.left) / r.width * width;
         let best = S[0], bd = 1e9; S.forEach(s => { const d = Math.abs(X(s[0]) - x); if (d < bd) { bd = d; best = s; } });
         cursor.setAttribute('x1', X(best[0])); cursor.setAttribute('x2', X(best[0])); cursor.setAttribute('visibility', 'visible');
-        el('readout').textContent = reading(best, siteTime(best[0]));
+        setReading(reading(best, siteTime(best[0])));
     };
     svg.addEventListener('pointermove', show); svg.addEventListener('pointerdown', show);
     // a mouse leaving puts the "Now" reading back; a finger lifting keeps what it tapped until the next tap
@@ -1450,6 +1463,7 @@ function drawChart(h) {
     idleReading();
     const sumEl = el('range-summary'), t = h.totals;
     if (t) {
+        sumEl.className = 'summary cols';
         sumEl.innerHTML = '<span class="si">Solar <b>' + t.solarKwh.toFixed(1) + ' kWh</b></span><span class="si">Car <b>' + fmtEnergy(t.carKwh) + '</b></span><span class="si imp">Imported <b>' + t.importKwh.toFixed(1) + ' kWh</b></span><span class="si sv">Exported <b>' + t.exportKwh.toFixed(1) + ' kWh</b></span>';
         sumEl.hidden = false;
     } else sumEl.hidden = true;
@@ -1505,7 +1519,7 @@ function showMode() {
     el('legend-curve').hidden = !curve; el('legend-bars').hidden = curve;
     el('range-summary').hidden = false;
     el('chart-back').hidden = pastDay === null;
-    el('readout').textContent = '';
+    el('readout').textContent = ''; el('readout').className = '';
     if (pastDay !== null && pastHist) {
         const label = utcDate(daysData ? daysData.today - pastDay : 0);
         el('chart-title').textContent = DAYS[label.getUTCDay()] + ' ' + label.getUTCDate() + ' ' + MONTHS[label.getUTCMonth()];
@@ -1568,7 +1582,7 @@ function drawBars() {
     if (!daysData) { box.innerHTML = '<div class="empty">Loading…</div>'; return; }
     const rows = barRows(), rate = lastData ? lastData.rateCents : 30;
     const totalCar = rows.reduce((a, r) => a + r.car, 0), totalSun = rows.reduce((a, r) => a + r.sun, 0), totalSaved = rows.reduce((a, r) => a + r.saved, 0);
-    const sum = el('range-summary');
+    const sum = el('range-summary'); sum.className = 'summary';
     sum.innerHTML = totalCar >= 0.05
         ? (unitMiles ? '<b>' + fmtEnergy(totalCar) + '</b> range added' : '<b>' + totalCar.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' kWh</b> charged the car') + ' ·<b>' + Math.round(totalSun / totalCar * 100) + '%</b> from the sun · saved <b class="sv">$' + totalSaved.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</b>'
         : 'No charging in this period yet.';
