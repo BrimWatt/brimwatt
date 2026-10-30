@@ -603,3 +603,15 @@ test('the card for a finished charge says what was added, the solar share and th
     assert.equal(page.sessionDoneText({ kwh: 10.4, sunPct: 94.2, saved: 1.8, sunKwh: 9.8 }), '10.4 kWh added · 94.2% from solar · saved $1.80');
     assert.equal(page.sessionDoneText({ kwh: 5, sunPct: 140, saved: -1, sunKwh: 5 }), '5.0 kWh added · 100% from solar · saved $1.50', 'no recorded saving is estimated, the share is capped');
 });
+
+test('the Car tile shows its power in the other unit under the big number', () => {
+    const ctx = load();
+    vm.runInContext('unitMiles = false; milesPerKwh = 3;', ctx);
+    assert.equal(ctx.fmtCarPower(2640), '2.64 kW');
+    assert.equal(ctx.fmtCarPowerOther(2640), '~7.9 mi/h', 'kW on top, miles per hour under it');
+    assert.equal(ctx.fmtCarPowerOther(0), '0 mi/h');
+    vm.runInContext('unitMiles = true;', ctx);
+    assert.equal(ctx.fmtCarPower(2640), '~7.9 mi/h');
+    assert.equal(ctx.fmtCarPowerOther(2640), '2.64 kW', 'miles per hour on top, kW under it');
+    assert.equal(ctx.fmtCarPowerOther(850), '850 W');
+});
