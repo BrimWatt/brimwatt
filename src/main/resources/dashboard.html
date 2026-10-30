@@ -118,7 +118,6 @@
         @keyframes boltpop { from { transform: scale(0.4) rotate(-25deg); } to { transform: none; } }
         @keyframes breathe { 50% { transform: scale(1.1); } }
         @property --a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
-        @keyframes waitpulse { 50% { transform: scale(1.08); } }
         @keyframes wspin { to { --a: 360deg; } }
         @keyframes hubglow { 50% { transform: scale(1.025); filter: brightness(1.12); } }
         @keyframes sweep { from { background-position: -60% 0; } to { background-position: 160% 0; } }
@@ -128,7 +127,6 @@
         @media (prefers-reduced-motion: no-preference) {
             .hero .title.swap { animation: titlein 0.35s ease-out; }
             .hero.good .badge { animation: breathe 2.4s ease-in-out infinite; }
-            .hero.wait .badge { animation: waitpulse 2.6s ease-in-out infinite; }
             .hero.wait:not(.ring) .badge::before { opacity: 1; background: conic-gradient(from var(--a), transparent 0, var(--blue) 30%, transparent 30%); animation: wspin 1.8s linear infinite; }
             .hero .badge.pop { animation: boltpop 0.5s cubic-bezier(0.3, 1.6, 0.5, 1); }
             .hero .badge.pop::after { animation: ringout 0.8s ease-out; }
