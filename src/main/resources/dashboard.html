@@ -121,7 +121,11 @@
         .vshare .vr b { color: var(--ink); font-variant-numeric: tabular-nums; }
         .vbar { height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden; }
         .vbar i { display: block; height: 100%; width: 0; border-radius: 4px; background: linear-gradient(90deg, var(--solar), var(--green)); transition: width 0.7s ease; }
-        .vsee { align-self: flex-end; min-height: 34px; padding: 0 4px; background: transparent; color: var(--link); font-size: 0.8rem; font-weight: 600; }
+        #chartcard { gap: 10px; }
+        .gtoggle { min-height: 40px; background: var(--soft); color: var(--link); font-size: 0.82rem; border-radius: 10px; }
+        #graphpanel { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+        .gclosed #graphpanel { display: none; }
+        @media (min-width: 900px) { .gtoggle { display: none; } .gclosed #graphpanel { display: flex; } }   /* wide screens always show the graph beside the sessions */
         .sessdone { display: flex; align-items: center; gap: 10px; background: var(--ok-bg); color: var(--ok-tx); }
         .sessdone[hidden] { display: none; }
         .sessdone .sd-ic { font-size: 1.4rem; }
@@ -338,8 +342,8 @@
 
         /* on a phone the two stacks dissolve into one list, in this order */
         .stack { display: contents; }
-        #hero { order: 1; } #value { order: 2; } #sesscard { order: 3; } #flow { order: 4; } #modes { order: 5; } #carcard { order: 6; } #chartcard { order: 7; }
-        #feedcard { order: 8; } #sessions { order: 9; }
+        #hero { order: 1; } #sesscard { order: 2; } #flow { order: 3; } #chartcard { order: 4; } #modes { order: 5; } #carcard { order: 6; }
+        #feedcard { order: 7; } #sessions { order: 8; }
 
         /* wider screens: two stacks on top and the graph beside the sessions below, so both sides end on the same line */
         /* The Tesla tile sits in the left stack so the right one is not the taller; on a phone the order rules above keep it under the modes. */
@@ -370,26 +374,6 @@
             <div class="badge" id="hero-icon">⚡</div>
             <div class="txt"><div class="title" id="hero-title">Connecting…</div><div class="sub" id="hero-sub">&nbsp;</div></div>
             <button id="pause-btn" onclick="togglePause()"><svg class="ic" id="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><span id="pause-label">Pause</span></button>
-        </section>
-        <section class="tile vcard" id="value">
-            <div class="vtop">
-                <div class="vper" id="vper">
-                    <button type="button" data-p="today" onclick="setValuePeriod('today')">Today</button>
-                    <button type="button" data-p="week" onclick="setValuePeriod('week')">Week</button>
-                    <button type="button" data-p="month" onclick="setValuePeriod('month')">Month</button>
-                    <button type="button" data-p="year" onclick="setValuePeriod('year')">Year</button>
-                </div>
-                <button type="button" class="vunit" id="vunit" onclick="flipUnit()" aria-label="Switch between miles and kWh">kWh</button>
-            </div>
-            <div class="vbig">
-                <div><span class="fl" id="v-added-label">Energy added</span><b id="v-added">–</b><small id="v-added-sub">Today</small></div>
-                <div class="save"><span class="fl">Saved<button type="button" class="info" data-tip="saved" aria-label="What is Saved?">i</button></span><b id="v-saved">–</b><small id="v-saved-sub">&nbsp;</small></div>
-            </div>
-            <div class="vshare">
-                <div class="vr"><span>From your solar<button type="button" class="info" data-tip="share" aria-label="What is From your solar?">i</button></span><b id="v-share">–</b></div>
-                <div class="vbar"><i id="v-share-bar"></i></div>
-            </div>
-            <button type="button" class="vsee" onclick="seeGraph()">See graph ↓</button>
         </section>
         <section class="tile sessdone" id="sesscard" role="status" aria-live="polite" hidden>
             <span class="sd-ic" aria-hidden="true">⚡</span>
@@ -441,19 +425,35 @@
             <div class="pager" id="feed-pager" hidden><button class="chip" id="feed-newer" onclick="feedPage(-1)">‹ Newer</button><span id="feed-page"></span><button class="chip" id="feed-older" onclick="feedPage(1)">Older ›</button></div>
         </section>
         </div>
-        <section class="tile" id="chartcard">
-            <div class="tabs" id="tabs" role="tablist" aria-label="History range">
-                <button role="tab" id="tab-day" class="active" aria-selected="true" onclick="setRange('day')">Today</button>
-                <button role="tab" id="tab-7" aria-selected="false" onclick="setRange('7')">Week</button>
-                <button role="tab" id="tab-30" aria-selected="false" onclick="setRange('30')">Month</button>
-                <button role="tab" id="tab-365" aria-selected="false" onclick="setRange('365')">Year</button>
+        <section class="tile gclosed" id="chartcard">
+            <div class="vcard" id="value">
+                <div class="vtop">
+                    <div class="vper" id="vper" role="tablist" aria-label="Period">
+                        <button type="button" role="tab" id="tab-day" data-p="today" class="active" aria-selected="true" onclick="setRange('day')">Today</button>
+                        <button type="button" role="tab" id="tab-7" data-p="week" aria-selected="false" onclick="setRange('7')">Week</button>
+                        <button type="button" role="tab" id="tab-30" data-p="month" aria-selected="false" onclick="setRange('30')">Month</button>
+                        <button type="button" role="tab" id="tab-365" data-p="year" aria-selected="false" onclick="setRange('365')">Year</button>
+                    </div>
+                    <button type="button" class="vunit" id="vunit" onclick="flipUnit()" aria-label="Switch between miles and kWh">kWh</button>
+                </div>
+                <div class="vbig">
+                    <div><span class="fl" id="v-added-label">Energy added</span><b id="v-added">–</b><small id="v-added-sub">Today</small></div>
+                    <div class="save"><span class="fl">Saved<button type="button" class="info" data-tip="saved" aria-label="What is Saved?">i</button></span><b id="v-saved">–</b><small id="v-saved-sub">&nbsp;</small></div>
+                </div>
+                <div class="vshare">
+                    <div class="vr"><span>From your solar<button type="button" class="info" data-tip="share" aria-label="What is From your solar?">i</button></span><b id="v-share">–</b></div>
+                    <div class="vbar"><i id="v-share-bar"></i></div>
+                </div>
             </div>
+            <button type="button" class="gtoggle" id="gtoggle" aria-expanded="false" aria-controls="graphpanel" onclick="toggleGraph()">Show graph ▾</button>
+            <div id="graphpanel">
             <div class="charthead"><h2 id="chart-title">Today</h2><button id="chart-back" class="chip" hidden onclick="backToRange()">‹ Back</button></div>
             <div class="legend" id="legend-curve"><span><i style="background:var(--solar)"></i>Solar</span><span><i style="background:var(--car)"></i>Car</span><span><i style="background:var(--homeline)"></i>Home</span><span><i style="background:var(--grid)"></i>From the grid</span><span><i style="background:var(--green)"></i>To the grid</span></div>
             <div class="legend" id="legend-bars" hidden><span>Charging the car used:<button type="button" class="info" data-tip="bars" aria-label="What do the bars show?">i</button></span><span><i style="background:var(--solar)"></i>☀️ Sun</span><span><i style="background:var(--grid)"></i>🔌 Grid</span></div>
             <div id="range-summary" class="summary" hidden></div>
             <div id="chart"><div class="empty">Collecting data…</div></div>
             <div id="readout" aria-live="off"></div>
+            </div>
         </section>
         <section class="tile" id="sessions">
             <h2>Charging sessions</h2>
@@ -1500,7 +1500,6 @@ function renderValue() {
     const kind = KIND_OF_RANGE[range] || 'today';
     const days = valueDays[kind === 'year' ? 365 : 30], v = valueSummary(kind, days, hist.totals);
     const rate = lastData ? lastData.rateCents : 30, peak = lastData && lastData.peakRateCents > 0 ? lastData.peakRateCents : 0;
-    [...el('vper').children].forEach(b => { const on = b.dataset.p === kind; b.classList.toggle('active', on); b.setAttribute('aria-pressed', on); });
     el('vunit').textContent = unitMiles ? 'Miles' : 'kWh';
     el('v-added-label').textContent = unitMiles ? 'Range added' : 'Energy added';
     glide('v-added', v.car, fmtEnergy);
@@ -1510,9 +1509,23 @@ function renderValue() {
     setText('v-share', v.share === null ? '–' : v.share + '%');
     el('v-share-bar').style.width = (v.share === null ? 0 : v.share) + '%';
 }
-/** The card's tabs drive the graph's: one control, two places. */
-function setValuePeriod(p) { if (RANGE_OF_KIND[p]) setRange(RANGE_OF_KIND[p]); }
-function seeGraph() { el('chartcard').scrollIntoView({ block: 'start', behavior: motionOk() ? 'smooth' : 'auto' }); }
+/** Folds the graph away or opens it in place; the choice is kept on this phone. Wide screens always show it. */
+function toggleGraph() {
+    const card = el('chartcard'), open = card.classList.contains('gclosed');
+    card.classList.toggle('gclosed', !open);
+    el('gtoggle').textContent = open ? 'Hide graph ▴' : 'Show graph ▾';
+    el('gtoggle').setAttribute('aria-expanded', open);
+    try { localStorage.setItem('graphopen', open ? '1' : '0'); } catch (e) { /* not saved */ }
+    if (open) redrawChartArea();   // it was hidden, so it had no size when it was last drawn
+}
+function applyGraphOpen() {
+    let open = false;
+    try { open = localStorage.getItem('graphopen') === '1'; } catch (e) { /* closed */ }
+    el('chartcard').classList.toggle('gclosed', !open);
+    el('gtoggle').textContent = open ? 'Hide graph ▴' : 'Show graph ▾';
+    el('gtoggle').setAttribute('aria-expanded', open);
+}
+applyGraphOpen();
 function flipUnit() { unitMiles = !unitMiles; saveUnits(); applyUnits(); }
 /** Daily rows for the totals: 30 days for Today, Week and Month, a year for Year; refreshed at most every 5 minutes. */
 async function loadValueDays(n) {
@@ -1753,7 +1766,7 @@ function showMode() {
     const curve = range === 'day' || pastDay !== null;
     ['day', '7', '30', '365'].forEach(r => { const b = el('tab-' + r); b.classList.toggle('active', r === range); b.setAttribute('aria-selected', r === range); });
     el('legend-curve').hidden = !curve; el('legend-bars').hidden = curve;
-    el('range-summary').hidden = false;
+    el('range-summary').hidden = !curve;   // the day's curve has its own totals; the bars' totals are in the card above
     renderValue();
     ensureValueDays();
     el('chart-back').hidden = pastDay === null;
@@ -1819,11 +1832,7 @@ function drawBars() {
     const box = el('chart');
     if (!daysData) { box.innerHTML = '<div class="empty">Loading…</div>'; return; }
     const rows = barRows(), rate = lastData ? lastData.rateCents : 30;
-    const totalCar = rows.reduce((a, r) => a + r.car, 0), totalSun = rows.reduce((a, r) => a + r.sun, 0), totalSaved = rows.reduce((a, r) => a + r.saved, 0);
-    const sum = el('range-summary'); sum.className = 'summary';
-    sum.innerHTML = totalCar >= 0.05
-        ? (unitMiles ? '<b>' + fmtEnergy(totalCar) + '</b> range added' : '<b>' + totalCar.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' kWh</b> charged the car') + ' ·<b>' + Math.round(totalSun / totalCar * 100) + '%</b> from the sun · saved <b class="sv">$' + totalSaved.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</b>'
-        : 'No charging in this period yet.';
+    el('range-summary').hidden = true;   // the card above already shows the totals for this period
     const width = Math.max(260, Math.floor(box.clientWidth)), height = Math.max(170, Math.floor(box.clientHeight)), L = 30, R = 6, T = 14, B = 22, plotB = height - B;
     if (unitMiles) rows.forEach(r => { r.car *= milesPerKwh; r.sun *= milesPerKwh; r.grid *= milesPerKwh; });   // the bars are drawn in the chosen unit
     const maxKwh = Math.max(...rows.map(r => r.car), 1), steps = [5, 10, 20, 30, 40, 50, 100, 200, 500, 1000, 2000, 5000, 10000];
