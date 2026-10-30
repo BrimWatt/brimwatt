@@ -568,39 +568,26 @@ test('the flow dots and number glide are skipped when motion is reduced', () => 
 const valueDays = (extra = []) => ({ today: 20000, days: [[20000, 0, 99, 99, 0, 0, 99], [19999, 0, 5, 5, 0, 0, 1.0], [19997, 0, 10, 4, 0, 0, -1], [19990, 0, 8, 8, 0, 0, 2.0], ...extra] });
 const totalsToday = { carKwh: 12, carSolarKwh: 9, savedDollars: 3.0 };
 
-test('Today uses the live totals and a bar for each of the last 14 days', () => {
+test('Today is the live totals, not the stale row for today', () => {
     const v = page.valueSummary('today', valueDays(), totalsToday);
     assert.equal(v.car, 12);
     assert.equal(v.saved, 3);
     assert.equal(v.share, 75);
-    assert.equal(v.bars.length, 14);
-    assert.equal(v.bars[13].daysAgo, 0);
-    assert.equal(v.bars[13].car, 12, 'the last bar is today, taken from the live totals, not the stale row');
-    assert.equal(v.bars[12].car, 5);
-    assert.equal(v.bars[10].car, 10);
-    assert.equal(v.bars[0].car, 0, 'a day with no row counts as zero');
 });
 
 test('Week and Month add up the days in the period, with today taken from the live totals', () => {
     const w = page.valueSummary('week', valueDays(), totalsToday);
-    assert.equal(w.bars.length, 7);
     assert.equal(w.car, 12 + 5 + 10);                          // today, yesterday and 19997; 19990 is 10 days back
     assert.equal(Math.round(w.sun * 100) / 100, 9 + 5 + 4);
     assert.equal(Math.round(w.saved * 100) / 100, 3 + 1 + 4 * 30 / 100, 'a day with no recorded saving is estimated at the normal price');
     const m = page.valueSummary('month', valueDays(), totalsToday);
-    assert.equal(m.bars.length, 30);
     assert.equal(m.car, 12 + 5 + 10 + 8);
 });
 
-test('Year groups the days into twelve months and a month is not a tappable day', () => {
-    const y = page.valueSummary('year', valueDays([[19950, 0, 6, 6, 0, 0, 1.5]]), totalsToday);   // 19950 is 15 Aug 2024
-    assert.equal(y.bars.length, 12);
-    assert.equal(y.bars[11].daysAgo, null);
-    assert.equal(y.bars[11].car, 12 + 5 + 10, 'the three October days land in the last bar');
-    assert.equal(y.bars[10].car, 8, '24 September is the bar before it');
-    assert.equal(y.bars[9].car, 6, 'the August day is one more bar back');
-    assert.equal(y.car, 12 + 5 + 10 + 8 + 6);
-    assert.ok(y.bars[11].label.startsWith('Oct'));
+test('Year counts the twelve months ending this month, the same window as the graph bars', () => {
+    const rows = [[19950, 0, 6, 6, 0, 0, 1.5], [19700, 0, 7, 7, 0, 0, 2.0], [19600, 0, 50, 50, 0, 0, 9]];   // 15 Aug 2024, 8 Dec 2023, 31 Aug 2023
+    const y = page.valueSummary('year', valueDays(rows), totalsToday);
+    assert.equal(y.car, 12 + 5 + 10 + 8 + 6 + 7, 'the window starts 1 Nov 2023, so 31 Aug 2023 is left out');
 });
 
 test('the sun never counts for more than the car took, and no charging means no share', () => {
