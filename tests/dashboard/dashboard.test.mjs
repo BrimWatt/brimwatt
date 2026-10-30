@@ -615,3 +615,12 @@ test('the Car tile shows its power in the other unit under the big number', () =
     assert.equal(ctx.fmtCarPowerOther(2640), '2.64 kW', 'miles per hour on top, kW under it');
     assert.equal(ctx.fmtCarPowerOther(850), '850 W');
 });
+
+test('a number that is only the set limit gets a ~ and miles keep the one they have', () => {
+    const ctx = load();
+    assert.equal(ctx.fmtApprox('2.64 kW'), '~2.64 kW');
+    assert.equal(ctx.fmtApprox('850 W'), '~850 W');
+    assert.equal(ctx.fmtApprox('~7.9 mi/h'), '~7.9 mi/h');
+    assert.equal(ctx.fmtApprox('0 mi/h'), '0 mi/h');
+    assert.equal(ctx.fmtApprox('0 W'), '0 W');
+});

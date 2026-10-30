@@ -717,6 +717,8 @@ const milesNumber = m => m >= 9.95 ? Math.round(m).toLocaleString() : m.toFixed(
 function fmtEnergy(kwh) { return unitMiles ? '~' + milesNumber(kwh * milesPerKwh) + ' mi' : kwh.toFixed(1) + ' kWh'; }
 /** The same power in the other unit, for the line under the big number: kW when the big number is miles per hour, miles per hour when it is kW. */
 function fmtCarPowerOther(watts) { return unitMiles ? fmtPower(watts) : (watts > 0 ? '~' + milesNumber(watts / 1000 * milesPerKwh) : '0') + ' mi/h'; }
+/** A number that is only the set limit, not a measurement, gets a ~ (miles already have one; zero stays plain). */
+function fmtApprox(text) { return (text.startsWith('~') || text.startsWith('0 ')) ? text : '~' + text; }
 function fmtCarPower(watts) { return unitMiles ? (watts > 0 ? '~' + milesNumber(watts / 1000 * milesPerKwh) : '0') + ' mi/h' : fmtPower(watts); }
 /** The goal box holds whole kWh on the wire; in miles mode it shows miles, and any goal above zero is at least 1 kWh. */
 const goalToBox = kwh => unitMiles ? Math.round(kwh * milesPerKwh) : kwh;
@@ -1405,8 +1407,8 @@ function renderFlow(data) {
         el('grid-tile').classList.toggle('export', !importing);
         setText('solar-sub', stale ? (isResting(data) ? RESTING : fmtAge(k.readingAgeSeconds)) : ' ');
     }
-    glide('charger-power', c.amps > 0 ? p.chargerWatts : 0, fmtCarPower);
-    setText('charger-sub', c.amps > 0 ? fmtCarPowerOther(p.chargerWatts) + (c.drawMeasured ? '' : ' · limit') : fmtStatus(c.status));   // the amps are already in the headline
+    glide('charger-power', c.amps > 0 ? p.chargerWatts : 0, c.amps > 0 && !c.drawMeasured ? w => fmtApprox(fmtCarPower(w)) : fmtCarPower);
+    setText('charger-sub', c.amps > 0 ? (c.drawMeasured ? fmtCarPowerOther(p.chargerWatts) : fmtApprox(fmtCarPowerOther(p.chargerWatts))) : fmtStatus(c.status));   // the amps are already in the headline
     el('flow').classList.toggle('live', k.hasReading && !stale && (p.solarWatts >= 30 || Math.abs(p.gridWatts) >= 30));
     el('car-tile').classList.toggle('chg', c.amps > 0);
     drawFlow();
