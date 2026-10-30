@@ -546,3 +546,18 @@ test('a day with no active reading starts at its first reading', () => {
     const none = [[H(3), 0, 300, 300, 0, 0, 0], [H(14.5), 10, 300, 290, 0, 0, 0]];
     assert.equal(page.chartSpan(dayWith(0, { samples: none }))[0], H(3) - 300);
 });
+
+test('the new animations only run when the phone has not asked for reduced motion', () => {
+    const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
+    const block = css.match(/@media \(prefers-reduced-motion: no-preference\) \{\s*\n\s*\.hero \.title\.swap[\s\S]*?\n        \}\n/)[0];
+    for (const name of ['titlein', 'breathe', 'boltpop', 'hubglow', 'sweep', 'rowin', 'sheetup', 'tipin'])
+        assert.ok(block.includes('animation: ' + name), name + ' is started inside the no-preference block');
+    const outside = css.replace(block, '');
+    for (const name of ['titlein', 'breathe', 'hubglow', 'sweep', 'rowin', 'sheetup', 'tipin'])
+        assert.ok(!new RegExp('animation:\\s*' + name).test(outside), name + ' must not run outside it');
+});
+
+test('the flow dots and number glide are skipped when motion is reduced', () => {
+    const ctx = load();
+    assert.equal(ctx.motionOk(), false, 'the stand-in page has no real motion preference, so everything stays still');
+});
