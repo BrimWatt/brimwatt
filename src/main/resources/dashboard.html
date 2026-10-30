@@ -100,6 +100,44 @@
         .hub small { font-size: 0.72rem; font-weight: 600; color: var(--warn-tx); text-transform: uppercase; letter-spacing: 0.04em; }
         #flowsvg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
         .flow.stale .ft b { color: #94a3b8; }
+        .ft.car { position: relative; overflow: hidden; }
+
+        /* motion: moving dots on the flow lines, a ring and bolt on the headline, a sliding mode highlight, countdown bars.
+           Every animation below sits in the no-preference block, so a phone set to reduce motion gets the still page. */
+        .hero .badge { position: relative; }
+        .hero .badge::before { content: ""; position: absolute; inset: -3px; border-radius: 15px; padding: 3px; pointer-events: none; opacity: 0; transition: opacity 0.2s;
+            background: conic-gradient(var(--blue) calc(var(--wp, 0) * 1%), transparent 0);
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        .hero.ring .badge::before { opacity: 1; }
+        .hero .badge::after { content: ""; position: absolute; inset: 0; border-radius: 12px; border: 2px solid var(--green); opacity: 0; pointer-events: none; }
+        .cdbar { height: 3px; border-radius: 2px; background: var(--soft); margin-top: 4px; overflow: hidden; opacity: 0; transition: opacity 0.2s; }
+        .cdbar.on { opacity: 1; } .cdbar i { display: block; height: 100%; width: 0; background: var(--blue); }
+        .hint.ok::before { content: "\2713\00a0"; display: inline-block; }
+        @keyframes titlein { from { opacity: 0; transform: translateY(40%); } to { opacity: 1; transform: none; } }
+        @keyframes ringout { from { opacity: 0.9; transform: scale(1); } to { opacity: 0; transform: scale(1.8); } }
+        @keyframes boltpop { from { transform: scale(0.4) rotate(-25deg); } to { transform: none; } }
+        @keyframes breathe { 50% { transform: scale(1.1); } }
+        @keyframes hubglow { 50% { transform: scale(1.025); filter: brightness(1.12); } }
+        @keyframes sweep { from { background-position: -60% 0; } to { background-position: 160% 0; } }
+        @keyframes rowin { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+        @keyframes sheetup { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+        @keyframes tipin { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+        @media (prefers-reduced-motion: no-preference) {
+            .hero .title.swap { animation: titlein 0.35s ease-out; }
+            .hero.good .badge { animation: breathe 2.4s ease-in-out infinite; }
+            .hero .badge.pop { animation: boltpop 0.5s cubic-bezier(0.3, 1.6, 0.5, 1); }
+            .hero .badge.pop::after { animation: ringout 0.8s ease-out; }
+            .flow.live .hub { animation: hubglow 2.6s ease-in-out infinite; }
+            .ft.car.chg::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: linear-gradient(90deg, transparent, var(--car), transparent); background-size: 50% 100%; background-repeat: no-repeat; animation: sweep 1.8s linear infinite; }
+            .seg::before { transition: transform 0.3s cubic-bezier(0.3, 1.3, 0.5, 1); }
+            .seg.nomove::before { transition: none; }
+            .seg.hl button { transition: color 0.2s 0.1s, background 0.15s; }
+            .cdbar i { transition: width 0.25s linear; }
+            .hint.ok::before { animation: boltpop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1); }
+            #feed li.fresh, .sess.fresh { animation: rowin 0.45s ease-out; }
+            #settingsbox:not([hidden]) .card { animation: sheetup 0.3s ease-out; }
+            #tipbox:not([hidden]) .card { animation: tipin 0.2s ease-out; }
+        }
 
         /* today's numbers */
         .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -114,6 +152,12 @@
         .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
         .seg button { font-size: 0.85rem; }
         .seg button.active { background: var(--blue); color: #fff; }
+        .seg { position: relative; }
+        .seg button { position: relative; }
+        .seg::before { content: ""; grid-area: 1 / 1; align-self: stretch; justify-self: stretch; border-radius: 10px; background: var(--blue); opacity: 0; pointer-events: none; transform: translateX(calc(var(--i, 0) * (100% + 8px))); }
+        .seg > button:nth-of-type(1) { grid-area: 1 / 1; } .seg > button:nth-of-type(2) { grid-area: 1 / 2; } .seg > button:nth-of-type(3) { grid-area: 1 / 3; }
+        .seg.hl::before { opacity: 1; }
+        .seg.hl button.active, .seg.hl button.active:hover:not(:disabled) { background: transparent; }
         .seg button.locked { opacity: 0.45; cursor: not-allowed; }
         .info { min-height: 0; width: 24px; height: 24px; padding: 0; margin-left: 6px; border-radius: 50%; position: relative; vertical-align: middle;
                 background: var(--info-btn); color: var(--info-tx); font-size: 0.72rem; font-weight: 700; font-style: italic; font-family: Georgia, serif; line-height: 24px; text-transform: none; letter-spacing: 0; }
@@ -311,7 +355,7 @@
                 <div class="hub"><span class="dot" aria-hidden="true">⚡</span><small>supply</small><button type="button" class="info" data-tip="flow" aria-label="How do I read this?">i</button></div>
                 <div class="ft home"><span class="fl">🏠 Home</span><b id="home-power">–</b><small>without the car</small></div>
                 <div class="ft grid" id="grid-tile"><span class="fl">🔌 Grid</span><b id="grid-power">–</b><small id="grid-sub">&nbsp;</small></div>
-                <div class="ft car"><span class="fl">🚗 Car</span><b id="charger-power">–</b><small id="charger-sub">&nbsp;</small></div>
+                <div class="ft car" id="car-tile"><span class="fl">🚗 Car</span><b id="charger-power">–</b><small id="charger-sub">&nbsp;</small></div>
             </div>
         </section>
         <section class="stats" id="stats">
@@ -339,11 +383,13 @@
                 <div class="top"><span><label for="fast-amps-input">Current</label><button type="button" class="info" data-tip="current" aria-label="What is the current?">i</button></span><output id="fast-amps-value" for="fast-amps-input">32 A</output></div>
                 <input type="range" id="fast-amps-input" min="6" max="40" step="1" value="32" aria-valuetext="32 amps" oninput="onSlider(this)">
                 <p class="hint" id="fast-amps-status">&nbsp;</p>
+                <div class="cdbar" id="fast-cd" aria-hidden="true"><i></i></div>
             </div>
             <div class="setting" id="allowance-panel">
                 <div class="top"><span><label for="allowance-slider">Grid allowance</label><button type="button" class="info" data-tip="allowance" aria-label="What is the grid allowance?">i</button></span><output id="allowance-value" for="allowance-slider">1000 W</output></div>
                 <input type="range" id="allowance-slider" min="0" max="1000" step="100" value="1000" aria-valuetext="1000 watts" oninput="onAllowanceSlide(this)">
                 <p class="hint" id="allowance-status">Grid power the car may add to the solar.</p>
+                <div class="cdbar" id="allowance-cd" aria-hidden="true"><i></i></div>
             </div>
         </section>
         <section class="tile" id="feedcard">
@@ -595,6 +641,32 @@ function pausedNote() { return lastData && lastData.paused ? 'Still paused' : un
 // ---- formatting ----
 function fmtPower(watts) { const a = Math.abs(watts); return a >= 1000 ? (watts / 1000).toFixed(2) + ' kW' : Math.round(watts) + ' W'; }
 function fmtAmps(amps) { return amps.toFixed(1) + ' A'; }
+// ---- motion helpers: all are no-ops when the phone asks for reduced motion ----
+function motionOk() {
+    try { return !window.matchMedia('(prefers-reduced-motion: reduce)').matches && typeof requestAnimationFrame === 'function'; } catch (e) { return false; }
+}
+/** Numbers glide to a new value instead of jumping. fmt turns the number into the text shown; cls is the optional class setText takes. */
+const glides = {};
+function glideStop(id) { const g = glides[id]; if (g) { cancelAnimationFrame(g.raf); g.v = null; } }
+function glide(id, target, fmt, cls) {
+    const g = glides[id] || (glides[id] = { v: null, raf: 0 });
+    if (g.raf && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(g.raf);
+    const from = g.v;
+    if (from === null || Math.abs(target - from) < 1 || document.hidden || !motionOk()) { g.v = target; g.raf = 0; setText(id, fmt(target), cls); return; }
+    const t0 = performance.now();
+    const step = now => {
+        const k = Math.min(1, (now - t0) / 600), v = from + (target - from) * (1 - Math.pow(1 - k, 3));
+        g.v = v; setText(id, fmt(v), cls);
+        g.raf = k < 1 ? requestAnimationFrame(step) : 0;
+    };
+    g.raf = requestAnimationFrame(step);
+}
+function setCd(id, frac) {
+    const b = el(id);
+    b.classList.toggle('on', frac !== null);
+    b.firstElementChild.style.width = frac === null ? '0%' : Math.round(Math.min(1, Math.max(0, frac)) * 100) + '%';
+}
+let heroSeen = false, waitTotal = 0, feedTop = null, sessTop = null;
 // Units: kWh or miles. Display only: the API, the planner and the saved goal always use kWh. Kept in this phone's browser.
 let unitMiles = false, milesPerKwh = 3;
 try { unitMiles = localStorage.getItem('unit') === 'miles'; const m = parseFloat(localStorage.getItem('mpk')); if (m >= 1 && m <= 6) milesPerKwh = m; } catch (e) { /* no storage: defaults */ }
@@ -763,17 +835,20 @@ function onSlider(input) {
 function showCountdown() {
     const left = Math.max(1, Math.ceil((ampsDeadline - Date.now()) / 1000));
     setText('fast-amps-status', 'Changing to ' + el('fast-amps-input').value + ' A in ' + left + ' s…', 'warn');
+    setCd('fast-cd', 1 - (ampsDeadline - Date.now()) / CUSTOM_DEBOUNCE_MS);
 }
 function cancelPending() {
     const had = ampsTimer !== null;
     clearTimeout(ampsTimer); clearInterval(ampsTicker);
     ampsTimer = null; ampsTicker = null; ampsEdited = false;
+    setCd('fast-cd', null);
     setText('fast-amps-status', SLIDER_IDLE);
     return had;
 }
 async function sendSlider() {
     clearInterval(ampsTicker); ampsTicker = null; ampsTimer = null;
     const version = sliderVersion, amps = Number(el('fast-amps-input').value);
+    setCd('fast-cd', null);
     setText('fast-amps-status', 'Changing…');
     const result = await post('/api/mode?mode=FAST&amps=' + amps);
     const movedAgain = ampsTimer !== null;
@@ -805,10 +880,12 @@ function onAllowanceSlide(input) {
 function showAllowanceCountdown() {
     const left = Math.max(1, Math.ceil((allowanceDeadline - Date.now()) / 1000));
     setText('allowance-status', 'Changing to ' + el('allowance-slider').value + ' W in ' + left + ' s…', 'warn');
+    setCd('allowance-cd', 1 - (allowanceDeadline - Date.now()) / CUSTOM_DEBOUNCE_MS);
 }
 async function sendAllowance() {
     clearTimeout(allowanceTimer); clearInterval(allowanceTicker); allowanceTimer = null; allowanceTicker = null;
     const watts = Number(el('allowance-slider').value);
+    setCd('allowance-cd', null);
     setText('allowance-status', 'Changing…');
     const result = await post('/api/allowance?watts=' + watts);
     if (result.ok) { allowanceEdited = false; showOutcome('allowance-status', 'Set to ' + watts + ' W', 'ok', ALLOWANCE_IDLE); toast('Grid allowance ' + watts + ' W', 'ok'); refreshHistory(); }
@@ -1183,8 +1260,12 @@ async function setDaylight(box) {
 }
 
 // ---- rendering ----
+const MODE_INDEX = { ECO: 0, MAX_SOLAR: 1, FAST: 2 };
 function updateUI(modeId) {
     currentSystemMode = modeId;
+    const seg = el('seg');
+    if (!seg.classList.contains('hl')) { seg.classList.add('nomove', 'hl'); setTimeout(() => seg.classList.remove('nomove'), 60); }   // first placement does not slide
+    seg.style.cssText = '--i:' + (MODE_INDEX[modeId] || 0);
     document.querySelectorAll('#seg button').forEach(btn => {
         const on = btn.id === 'opt-' + modeId;
         btn.classList.toggle('active', on);
@@ -1236,10 +1317,22 @@ function renderHeadline(data) {
         if (g.forcing) h = { cls: 'good', icon: '🎯', title: 'Charging to make your goal', sub: goalProgress(g) + ' by ' + by + ', at ' + g.forcedAmps + ' A, grid power if needed' };
         else h.sub += ' · Goal: ' + goalProgress(g) + ' by ' + by;
     }
-    el('hero').className = 'tile hero ' + h.cls;
-    el('hero-icon').textContent = h.icon;
-    el('hero-title').textContent = h.title;
+    const hero = el('hero'), badge = el('hero-icon'), title = el('hero-title');
+    const wasGood = hero.classList.contains('good'), titleChanged = title.textContent !== h.title;
+    hero.className = 'tile hero ' + h.cls;
+    badge.textContent = h.icon;
+    title.textContent = h.title;
     el('hero-sub').textContent = h.sub;
+    if (heroSeen && motionOk()) {
+        if (titleChanged) { title.classList.remove('swap'); void title.offsetWidth; title.classList.add('swap'); }
+        if (h.cls === 'good' && !wasGood) { badge.classList.remove('pop'); void badge.offsetWidth; badge.classList.add('pop'); setTimeout(() => badge.classList.remove('pop'), 900); }
+    }
+    heroSeen = true;
+    // a ring around the icon drains with the countdown (start confirmation, pause after a stop, dip before a stop)
+    const ws = data.controller && data.controller.waitSeconds, counting = typeof ws === 'number' && ws >= 0 && (h.cls === 'wait' || h.cls === 'warn') && !data.paused;
+    if (counting) { if (ws > waitTotal) waitTotal = ws; } else waitTotal = 0;
+    hero.classList.toggle('ring', counting && waitTotal > 0);
+    badge.style.cssText = counting && waitTotal > 0 ? '--wp:' + Math.round(100 * ws / waitTotal) : '';
     const b = el('pause-btn');
     if (!b.disabled) {
         el('pause-label').textContent = data.paused ? 'Resume' : 'Pause';
@@ -1254,21 +1347,23 @@ function renderFlow(data) {
     const stale = !k.hasReading || !data.enphaseOk || k.readingAgeSeconds > k.pollSeconds * 3 || (data.currentMode !== 'FAST' && !data.daylight.open);
     el('flow').classList.toggle('stale', stale);
     if (!k.hasReading) {
-        ['solar-power', 'home-power', 'grid-power'].forEach(id => setText(id, '–'));
+        ['solar-power', 'home-power', 'grid-power'].forEach(id => { glideStop(id); setText(id, '–'); });
         setText('grid-sub', ' '); setText('solar-sub', ' ');
     } else {
-        setText('solar-power', fmtPower(p.solarWatts));
+        glide('solar-power', p.solarWatts, fmtPower);
         // Home is what is left after the car. If that comes out below zero the car's number is only its limit, not its real draw.
         const homeRaw = p.solarWatts + p.gridWatts - (c.amps > 0 ? p.chargerWatts : 0);
-        setText('home-power', homeRaw < -30 ? '≈ 0 W' : fmtPower(p.homeWatts));
+        if (homeRaw < -30) { glideStop('home-power'); setText('home-power', '≈ 0 W'); } else glide('home-power', p.homeWatts, fmtPower);
         const importing = p.gridWatts > 0;
-        setText('grid-power', fmtPower(Math.abs(p.gridWatts)), importing ? 'import' : 'export');
+        glide('grid-power', Math.abs(p.gridWatts), fmtPower, importing ? 'import' : 'export');
         setText('grid-sub', importing ? 'from the grid' : 'to the grid');
         el('grid-tile').classList.toggle('export', !importing);
         setText('solar-sub', stale ? (isResting(data) ? RESTING : fmtAge(k.readingAgeSeconds)) : ' ');
     }
-    setText('charger-power', fmtCarPower(c.amps > 0 ? p.chargerWatts : 0));
+    glide('charger-power', c.amps > 0 ? p.chargerWatts : 0, fmtCarPower);
     setText('charger-sub', c.amps > 0 ? fmtAmps(c.amps) + (c.drawMeasured ? '' : ' · limit') : fmtStatus(c.status));
+    el('flow').classList.toggle('live', k.hasReading && !stale && (p.solarWatts >= 30 || Math.abs(p.gridWatts) >= 30));
+    el('car-tile').classList.toggle('chg', c.amps > 0);
     drawFlow();
 }
 
@@ -1276,6 +1371,17 @@ function renderFlow(data) {
  * The flow lines: solar and grid run into the supply node, and from it to the home and the car. Line thickness follows
  * the power; a flow that is zero is faint and grey; exporting turns the grid line around.
  */
+const DOT_GAP = 16;
+let flowDots = [], flowPhase = [0, 0, 0, 0], flowLast = 0, flowRaf = 0;
+/** Moves the dots along their lines; the phase is kept between redraws so a refresh never makes them jump. Stops while the tab is hidden. */
+function flowTick(t) {
+    flowRaf = 0;
+    if (document.hidden || !flowDots.length) { flowLast = 0; return; }
+    const dt = flowLast ? Math.min(0.1, (t - flowLast) / 1000) : 0;
+    flowLast = t;
+    for (const d of flowDots) { flowPhase[d.i] += d.speed * dt; d.el.setAttribute('stroke-dashoffset', -(flowPhase[d.i] % DOT_GAP)); }
+    flowRaf = requestAnimationFrame(flowTick);
+}
 function drawFlow() {
     const grid = el('flowgrid'), svg = el('flowsvg'), d = lastData;
     if (!grid || !d) return;
@@ -1289,10 +1395,18 @@ function drawFlow() {
     const thick = watts => watts < 30 ? 1.5 : Math.min(6, 2 + Math.sqrt(watts / 4000) * 5);
     svg.setAttribute('viewBox', '0 0 ' + base.width + ' ' + base.height);
     svg.innerHTML = '';
+    flowDots = [];
+    let di = 0;
     const draw = (x1, y1, x2, y2, watts, color) => {
         const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len, nx = -uy, ny = ux;
         const on = watts >= 30, c = on ? color : cv('--stop'), sw = thick(watts), head = 4 + sw;
-        svgEl(svg, 'line', { x1, y1, x2: x2 - ux * head * 0.6, y2: y2 - uy * head * 0.6, stroke: c, 'stroke-width': sw, 'stroke-linecap': 'round', 'stroke-dasharray': on ? '' : '4 4' });
+        const moving = on && motionOk(), ex = x2 - ux * head * 0.6, ey = y2 - uy * head * 0.6;
+        svgEl(svg, 'line', { x1, y1, x2: ex, y2: ey, stroke: c, 'stroke-width': sw, 'stroke-linecap': 'round', 'stroke-dasharray': on ? '' : '4 4', opacity: moving ? 0.4 : 1 });
+        if (moving) {
+            const dots = svgEl(svg, 'line', { x1, y1, x2: ex, y2: ey, stroke: c, 'stroke-width': sw + 2.5, 'stroke-linecap': 'round', 'stroke-dasharray': '0.1 ' + (DOT_GAP - 0.1), 'stroke-dashoffset': -(flowPhase[di] % DOT_GAP) });
+            flowDots.push({ el: dots, i: di, speed: Math.min(70, 16 + 54 * Math.sqrt(Math.min(watts, 7000) / 4000)) });   // faster with more power
+        }
+        di++;
         const bx = x2 - ux * head, by = y2 - uy * head;
         const pts = [[x2, y2], [bx + nx * head * 0.6, by + ny * head * 0.6], [bx - nx * head * 0.6, by - ny * head * 0.6]];
         svgEl(svg, 'polygon', { points: pts.map(v => v[0].toFixed(1) + ',' + v[1].toFixed(1)).join(' '), fill: c });
@@ -1306,6 +1420,7 @@ function drawFlow() {
     else draw(gridT.cx, gridT.b + gap, gridT.cx, hubBox.t - gap, w(p.gridWatts), cv('--grid'));
     draw(home.cx, hubBox.b + gap, home.cx, home.t - gap, w(p.homeWatts), cv('--car'));
     draw(car.cx, hubBox.b + gap, car.cx, car.t - gap, carW, cv('--car'));
+    if (flowDots.length && !flowRaf) { flowLast = 0; flowRaf = requestAnimationFrame(flowTick); }
 }
 
 function renderStats() {
@@ -1500,6 +1615,11 @@ function renderActivity() {
         if (day && day !== 'Today') { const small = document.createElement('small'); small.textContent = day; t.appendChild(small); }
         li.appendChild(t); li.appendChild(document.createTextNode(e.text)); list.appendChild(li);
     });
+    if (feedPageIndex === 0) {
+        const top = events.length ? events[0].t + '|' + events[0].text : '';
+        if (feedTop !== null && top !== feedTop && events.length && motionOk()) list.firstChild.classList.add('fresh');
+        feedTop = top;
+    } else feedTop = null;
     el('feed-pager').hidden = pages < 2;
     el('feed-page').textContent = (feedPageIndex + 1) + ' of ' + pages;
     el('feed-newer').disabled = feedPageIndex === 0;
@@ -1664,6 +1784,11 @@ function renderSessions() {
         const k = document.createElement('span'); k.className = 'k'; k.textContent = fmtEnergy(s.kwh) + (unitMiles ? ' range added' : '') + (now ? ' so far' : '');
         row.appendChild(left); row.appendChild(k); box.appendChild(row);
     });
+    if (sessionPageIndex === 0) {
+        const top = (rows[0].now ? 'now ' : '') + rows[0].s.start;
+        if (sessTop !== null && top !== sessTop && motionOk()) box.firstChild.classList.add('fresh');
+        sessTop = top;
+    } else sessTop = null;
 }
 /** Asks for just the page on screen. The charge in progress counts as the first row of page one. */
 async function loadSessions() {
