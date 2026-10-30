@@ -102,6 +102,39 @@
         .flow.stale .ft b { color: #94a3b8; }
         .ft.car { position: relative; overflow: hidden; }
 
+        /* the value card: what the charging gave you (miles or kWh added, money saved, the solar share, a bar per day) */
+        .vcard { display: flex; flex-direction: column; gap: 10px; }
+        .vtop { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .vper { display: flex; gap: 2px; background: var(--soft); border-radius: 10px; padding: 3px; min-width: 0; }
+        .vper button, .vunit { min-height: 34px; padding: 0 9px; font-size: 0.78rem; font-weight: 600; background: transparent; color: var(--muted); border-radius: 8px; }
+        .vper button.active { background: var(--card); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+        .vunit { background: var(--soft); flex: none; }
+        .vbig { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+        .vbig > div { background: var(--tint); border-radius: 12px; padding: 8px 10px; min-width: 0; }
+        .vbig .fl { font-size: 0.68rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
+        .vbig .fl .info { margin-left: 4px; width: 20px; height: 20px; font-size: 0.7rem; }
+        .vbig b { display: block; font-size: 1.7rem; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .vbig .save b { color: var(--green); }
+        .vbig small { display: block; font-size: 0.72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .vshare .vr { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
+        .vshare .vr .info { margin-left: 4px; width: 20px; height: 20px; font-size: 0.7rem; }
+        .vshare .vr b { color: var(--ink); font-variant-numeric: tabular-nums; }
+        .vbar { height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden; }
+        .vbar i { display: block; height: 100%; width: 0; border-radius: 4px; background: linear-gradient(90deg, var(--solar), var(--green)); transition: width 0.7s ease; }
+        .vbars { display: flex; align-items: flex-end; gap: 3px; height: 56px; }
+        .vb { flex: 1; min-width: 0; min-height: 0; height: 100%; padding: 0; background: none; border-radius: 3px; display: flex; align-items: flex-end; cursor: pointer; }
+        .vb[disabled] { cursor: default; }
+        .vb i { display: block; width: 100%; height: var(--h, 2px); min-height: 2px; border-radius: 3px 3px 0 0; background: var(--green); opacity: 0.8; transition: height 0.5s ease; }
+        .vb.now i { background: var(--blue); opacity: 1; }
+        .vcap { display: flex; justify-content: space-between; gap: 8px; font-size: 0.72rem; color: var(--muted); }
+        .sessdone { display: flex; align-items: center; gap: 10px; background: var(--ok-bg); color: var(--ok-tx); }
+        .sessdone[hidden] { display: none; }
+        .sessdone .sd-ic { font-size: 1.4rem; }
+        .sessdone .sd-txt { flex: 1; min-width: 0; }
+        .sessdone b { display: block; font-size: 0.95rem; }
+        .sessdone small { display: block; font-size: 0.8rem; }
+        .sessdone button { min-height: 34px; width: 34px; padding: 0; background: transparent; color: var(--ok-tx); }
+
         /* motion: moving dots on the flow lines, a ring and bolt on the headline, a sliding mode highlight, countdown bars.
            Every animation below sits in the no-preference block, so a phone set to reduce motion gets the still page. */
         .hero .badge { position: relative; }
@@ -140,16 +173,10 @@
             #feed li.fresh, .sess.fresh { animation: rowin 0.45s ease-out; }
             #settingsbox:not([hidden]) .card { animation: sheetup 0.3s ease-out; }
             #tipbox:not([hidden]) .card { animation: tipin 0.2s ease-out; }
+            .sessdone:not([hidden]) { animation: rowin 0.45s ease-out; }
         }
 
         /* today's numbers */
-        .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-        .stat { background: var(--card); border-radius: 14px; padding: 9px 10px; box-shadow: 0 0 0 1px var(--line); min-width: 0; }
-        .stat .fl { font-size: 0.68rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
-        .stat b { display: block; font-size: 1.2rem; line-height: 1.3; font-variant-numeric: tabular-nums; }
-        .stat small { display: block; font-size: 0.7rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .stat.save b { color: var(--green); }
-        @media (max-width: 360px) { .stat b { font-size: 1.05rem; white-space: nowrap; } .stat .fl { font-size: 0.62rem; letter-spacing: 0; } .stat small { white-space: normal; line-height: 1.2; } .stat:has(> .info) small { padding-right: 24px; } }
 
         /* controls */
         .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -167,8 +194,6 @@
         .info::before { content: ""; position: absolute; inset: -12px; }   /* a finger-sized tap area around the small circle */
         .info:hover:not(:disabled) { background: var(--info-hover); }
         .hub .info { margin-left: 8px; pointer-events: auto; }
-        .stat { position: relative; } .stat:has(> .info) small { padding-right: 20px; }
-        .stat > .info { position: absolute; right: 6px; bottom: 7px; margin: 0; }
         #tipbox, #settingsbox { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); background: rgba(15, 23, 42, 0.4); overflow-y: auto; overscroll-behavior: contain; }
         #tipbox[hidden], #settingsbox[hidden] { display: none; }
         #settingsbox { z-index: 19; }
@@ -318,8 +343,8 @@
 
         /* on a phone the two stacks dissolve into one list, in this order */
         .stack { display: contents; }
-        #hero { order: 1; } #flow { order: 2; } #stats { order: 3; } #modes { order: 4; } #carcard { order: 5; } #chartcard { order: 6; }
-        #feedcard { order: 7; } #sessions { order: 8; }
+        #hero { order: 1; } #value { order: 2; } #sesscard { order: 3; } #flow { order: 4; } #modes { order: 5; } #carcard { order: 6; } #chartcard { order: 7; }
+        #feedcard { order: 8; } #sessions { order: 9; }
 
         /* wider screens: two stacks on top and the graph beside the sessions below, so both sides end on the same line */
         /* The Tesla tile sits in the left stack so the right one is not the taller; on a phone the order rules above keep it under the modes. */
@@ -328,7 +353,7 @@
             .dash { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 12px; align-items: stretch; }
             .stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
             .stack > * { order: 0 !important; }
-            .stack > :last-child, #stats:has(+ #carcard[hidden]) { flex: 1 1 auto; }   /* the shorter stack's last tile fills the difference */
+            .stack > :last-child, #flow:has(+ #carcard[hidden]) { flex: 1 1 auto; }   /* the shorter stack's last tile fills the difference */
             .stack-a { grid-column: 1; grid-row: 1; } .stack-b { grid-column: 2; grid-row: 1; }
             #chartcard { grid-column: 1; grid-row: 2; order: 0; } #sessions { grid-column: 2; grid-row: 2; order: 0; }
             .ft b { font-size: 1.5rem; }
@@ -351,6 +376,32 @@
             <div class="txt"><div class="title" id="hero-title">Connecting…</div><div class="sub" id="hero-sub">&nbsp;</div></div>
             <button id="pause-btn" onclick="togglePause()"><svg class="ic" id="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><span id="pause-label">Pause</span></button>
         </section>
+        <section class="tile vcard" id="value">
+            <div class="vtop">
+                <div class="vper" id="vper">
+                    <button type="button" data-p="today" onclick="setValuePeriod('today')">Today</button>
+                    <button type="button" data-p="week" onclick="setValuePeriod('week')">Week</button>
+                    <button type="button" data-p="month" onclick="setValuePeriod('month')">Month</button>
+                    <button type="button" data-p="year" onclick="setValuePeriod('year')">Year</button>
+                </div>
+                <button type="button" class="vunit" id="vunit" onclick="flipUnit()" aria-label="Switch between miles and kWh">kWh</button>
+            </div>
+            <div class="vbig">
+                <div><span class="fl" id="v-added-label">Energy added</span><b id="v-added">–</b><small id="v-added-sub">Today</small></div>
+                <div class="save"><span class="fl">Saved<button type="button" class="info" data-tip="saved" aria-label="What is Saved?">i</button></span><b id="v-saved">–</b><small id="v-saved-sub">&nbsp;</small></div>
+            </div>
+            <div class="vshare">
+                <div class="vr"><span>From your solar<button type="button" class="info" data-tip="share" aria-label="What is From your solar?">i</button></span><b id="v-share">–</b></div>
+                <div class="vbar"><i id="v-share-bar"></i></div>
+            </div>
+            <div class="vbars" id="v-bars" role="group" aria-label="Energy added per day"></div>
+            <div class="vcap"><span id="v-cap">&nbsp;</span><span id="v-hint">&nbsp;</span></div>
+        </section>
+        <section class="tile sessdone" id="sesscard" role="status" aria-live="polite" hidden>
+            <span class="sd-ic" aria-hidden="true">⚡</span>
+            <div class="sd-txt"><b>Charge finished</b><small id="sesscard-text">&nbsp;</small></div>
+            <button type="button" id="sesscard-x" onclick="hideSessionDone()" aria-label="Dismiss">✕</button>
+        </section>
         <section class="tile flow" id="flow">
             <div class="flowgrid" id="flowgrid">
                 <svg id="flowsvg" aria-hidden="true"></svg>
@@ -360,11 +411,6 @@
                 <div class="ft grid" id="grid-tile"><span class="fl">🔌 Grid</span><b id="grid-power">–</b><small id="grid-sub">&nbsp;</small></div>
                 <div class="ft car" id="car-tile"><span class="fl">🚗 Car</span><b id="charger-power">–</b><small id="charger-sub">&nbsp;</small></div>
             </div>
-        </section>
-        <section class="stats" id="stats">
-            <div class="stat save"><span class="fl">Saved today</span><b id="st-saved">–</b><small id="st-saved-sub">&nbsp;</small><button type="button" class="info" data-tip="saved" aria-label="What is Saved today?">i</button></div>
-            <div class="stat"><span class="fl">From the sun</span><b id="st-share">–</b><small>of car energy</small><button type="button" class="info" data-tip="share" aria-label="What is From the sun?">i</button></div>
-            <div class="stat"><span class="fl" id="st-car-label">Car today</span><b id="st-car">–</b><small id="st-solar-sub">&nbsp;</small></div>
         </section>
         <section class="tile" id="carcard" hidden>
             <h2>Tesla</h2>
@@ -522,8 +568,8 @@ const TIPS = {
     current: ['Charging current', ['How fast the car charges. More amps means faster charging and more power used.', 'Each amp is about 0.24 kW. For example, 10 A is about 2.4 kW.', 'The car or charger may limit it.']],
     flow: ['Reading the power picture', ['Solar is what your panels make right now. Home is what the house uses, not counting the car. Car is what the car is taking.', 'Grid is power coming from the electric company. If it shows sending, your extra solar is going back to the grid.', 'The arrows show where the power goes. Grey dashes mean nothing is flowing.']],
     bars: ['Sun and grid bars', ['Each bar is the energy that charged the car that day.', 'Yellow (sun) is the part that came from your solar panels. Red (grid) is the part that came from the electric grid.']],
-    saved: ['Saved today', ['The money you saved today by charging the car from the sun instead of the grid.', 'It uses the electricity price in Settings (the gear icon at the top).']],
-    share: ['From the sun', ['How much of the car\'s energy today came from your solar panels instead of the grid. 100% means all of it.']],
+    saved: ['Saved', ['The money you saved by charging the car from the sun instead of the grid, for the period you picked (Today, Week, Month or the last 12 months).', 'It uses the electricity price in Settings (the gear icon at the top).']],
+    share: ['From your solar', ['How much of the car\'s energy, in the period you picked, came from your solar panels instead of the grid. 100% means all of it.']],
     hours: ['Solar hours', ['Eco and Max solar only work during the day: from a little after sunrise until a little before sunset. Outside these hours they do nothing.', 'You can change how many minutes after sunrise it starts, and before sunset it stops, in the two boxes below.', 'Custom works at any time.']],
     car: ['Tesla', ['WattSync reads your Tesla over Bluetooth: the battery, the charge limit and the charging current. It only reads. The buttons under For testing in Settings are the only things that change the car, and only when you press them.', 'The controller must be near the car. If the car cannot be reached the numbers stay as they were, with their age.']],
     carmode: ['Tesla mode', ['Off until you switch it on. While it is off, Bluetooth is never started and nothing here talks to a car.', 'On: Bluetooth works, the board opens its own Wi-Fi called wattsync-tesla (so you can use this page next to a car, away from home), and the car is in command instead of the charger. Your charger is not controlled meanwhile.', 'Away from home there is no solar data, so use Custom. Switching Tesla mode on or off restarts the board (about a minute).']],
@@ -1428,14 +1474,120 @@ function drawFlow() {
 
 function renderStats() {
     renderSessions();
-    const t = hist && hist.totals, rate = lastData ? lastData.rateCents : 30;
-    if (!t) return;
-    setText('st-saved', '$' + savedOrEstimate(t.savedDollars, t.carSolarKwh).toFixed(2));
-    const peak = lastData && lastData.peakRateCents > 0 ? lastData.peakRateCents : 0;
-    setText('st-saved-sub', peak ? rate + '¢, peak ' + peak + '¢' : 'at ' + rate + '¢/kWh');
-    setText('st-share', t.carKwh >= 0.05 ? Math.round(t.carSolarKwh / t.carKwh * 100) + '%' : '–');
-    setText('st-car', fmtEnergy(t.carKwh));
-    setText('st-solar-sub', fmtEnergy(t.carSolarKwh) + ' from sun');
+    renderValue();
+    ensureValueDays();
+}
+
+// ---- the value card: miles or kWh added, money saved, the solar share, one bar per day ----
+const VALUE_PERIODS = ['today', 'week', 'month', 'year'];
+const VALUE_LABEL = { today: 'Today', week: 'This week', month: 'This month', year: 'Last 12 months' };
+const VALUE_CAP = { today: 'Last 14 days', week: 'Last 7 days', month: 'Last 30 days', year: 'By month' };
+let valuePeriod = 'today';
+try { const p = localStorage.getItem('valper'); if (VALUE_PERIODS.includes(p)) valuePeriod = p; } catch (e) { /* no storage: Today */ }
+const valueDays = { 30: null, 365: null }, valueDaysAt = { 30: 0, 365: 0 }, valueLoading = { 30: false, 365: false };
+/**
+ * Totals and one bar per day (per month for the year) from the daily rows of /api/days; today's row is replaced by the live
+ * totals so the card agrees with the graph. Days with no row count as zero. The sun's share can never exceed what the car took.
+ */
+function valueSummary(kind, days, totals) {
+    const sunOf = (sun, car) => Math.min(Math.max(0, sun), Math.max(0, car));
+    const rows = new Map();
+    if (days) days.days.forEach(r => { const sun = sunOf(r[3], r[2]); rows.set(r[0], { car: r[2], sun, saved: savedOrEstimate(r[6], sun) }); });
+    const today = days ? days.today : (hist ? hist.today : 0);
+    if (totals) { const sun = sunOf(totals.carSolarKwh, totals.carKwh); rows.set(today, { car: totals.carKwh, sun, saved: savedOrEstimate(totals.savedDollars, sun) }); }
+    const at = k => rows.get(today - k) || { car: 0, sun: 0, saved: 0 };
+    const sum = list => list.reduce((a, r) => ({ car: a.car + r.car, sun: a.sun + r.sun, saved: a.saved + r.saved }), { car: 0, sun: 0, saved: 0 });
+    let bars = [], total;
+    if (kind === 'year') {   // twelve months ending this month
+        const end = utcDate(today), months = [];
+        for (let k = 11; k >= 0; k--) { const d = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - k, 1)); months.push({ y: d.getUTCFullYear(), m: d.getUTCMonth(), rows: [] }); }
+        rows.forEach((r, day) => { const d = utcDate(day), b = months.find(x => x.y === d.getUTCFullYear() && x.m === d.getUTCMonth()); if (b) b.rows.push(r); });
+        const sums = months.map(b => sum(b.rows));
+        bars = months.map((b, i) => ({ car: sums[i].car, daysAgo: null, label: MONTHS[b.m] + ' ' + b.y }));
+        total = sum(sums);
+    } else {
+        const n = kind === 'week' ? 7 : kind === 'month' ? 30 : 14, list = [];
+        for (let k = n - 1; k >= 0; k--) {
+            const d = utcDate(today - k);
+            bars.push({ car: at(k).car, daysAgo: k, label: DAYS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] });
+            list.push(at(k));
+        }
+        total = kind === 'today' ? at(0) : sum(kind === 'week' ? list.slice(-7) : list);
+    }
+    return { car: total.car, sun: total.sun, saved: total.saved, share: total.car >= 0.05 ? Math.round(total.sun / total.car * 100) : null, bars };
+}
+function renderValue() {
+    if (!hist || !hist.totals) return;
+    const days = valueDays[valuePeriod === 'year' ? 365 : 30], v = valueSummary(valuePeriod, days, hist.totals);
+    const rate = lastData ? lastData.rateCents : 30, peak = lastData && lastData.peakRateCents > 0 ? lastData.peakRateCents : 0;
+    [...el('vper').children].forEach(b => { const on = b.dataset.p === valuePeriod; b.classList.toggle('active', on); b.setAttribute('aria-pressed', on); });
+    el('vunit').textContent = unitMiles ? 'Miles' : 'kWh';
+    el('v-added-label').textContent = unitMiles ? 'Range added' : 'Energy added';
+    glide('v-added', v.car, fmtEnergy);
+    setText('v-added-sub', VALUE_LABEL[valuePeriod]);
+    glide('v-saved', v.saved, x => '$' + x.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    setText('v-saved-sub', peak ? rate + '¢, peak ' + peak + '¢' : 'at ' + rate + '¢/kWh');
+    setText('v-share', v.share === null ? '–' : v.share + '%');
+    el('v-share-bar').style.width = (v.share === null ? 0 : v.share) + '%';
+    const box = el('v-bars'), max = Math.max(0.01, ...v.bars.map(b => b.car));
+    box.innerHTML = '';
+    v.bars.forEach((b, i) => {
+        const bar = document.createElement('button'), fill = document.createElement('i');
+        bar.type = 'button'; bar.className = 'vb' + (i === v.bars.length - 1 ? ' now' : '');
+        fill.style.cssText = '--h:' + (b.car > 0.005 ? Math.max(4, Math.round(b.car / max * 100)) + '%' : '2px');
+        bar.appendChild(fill);
+        bar.setAttribute('aria-label', b.label + ': ' + fmtEnergy(b.car));
+        bar.title = b.label + ': ' + fmtEnergy(b.car);
+        if (b.daysAgo === null) bar.disabled = true; else bar.addEventListener('click', () => openDay(b.daysAgo));
+        box.appendChild(bar);
+    });
+    setText('v-cap', VALUE_CAP[valuePeriod]);
+    setText('v-hint', valuePeriod === 'year' ? '' : 'Tap a bar for that day');
+}
+/** Opens that day's curve in the graph card and scrolls to it. */
+function openDay(daysAgo) {
+    if (daysAgo === 0) { if (range !== 'day' || pastDay !== null) setRange('day'); } else showPastDay(daysAgo);
+    el('chartcard').scrollIntoView({ block: 'start', behavior: motionOk() ? 'smooth' : 'auto' });
+}
+function setValuePeriod(p) {
+    if (!VALUE_PERIODS.includes(p)) return;
+    valuePeriod = p;
+    try { localStorage.setItem('valper', p); } catch (e) { /* not saved */ }
+    renderValue(); ensureValueDays();
+}
+function flipUnit() { unitMiles = !unitMiles; saveUnits(); applyUnits(); }
+/** Daily rows for the bars: 30 days for Today, Week and Month, a year for Year; refreshed at most every 5 minutes. */
+async function loadValueDays(n) {
+    if (valueLoading[n]) return;
+    valueLoading[n] = true;
+    try {
+        const res = await fetchWithTimeout('/api/days?n=' + n, undefined, 15000);
+        if (res.ok) { valueDays[n] = await res.json(); valueDaysAt[n] = Date.now(); renderValue(); }
+    } catch (e) { /* the next refresh tries again */ }
+    valueLoading[n] = false;
+}
+function ensureValueDays() {
+    const n = valuePeriod === 'year' ? 365 : 30;
+    if (valueDays[n] === null || Date.now() - valueDaysAt[n] > 300000) loadValueDays(n);
+}
+
+// ---- a short card when a charge finishes ----
+let sessDoneKey = null, sessDoneTimer = null;
+function sessionDoneText(s) {
+    const pct = Math.min(100, Math.max(0, s.sunPct)), saved = savedOrEstimate(s.saved, s.sunKwh).toFixed(2);
+    return fmtEnergy(s.kwh) + (unitMiles ? ' range added' : ' added') + (s.kwh > 0 ? ' · ' + pct + '% from solar' : '') + ' · saved $' + saved;
+}
+function hideSessionDone() { clearTimeout(sessDoneTimer); el('sesscard').hidden = true; }
+function checkSessionDone() {
+    if (!sessionsData || sessionPageIndex !== 0) return;
+    const s = sessionsData.sessions[0], key = s ? s.start + '|' + s.end : '';
+    if (sessDoneKey !== null && key !== '' && key !== sessDoneKey && s.kwh > 0.05) {
+        el('sesscard-text').textContent = sessionDoneText(s);
+        el('sesscard').hidden = false;
+        clearTimeout(sessDoneTimer); sessDoneTimer = setTimeout(hideSessionDone, 20000);
+        valueDaysAt[30] = 0; valueDaysAt[365] = 0;   // the bars should pick up the new charge soon
+    }
+    sessDoneKey = key;
 }
 
 /** The pill says Live; in the daytime, if the solar meter has gone quiet, it turns amber and says how old the reading is. */
@@ -1802,6 +1954,7 @@ async function loadSessions() {
         const res = await fetchWithTimeout('/api/sessions?n=' + n + '&offset=' + offset);
         if (!res.ok) return;
         sessionsData = await res.json();
+        checkSessionDone();
         const pages = Math.max(1, Math.ceil((sessionsData.total + (sessionsData.open ? 1 : 0)) / FEED_PAGE_SIZE));
         if (sessionPageIndex > pages - 1) { sessionPageIndex = pages - 1; return loadSessions(); }
         renderSessions();
@@ -1925,7 +2078,6 @@ function applyUnits() {
     el('mpk-input').value = milesPerKwh;
     el('mpk-input').closest('.field').style.display = unitMiles ? 'flex' : 'none';
     el('goal-label').textContent = unitMiles ? 'Range to have (miles)' : 'Energy to have (kWh)';
-    el('st-car-label').textContent = unitMiles ? 'Range today' : 'Car today';
     const g = lastData && lastData.goal;
     // A half-typed goal means something else in the other unit, so drop it and show the saved goal again.
     if (g) { goalEdited = false; el('goal-kwh').value = goalToBox(g.kwh); el('goal-save-kwh').hidden = true; el('goal-save-time').hidden = true; }
