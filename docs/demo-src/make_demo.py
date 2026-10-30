@@ -174,7 +174,7 @@ NOTES = {
     "top": [
         ("#hero", "What is happening now", "The headline says what the charger is doing right now, and why when it is not charging."),
         ("#flowgrid", "Where the power goes", "Solar is what the panels make, Home what the house uses, Car what the charger draws, Grid what is bought or sent out."),
-        ("#stats", "Today's totals", "Money saved by using the sun, the share of the car's energy that came from it, and the energy the car took."),
+        ("#value", "What the charging gave you", "Energy or miles added and money saved, for Today, Week, Month or Year, with the share that came from your solar and a bar for each day."),
         ("#conn", "Live", "Turns amber ('Meter 12m old') when the solar readings are getting stale."),
         ("#gear", "Settings", "Opens Settings: solar hours, goal, prices, limits, units and messages."),
     ],
@@ -184,7 +184,7 @@ NOTES = {
     ],
     "top-miles": [
         ("#charger-power", "Miles per hour", "In miles mode the Car box shows miles of range added per hour instead of kW."),
-        ("#st-car-label@.stat", "Range today", "The tile counts estimated miles of range added today."),
+        ("#vunit", "Miles or kWh", "Tap to switch the card between estimated miles of range and kWh."),
     ],
     "top-paused": [
         ("#hero", "Paused by you", "Nothing will start while paused, whatever the mode or the sun."),
@@ -289,7 +289,7 @@ NOTES = {
     "top": [
         ("#hero", "What is happening now", "The headline says what the charger is doing right now, and why when it is not charging."),
         ("#flowgrid", "Where the power goes", "Solar is what the panels make, Home what the house uses, Car what the charger draws, Grid what is bought or sent out."),
-        ("#stats", "Today's totals", "Money saved by using the sun, the share of the car's energy that came from it, and the energy the car took."),
+        ("#value", "What the charging gave you", "Energy or miles added and money saved, for Today, Week, Month or Year, with the share that came from your solar and a bar for each day."),
         ("#conn", "Live", "Turns amber ('Meter 12m old') when the solar readings are getting stale."),
         ("#gear", "Settings", "Opens Settings: solar hours, goal, prices, limits, units and messages."),
     ],
@@ -299,7 +299,7 @@ NOTES = {
     ],
     "top-miles": [
         ("#charger-power", "Miles per hour", "In miles mode the Car box shows miles of range added per hour instead of kW."),
-        ("#st-car-label@.stat", "Range today", "The tile counts estimated miles of range added today."),
+        ("#vunit", "Miles or kWh", "Tap to switch the card between estimated miles of range and kWh."),
     ],
     "top-paused": [
         ("#hero", "Paused by you", "Nothing will start while paused, whatever the mode or the sun."),
