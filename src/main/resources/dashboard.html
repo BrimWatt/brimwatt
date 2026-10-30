@@ -109,6 +109,7 @@
         .vper button, .vunit { min-height: 34px; padding: 0 9px; font-size: 0.78rem; font-weight: 600; background: transparent; color: var(--muted); border-radius: 8px; }
         .vper button.active { background: var(--card); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
         .vunit { background: var(--soft); flex: none; }
+        @media (max-width: 400px) { .vtop { flex-wrap: wrap; } .vper { flex: 1 1 100%; } .vper button { flex: 1; } .vunit { margin-left: auto; } }   /* narrow phones: tabs on their own row, the unit button under them */
         .vbig { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
         .vbig > div { background: var(--tint); border-radius: 12px; padding: 8px 10px; min-width: 0; }
         .vbig .fl { font-size: 0.68rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
@@ -434,7 +435,7 @@
                         <button type="button" role="tab" id="tab-30" data-p="month" aria-selected="false" onclick="setRange('30')">Month</button>
                         <button type="button" role="tab" id="tab-365" data-p="year" aria-selected="false" onclick="setRange('365')">Year</button>
                     </div>
-                    <button type="button" class="vunit" id="vunit" onclick="flipUnit()" aria-label="Switch between miles and kWh">kWh</button>
+                    <button type="button" class="vunit" id="vunit" onclick="flipUnit()" aria-label="Show energy as estimated miles">Show miles</button>
                 </div>
                 <div class="vbig">
                     <div><span class="fl" id="v-added-label">Energy added</span><b id="v-added">–</b><small id="v-added-sub">Today</small></div>
@@ -1504,7 +1505,8 @@ function renderValue() {
     const kind = KIND_OF_RANGE[range] || 'today';
     const days = valueDays[kind === 'year' ? 365 : 30], v = valueSummary(kind, days, hist.totals);
     const rate = lastData ? lastData.rateCents : 30, peak = lastData && lastData.peakRateCents > 0 ? lastData.peakRateCents : 0;
-    el('vunit').textContent = unitMiles ? 'Miles' : 'kWh';
+    el('vunit').textContent = unitMiles ? 'Show kWh' : 'Show miles';   // the button names what it switches to
+    el('vunit').setAttribute('aria-label', unitMiles ? 'Show energy in kWh' : 'Show energy as estimated miles');
     el('v-added-label').textContent = unitMiles ? 'Range added' : 'Energy added';
     glide('v-added', v.car, fmtEnergy);
     setText('v-added-sub', VALUE_LABEL[kind]);
