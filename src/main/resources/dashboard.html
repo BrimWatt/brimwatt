@@ -84,7 +84,7 @@
         #pause-btn.resume:hover:not(:disabled) { background: #065f46; }
 
         /* power flow: four tiles joined by straight arrows through the supply, top to bottom (sources, supply, loads), on every screen size */
-        .flowgrid { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 26px auto 26px auto; column-gap: 10px; }
+        .flowgrid { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 40px auto 40px auto; column-gap: 10px; }
         .ft { background: var(--tint); border-radius: 12px; padding: 6px 10px; border-left: 4px solid var(--c); min-width: 0; }
         .ft .fl { font-size: 0.7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
         .ft b { display: block; font-size: 1.25rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
@@ -1371,7 +1371,7 @@ function renderFlow(data) {
  * The flow lines: solar and grid run into the supply node, and from it to the home and the car. Line thickness follows
  * the power; a flow that is zero is faint and grey; exporting turns the grid line around.
  */
-const DOT_GAP = 16;
+const DOT_GAP = 30, DOT_LEN = 8;   // a short streak every 30 px, so the direction reads even on a short arrow
 let flowDots = [], flowPhase = [0, 0, 0, 0], flowLast = 0, flowRaf = 0;
 /** Moves the dots along their lines; the phase is kept between redraws so a refresh never makes them jump. Stops while the tab is hidden. */
 function flowTick(t) {
@@ -1401,10 +1401,10 @@ function drawFlow() {
         const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len, nx = -uy, ny = ux;
         const on = watts >= 30, c = on ? color : cv('--stop'), sw = thick(watts), head = 4 + sw;
         const moving = on && motionOk(), ex = x2 - ux * head * 0.6, ey = y2 - uy * head * 0.6;
-        svgEl(svg, 'line', { x1, y1, x2: ex, y2: ey, stroke: c, 'stroke-width': sw, 'stroke-linecap': 'round', 'stroke-dasharray': on ? '' : '4 4', opacity: moving ? 0.4 : 1 });
+        svgEl(svg, 'line', { x1, y1, x2: ex, y2: ey, stroke: c, 'stroke-width': sw, 'stroke-linecap': 'round', 'stroke-dasharray': on ? '' : '4 4', opacity: moving ? 0.3 : 1 });
         if (moving) {
-            const dots = svgEl(svg, 'line', { x1, y1, x2: ex, y2: ey, stroke: c, 'stroke-width': sw + 2.5, 'stroke-linecap': 'round', 'stroke-dasharray': '0.1 ' + (DOT_GAP - 0.1), 'stroke-dashoffset': -(flowPhase[di] % DOT_GAP) });
-            flowDots.push({ el: dots, i: di, speed: Math.min(70, 16 + 54 * Math.sqrt(Math.min(watts, 7000) / 4000)) });   // faster with more power
+            const dots = svgEl(svg, 'line', { x1, y1, x2: ex, y2: ey, stroke: c, 'stroke-width': sw + 1.5, 'stroke-linecap': 'round', 'stroke-dasharray': DOT_LEN + ' ' + (DOT_GAP - DOT_LEN), 'stroke-dashoffset': -(flowPhase[di] % DOT_GAP) });
+            flowDots.push({ el: dots, i: di, speed: Math.min(60, 14 + 40 * Math.sqrt(Math.min(watts, 7000) / 4000)) });   // faster with more power
         }
         di++;
         const bx = x2 - ux * head, by = y2 - uy * head;
