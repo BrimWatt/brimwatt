@@ -361,16 +361,16 @@
         #hero { order: 1; } #sesscard { order: 2; } #flow { order: 3; } #chartcard { order: 4; } #modes { order: 5; } #carcard { order: 6; }
         #feedcard { order: 7; } #sessions { order: 8; }
 
-        /* wider screens: two stacks on top and the graph beside the sessions below, so both sides end on the same line */
-        /* The Tesla tile sits in the left stack so the right one is not the taller; on a phone the order rules above keep it under the modes. */
+        /* wider screens: headline, flow and modes on the left, activity and sessions on the right, and the value and graph card across the bottom
+           (numbers on the left of it, the graph on the right). On a phone the order rules above keep the single column. */
         @media (min-width: 900px) {
             body { padding: 18px 24px; }
             .dash { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 12px; align-items: stretch; }
             .stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
             .stack > * { order: 0 !important; }
-            .stack > :last-child, #flow:has(+ #carcard[hidden]) { flex: 1 1 auto; }   /* the shorter stack's last tile fills the difference */
+            .stack-b > :last-child { flex: 1 1 auto; }   /* the right stack is the shorter one: its last tile (the sessions) takes the difference */
             .stack-a { grid-column: 1; grid-row: 1; } .stack-b { grid-column: 2; grid-row: 1; }
-            #chartcard { grid-column: 1; grid-row: 2; order: 0; } #sessions { grid-column: 2; grid-row: 2; order: 0; }
+            #chartcard { grid-column: 1 / -1; grid-row: 2; order: 0; display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: 12px 18px; align-items: stretch; }   /* numbers beside the graph */
             .ft b { font-size: 1.5rem; }
             .tile { padding: 12px 14px; }
         }
@@ -406,15 +406,6 @@
                 <div class="ft car" id="car-tile"><span class="fl">🚗 Car</span><b id="charger-power">–</b><small id="charger-sub">&nbsp;</small></div>
             </div>
         </section>
-        <section class="tile" id="carcard" hidden>
-            <h2>Tesla</h2>
-            <div class="carmain"><b id="car-main">–</b><span class="st" id="car-state">&nbsp;</span><button type="button" class="info" data-tip="car" aria-label="What is the Tesla tile?">i</button></div>
-            <div class="carbar" id="car-bar" hidden><i id="car-bar-fill"></i><u id="car-bar-limit"></u></div>
-            <p class="hint" id="car-note">&nbsp;</p>
-            <p class="hint" id="car-ctl" hidden></p>
-        </section>
-        </div>
-        <div class="stack stack-b">
         <section class="tile" id="modes">
             <div class="seg" id="seg">
                 <button id="opt-ECO" class="active" aria-pressed="true" onclick="setMode('ECO')">☘️ Eco</button>
@@ -435,10 +426,24 @@
                 <div class="cdbar" id="allowance-cd" aria-hidden="true"><i></i></div>
             </div>
         </section>
+        <section class="tile" id="carcard" hidden>
+            <h2>Tesla</h2>
+            <div class="carmain"><b id="car-main">–</b><span class="st" id="car-state">&nbsp;</span><button type="button" class="info" data-tip="car" aria-label="What is the Tesla tile?">i</button></div>
+            <div class="carbar" id="car-bar" hidden><i id="car-bar-fill"></i><u id="car-bar-limit"></u></div>
+            <p class="hint" id="car-note">&nbsp;</p>
+            <p class="hint" id="car-ctl" hidden></p>
+        </section>
+        </div>
+        <div class="stack stack-b">
         <section class="tile" id="feedcard">
             <h2>Activity</h2>
             <ul class="feed" id="feed"><li><span class="t"></span>Nothing yet today.</li></ul>
             <div class="pager" id="feed-pager" hidden><button class="chip" id="feed-newer" onclick="feedPage(-1)">‹ Newer</button><span id="feed-page"></span><button class="chip" id="feed-older" onclick="feedPage(1)">Older ›</button></div>
+        </section>
+        <section class="tile" id="sessions">
+            <h2>Charging sessions</h2>
+            <div id="session-list"><div class="empty">No sessions yet.</div></div>
+            <div class="pager" id="sess-pager" hidden><button class="chip" id="sess-newer" onclick="sessionPage(-1)">‹ Newer</button><span id="sess-page"></span><button class="chip" id="sess-older" onclick="sessionPage(1)">Older ›</button></div>
         </section>
         </div>
         <section class="tile gclosed" id="chartcard">
@@ -480,11 +485,6 @@
             <div id="chart"><div class="empty">Collecting data…</div></div>
             <div id="readout" aria-live="off"></div>
             </div>
-        </section>
-        <section class="tile" id="sessions">
-            <h2>Charging sessions</h2>
-            <div id="session-list"><div class="empty">No sessions yet.</div></div>
-            <div class="pager" id="sess-pager" hidden><button class="chip" id="sess-newer" onclick="sessionPage(-1)">‹ Newer</button><span id="sess-page"></span><button class="chip" id="sess-older" onclick="sessionPage(1)">Older ›</button></div>
         </section>
     </main>
 </div>
