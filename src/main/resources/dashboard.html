@@ -127,6 +127,21 @@
         #graphpanel { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
         .gclosed #graphpanel { display: none; }
         @media (min-width: 900px) { .gtoggle { display: none; } .gclosed #graphpanel { display: flex; } }   /* wide screens always show the graph beside the sessions */
+        .vgas { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: 12px; background: var(--ok-bg); color: var(--ok-tx); font-size: 0.92rem; font-weight: 700; text-align: left; white-space: normal; }
+        .vgas:disabled { opacity: 0.7; cursor: default; }
+        .vgas .chev { font-size: 1.3rem; line-height: 1; transition: transform 0.2s; } .vgas[aria-expanded="true"] .chev { transform: rotate(90deg); }
+        #gaspanel { background: var(--tint); border-radius: 12px; padding: 10px 12px; margin-top: -4px; }
+        #gaspanel[hidden] { display: none; }
+        .gtitle { font-size: 0.7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+        .gtitle .info { margin-left: 4px; width: 20px; height: 20px; font-size: 0.7rem; }
+        .gl { display: grid; grid-template-columns: 92px minmax(0, 1fr) 62px; align-items: center; gap: 8px; margin: 7px 0; font-size: 0.78rem; }
+        .gl .lab { color: var(--muted); } .gl .val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .gbar { height: 14px; border-radius: 5px; background: var(--soft); overflow: hidden; } .gbar i { display: block; height: 100%; width: 0; border-radius: 5px; transition: width 0.6s ease; }
+        .gtwo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-top: 8px; }
+        .gchip { background: var(--card); border-radius: 10px; padding: 6px 8px; min-width: 0; }
+        .gchip small { display: block; font-size: 0.66rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+        .gchip b { display: block; font-size: 1.1rem; color: var(--green); font-variant-numeric: tabular-nums; }
+        .gfine { margin: 8px 0; font-size: 0.72rem; color: var(--muted); }
         .sessdone { display: flex; align-items: center; gap: 10px; background: var(--ok-bg); color: var(--ok-tx); }
         .sessdone[hidden] { display: none; }
         .sessdone .sd-ic { font-size: 1.4rem; }
@@ -445,6 +460,16 @@
                     <div class="vr"><span>From your solar<button type="button" class="info" data-tip="share" aria-label="What is From your solar?">i</button></span><b id="v-share">–</b></div>
                     <div class="vbar"><i id="v-share-bar"></i></div>
                 </div>
+                <button type="button" class="vgas" id="vgas" aria-expanded="false" aria-controls="gaspanel" onclick="toggleGas()"><span id="vgas-head">–</span><span class="chev" aria-hidden="true">›</span></button>
+                <div id="gaspanel" hidden>
+                    <div class="gtitle">What the same miles would have cost<button type="button" class="info" data-tip="gas" aria-label="How is this worked out?">i</button></div>
+                    <div class="gl"><span class="lab">Gas car</span><div class="gbar"><i id="g-bar-gas" style="background: var(--grid)"></i></div><span class="val" id="g-val-gas">–</span></div>
+                    <div class="gl"><span class="lab">Electric, grid only</span><div class="gbar"><i id="g-bar-grid" style="background: var(--solar)"></i></div><span class="val" id="g-val-grid">–</span></div>
+                    <div class="gl"><span class="lab">Your charging</span><div class="gbar"><i id="g-bar-paid" style="background: var(--green)"></i></div><span class="val" id="g-val-paid">–</span></div>
+                    <div class="gtwo"><div class="gchip"><small>From driving electric</small><b id="g-ev">–</b></div><div class="gchip"><small>From charging with solar</small><b id="g-solar">–</b></div></div>
+                    <p class="gfine" id="g-fine">&nbsp;</p>
+                    <button type="button" class="chip" onclick="openSettings()">Change gas price and mpg</button>
+                </div>
             </div>
             <button type="button" class="gtoggle" id="gtoggle" aria-expanded="false" aria-controls="graphpanel" onclick="toggleGraph()">Show graph ▾</button>
             <div id="graphpanel">
@@ -543,6 +568,8 @@
             <div class="field"><span><label for="theme-select">Theme</label><button type="button" class="info" data-tip="theme" aria-label="What does theme do?">i</button></span><span class="edit"><select id="theme-select"><option value="auto">Match my phone</option><option value="light">Light</option><option value="dark">Dark</option></select></span></div>
             <div class="field"><span><label for="unit-select">Show energy as</label><button type="button" class="info" data-tip="units" aria-label="What does show energy as do?">i</button></span><span class="edit"><select id="unit-select"><option value="kwh">kWh</option><option value="miles">Miles</option></select></span></div>
             <div class="field"><label for="mpk-input">Miles per kWh</label><span class="edit"><input type="number" id="mpk-input" inputmode="decimal" min="1" max="6" step="0.1" value="3"></span></div>
+            <div class="field"><label for="gas-price">Gas price ($ per gallon)</label><span class="edit"><input type="number" id="gas-price" inputmode="decimal" min="1" max="20" step="0.01" value="4.60"></span></div>
+            <div class="field"><label for="gas-mpg">Gas car's miles per gallon</label><span class="edit"><input type="number" id="gas-mpg" inputmode="decimal" min="5" max="100" step="1" value="28"></span></div>
 <details class="more" id="diag"><summary>Diagnostics</summary><dl class="rows" id="diag-rows"><div class="row"><dt>Loading…</dt><dd></dd></div></dl></details>
 </section>
 </div>
@@ -564,6 +591,7 @@ const TIPS = {
     flow: ['Reading the power picture', ['Solar is what your panels make right now. Home is what the house uses, not counting the car. Car is what the car is taking.', 'Grid is power coming from the electric company. If it shows sending, your extra solar is going back to the grid.', 'The arrows show where the power goes. Grey dashes mean nothing is flowing.']],
     bars: ['Sun and grid bars', ['Each bar is the energy that charged the car that day.', 'Yellow (sun) is the part that came from your solar panels. Red (grid) is the part that came from the electric grid.']],
     saved: ['Saved', ['The money you saved by charging the car from the sun instead of the grid, for the period you picked (Today, Week, Month or the last 12 months).', 'It uses the electricity price in Settings (the gear icon at the top).']],
+    gas: ['Compared with gas', ['A gas car would burn fuel for the same miles. This shows what that fuel would cost, what charging would cost with no solar, and what you actually paid.', 'The miles are an estimate: the energy the car took times your Miles per kWh. The gas price and the gas car\'s miles per gallon are yours to set in Settings (they stay on this phone); the first numbers are only a starting guess.', '"Your charging" is the grid part of the charging at your electricity price. "From charging with solar" is the Saved amount above.']],
     share: ['From your solar', ['How much of the car\'s energy, in the period you picked, came from your solar panels instead of the grid. 100% means all of it.']],
     hours: ['Solar hours', ['Eco and Max solar only work during the day: from a little after sunrise until a little before sunset. Outside these hours they do nothing.', 'You can change how many minutes after sunrise it starts, and before sunset it stops, in the two boxes below.', 'Custom works at any time.']],
     car: ['Tesla', ['WattSync reads your Tesla over Bluetooth: the battery, the charge limit and the charging current. It only reads. The buttons under For testing in Settings are the only things that change the car, and only when you press them.', 'The controller must be near the car. If the car cannot be reached the numbers stay as they were, with their age.']],
@@ -710,6 +738,9 @@ function setCd(id, frac) {
     b.classList.toggle('on', frac !== null);
     b.firstElementChild.style.width = frac === null ? '0%' : Math.round(Math.min(1, Math.max(0, frac)) * 100) + '%';
 }
+let gasPrice = 4.6, gasMpg = 28;   // starting guesses; the owner sets their own in Settings (kept on this phone)
+try { const p = parseFloat(localStorage.getItem('gasprice')), g = parseFloat(localStorage.getItem('gasmpg')); if (p >= 1 && p <= 20) gasPrice = p; if (g >= 5 && g <= 100) gasMpg = g; } catch (e) { /* no storage: the guesses */ }
+function saveGas() { try { localStorage.setItem('gasprice', String(gasPrice)); localStorage.setItem('gasmpg', String(gasMpg)); } catch (e) { /* not saved */ } }
 let heroSeen = false, waitTotal = 0, feedTop = null, sessTop = null;
 // Units: kWh or miles. Display only: the API, the planner and the saved goal always use kWh. Kept in this phone's browser.
 let unitMiles = false, milesPerKwh = 3;
@@ -1514,6 +1545,7 @@ function renderValue() {
     setText('v-saved-sub', peak ? rate + '¢, peak ' + peak + '¢' : 'at ' + rate + '¢/kWh');
     setText('v-share', v.share === null ? '–' : v.share + '%');
     el('v-share-bar').style.width = (v.share === null ? 0 : v.share) + '%';
+    renderGas(v);
 }
 /** Folds the graph away or opens it in place; the choice is kept on this phone. Wide screens always show it. */
 function toggleGraph() {
@@ -1532,6 +1564,42 @@ function applyGraphOpen() {
     el('gtoggle').setAttribute('aria-expanded', open);
 }
 applyGraphOpen();
+/** Dollars for the comparison: cents below $100, whole dollars above. */
+function fmtDollars(x) { const a = Math.abs(x); return (x < 0 ? '−' : '') + '$' + (a >= 100 ? Math.round(a).toLocaleString() : a.toFixed(2)); }
+/**
+ * What the same miles would have cost on gas, on a grid-only electric car, and what was paid. Miles are the energy times miles per kWh.
+ * "Saved" is the sun's share worth (recorded, so it follows the price of the hour); it can never exceed the grid-only cost, and what
+ * is left is what the grid part of the charging cost.
+ */
+function gasCompare(carKwh, saved, rateCents, mpk, mpg, price) {
+    const miles = carKwh * mpk, gallons = miles / mpg, gasCost = gallons * price;
+    const gridOnly = carKwh * rateCents / 100, solar = Math.min(Math.max(0, saved), gridOnly), paid = gridOnly - solar;
+    return { miles, gallons, gasCost, gridOnly, paid, solar, evVsGas: gasCost - gridOnly, less: gasCost - paid };
+}
+let gasOpen = false, lastGas = null;
+try { gasOpen = localStorage.getItem('gasopen') === '1'; } catch (e) { /* closed */ }
+function toggleGas() {
+    gasOpen = !gasOpen;
+    try { localStorage.setItem('gasopen', gasOpen ? '1' : '0'); } catch (e) { /* not saved */ }
+    renderGas(lastGas);
+}
+function renderGas(v) {
+    lastGas = v;
+    const head = el('vgas-head'), btn = el('vgas'), panel = el('gaspanel');
+    if (!v || v.car < 0.05) {
+        head.textContent = 'Charge the car to see how it compares with gas.';
+        btn.disabled = true; btn.setAttribute('aria-expanded', 'false'); panel.hidden = true;
+        return;
+    }
+    const rate = lastData ? lastData.rateCents : 30, g = gasCompare(v.car, v.saved, rate, milesPerKwh, gasMpg, gasPrice);
+    head.textContent = '~' + fmtDollars(Math.abs(g.less)) + (g.less >= 0 ? ' less' : ' more') + ' than gas.';
+    btn.disabled = false; btn.setAttribute('aria-expanded', gasOpen); panel.hidden = !gasOpen;
+    const top = Math.max(g.gasCost, g.gridOnly, 0.01), bar = (id, val) => { el('g-bar-' + id).style.width = Math.max(2, val / top * 100) + '%'; };
+    bar('gas', g.gasCost); bar('grid', g.gridOnly); bar('paid', g.paid);
+    setText('g-val-gas', '~' + fmtDollars(g.gasCost)); setText('g-val-grid', '~' + fmtDollars(g.gridOnly)); setText('g-val-paid', '~' + fmtDollars(g.paid));
+    setText('g-ev', '~' + fmtDollars(g.evVsGas)); setText('g-solar', '~' + fmtDollars(g.solar));
+    setText('g-fine', '~' + Math.round(g.miles).toLocaleString() + ' miles at ' + gasMpg + ' mpg and $' + gasPrice.toFixed(2) + ' a gallon, ' + milesPerKwh + ' miles per kWh.');
+}
 function flipUnit() { unitMiles = !unitMiles; saveUnits(); applyUnits(); }
 /** Daily rows for the totals: 30 days for Today, Week and Month, a year for Year; refreshed at most every 5 minutes. */
 async function loadValueDays(n) {
@@ -2051,7 +2119,8 @@ function showGoalHint() {
 function applyUnits() {
     el('unit-select').value = unitMiles ? 'miles' : 'kwh';
     el('mpk-input').value = milesPerKwh;
-    el('mpk-input').closest('.field').style.display = unitMiles ? 'flex' : 'none';
+    el('gas-price').value = gasPrice.toFixed(2);
+    el('gas-mpg').value = gasMpg;
     el('goal-label').textContent = unitMiles ? 'Range to have (miles)' : 'Energy to have (kWh)';
     const g = lastData && lastData.goal;
     // A half-typed goal means something else in the other unit, so drop it and show the saved goal again.
@@ -2063,6 +2132,16 @@ function applyUnits() {
 }
 function saveUnits() { try { localStorage.setItem('unit', unitMiles ? 'miles' : 'kwh'); localStorage.setItem('mpk', String(milesPerKwh)); } catch (e) { /* not saved */ } }
 el('unit-select').addEventListener('change', () => { unitMiles = el('unit-select').value === 'miles'; saveUnits(); applyUnits(); });
+el('gas-price').addEventListener('change', () => {
+    const p = Number(el('gas-price').value);
+    if (el('gas-price').value.trim() === '' || !(p >= 1 && p <= 20)) { toast('Enter 1 to 20 dollars per gallon', 'err'); el('gas-price').value = gasPrice.toFixed(2); return; }
+    gasPrice = Math.round(p * 100) / 100; saveGas(); renderValue();
+});
+el('gas-mpg').addEventListener('change', () => {
+    const g = Number(el('gas-mpg').value);
+    if (el('gas-mpg').value.trim() === '' || !(g >= 5 && g <= 100)) { toast('Enter 5 to 100 miles per gallon', 'err'); el('gas-mpg').value = gasMpg; return; }
+    gasMpg = Math.round(g * 10) / 10; saveGas(); renderValue();
+});
 el('mpk-input').addEventListener('change', () => {
     const m = Number(el('mpk-input').value);
     if (el('mpk-input').value.trim() === '' || !(m >= 1 && m <= 6)) { toast('Enter 1 to 6 miles per kWh', 'err'); el('mpk-input').value = milesPerKwh; return; }
