@@ -123,6 +123,9 @@
         .vbar { height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden; }
         .vbar i { display: block; height: 100%; width: 0; border-radius: 4px; background: linear-gradient(90deg, var(--solar), var(--green)); transition: width 0.7s ease; }
         #chartcard { gap: 10px; }
+        .gtabs { display: none; gap: 2px; background: var(--soft); border-radius: 10px; padding: 3px; align-self: flex-start; justify-self: start; }
+        .gtabs button { min-height: 32px; padding: 0 12px; font-size: 0.78rem; font-weight: 600; background: transparent; color: var(--muted); border-radius: 8px; }
+        .gtabs button.active { background: var(--card); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
         .gtoggle { min-height: 40px; background: var(--soft); color: var(--link); font-size: 0.82rem; border-radius: 10px; }
         #graphpanel { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
         .gclosed #graphpanel { display: none; }
@@ -361,18 +364,35 @@
         #hero { order: 1; } #sesscard { order: 2; } #flow { order: 3; } #chartcard { order: 4; } #modes { order: 5; } #carcard { order: 6; }
         #feedcard { order: 7; } #sessions { order: 8; }
 
-        /* wider screens: headline, flow and modes on the left, activity and sessions on the right, and the value and graph card across the bottom
-           (numbers on the left of it, the graph on the right). On a phone the order rules above keep the single column. */
+        /* wider screens: the headline across the top; below it the savings and graph card on the left, level with the power flow and the modes on
+           the right; activity and sessions underneath. The card spans the flow, modes and Tesla rows; the flow row takes any difference by lengthening
+           its arrows (capped), so no card ever grows empty space inside. On a phone the order rules above keep the single column. */
         @media (min-width: 900px) {
             body { padding: 18px 24px; }
-            .dash { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 12px; align-items: stretch; }
-            .stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-            .stack > * { order: 0 !important; }
-            .stack-b > :last-child { flex: 1 1 auto; }   /* if the right stack is the shorter one, its last tile (the sessions) takes the difference */
-            #flow { display: flex; flex-direction: column; flex: 1 1 auto; }   /* if the left is shorter, the flow card takes it by lengthening its arrows (capped), not by leaving a gap */
-            #flow .flowgrid { flex: 1 1 auto; grid-template-rows: auto minmax(40px, 90px) auto minmax(40px, 90px) auto; }
-            .stack-a { grid-column: 1; grid-row: 1; } .stack-b { grid-column: 2; grid-row: 1; }
-            #chartcard { grid-column: 1 / -1; grid-row: 2; order: 0; display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: 12px 18px; align-items: stretch; }   /* numbers beside the graph */
+            .dash { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto auto auto; gap: 0 12px; align-items: stretch; }
+            .stack { display: contents; }
+            .stack > *, #chartcard { order: 0 !important; margin-bottom: 12px; }   /* margins, not row gaps: a hidden Tesla tile must not leave a gap */
+            #hero { grid-column: 1 / -1; grid-row: 1; } #sesscard { grid-column: 1 / -1; grid-row: 2; }
+            #chartcard { grid-column: 1; grid-row: 3 / span 3; }
+            #flow { grid-column: 2; grid-row: 3; display: flex; flex-direction: column; }
+            #flow .flowgrid { flex: 1 1 auto; grid-template-rows: auto minmax(40px, 1fr) auto minmax(40px, 1fr) auto; }   /* 40 px arrows at least; any extra height is shared by the two arrow rows */
+            #modes { grid-column: 2; grid-row: 4; } #carcard { grid-column: 2; grid-row: 5; }
+            #feedcard { grid-column: 1; grid-row: 6; } #sessions { grid-column: 2; grid-row: 6; }
+            /* inside the card: a compact strip of numbers, the saving line, the Graph / Compared with gas tabs, then the chart filling what is left */
+            #chartcard { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto auto auto minmax(0, 1fr); gap: 10px 8px; }
+            #chartcard #value { display: contents; }
+            #chartcard .vtop { grid-column: 1 / -1; grid-row: 1; }
+            #chartcard .vbig { display: contents; }
+            #chartcard .vbig > div:nth-child(1) { grid-column: 1; grid-row: 2; } #chartcard .vbig > div:nth-child(2) { grid-column: 2; grid-row: 2; }
+            #chartcard .vshare { grid-column: 3; grid-row: 2; background: var(--tint); border-radius: 12px; padding: 8px 10px; }
+            #chartcard .vgas { grid-column: 1 / -1; grid-row: 3; }
+            #chartcard .gtabs { display: flex; grid-column: 1 / -1; grid-row: 4; }
+            #chartcard #graphpanel, #chartcard #gaspanel { grid-column: 1 / -1; grid-row: 5; }
+            #chartcard #gaspanel { display: flex !important; flex-direction: column; justify-content: space-around; visibility: hidden; margin: 0; }   /* both sit in the same cell, so the card never changes height */
+            #chartcard.gas-view #gaspanel { visibility: visible; } #chartcard.gas-view #graphpanel { visibility: hidden; }
+            #chartcard.gas-view .gl { margin: 8px 0; font-size: 0.86rem; } #chartcard.gas-view .gbar { height: 20px; }
+            #chart { min-height: 190px; flex-basis: 190px; }
+            #chartcard .summary.cols { grid-template-columns: repeat(4, auto); justify-content: space-between; gap: 2px 8px; }   /* the day's four totals in one row */
             .ft b { font-size: 1.5rem; }
             .tile { padding: 12px 14px; }
         }
@@ -477,6 +497,10 @@
                     <p class="gfine" id="g-fine">&nbsp;</p>
                     <button type="button" class="chip" onclick="openSettings()">Change gas price and mpg</button>
                 </div>
+            </div>
+            <div class="gtabs" id="gtabs" role="tablist" aria-label="Graph or comparison with gas">
+                <button type="button" role="tab" id="gtab-graph" class="active" aria-selected="true" onclick="setGasView(false)">Graph</button>
+                <button type="button" role="tab" id="gtab-gas" aria-selected="false" onclick="setGasView(true)">Compared with gas</button>
             </div>
             <button type="button" class="gtoggle" id="gtoggle" aria-expanded="false" aria-controls="graphpanel" onclick="toggleGraph()">Show graph ▾</button>
             <div id="graphpanel">
@@ -1578,9 +1602,20 @@ function gasCompare(carKwh, saved, rateCents, mpk, mpg, price) {
     const gridOnly = carKwh * rateCents / 100, solar = Math.min(Math.max(0, saved), gridOnly), paid = gridOnly - solar;
     return { miles, gallons, gasCost, gridOnly, paid, solar, evVsGas: gasCost - gridOnly, less: gasCost - paid };
 }
-let gasOpen = false, lastGas = null;
+let gasOpen = false, lastGas = null, gasView = false;
+function isWide() { try { return window.matchMedia('(min-width: 900px)').matches; } catch (e) { return false; } }
 try { gasOpen = localStorage.getItem('gasopen') === '1'; } catch (e) { /* closed */ }
+/** Wide screens: the comparison and the graph share one spot, switched by two tabs (the saving line also switches). */
+function setGasView(on) {
+    const btn = el('vgas');
+    gasView = !!on && !btn.disabled;
+    el('chartcard').classList.toggle('gas-view', gasView);
+    el('gtab-graph').classList.toggle('active', !gasView); el('gtab-gas').classList.toggle('active', gasView);
+    el('gtab-graph').setAttribute('aria-selected', !gasView); el('gtab-gas').setAttribute('aria-selected', gasView);
+    btn.setAttribute('aria-expanded', isWide() ? gasView : gasOpen);
+}
 function toggleGas() {
+    if (isWide()) { setGasView(!gasView); return; }
     gasOpen = !gasOpen;
     try { localStorage.setItem('gasopen', gasOpen ? '1' : '0'); } catch (e) { /* not saved */ }
     renderGas(lastGas);
@@ -1591,11 +1626,12 @@ function renderGas(v) {
     if (!v || v.car < 0.05) {
         head.textContent = 'Charge the car to see how it compares with gas.';
         btn.disabled = true; btn.setAttribute('aria-expanded', 'false'); panel.hidden = true;
+        el('gtab-gas').disabled = true; setGasView(false);
         return;
     }
     const rate = lastData ? lastData.rateCents : 30, g = gasCompare(v.car, v.saved, rate, milesPerKwh, gasMpg, gasPrice);
     head.textContent = '~' + fmtDollars(Math.abs(g.less)) + (g.less >= 0 ? ' less' : ' more') + ' than gas.';
-    btn.disabled = false; btn.setAttribute('aria-expanded', gasOpen); panel.hidden = !gasOpen;
+    btn.disabled = false; el('gtab-gas').disabled = false; btn.setAttribute('aria-expanded', isWide() ? gasView : gasOpen); panel.hidden = !gasOpen;
     const top = Math.max(g.gasCost, g.gridOnly, 0.01), bar = (id, val) => { el('g-bar-' + id).style.width = Math.max(2, val / top * 100) + '%'; };
     bar('gas', g.gasCost); bar('grid', g.gridOnly); bar('paid', g.paid);
     setText('g-val-gas', '~' + fmtDollars(g.gasCost)); setText('g-val-grid', '~' + fmtDollars(g.gridOnly)); setText('g-val-paid', '~' + fmtDollars(g.paid));
