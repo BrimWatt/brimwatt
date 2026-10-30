@@ -624,3 +624,40 @@ test('a number that is only the set limit gets a ~ and miles keep the one they h
     assert.equal(ctx.fmtApprox('0 mi/h'), '0 mi/h');
     assert.equal(ctx.fmtApprox('0 W'), '0 W');
 });
+
+// ---- the comparison with gas ----
+const near = (a, b, tol = 0.01) => assert.ok(Math.abs(a - b) <= tol, a + ' should be about ' + b);
+
+test('what the same miles would have cost on gas, on the grid only, and what was paid', () => {
+    // a month: 268 kWh into the car, $61 saved by the sun, 30 c/kWh, 3 miles per kWh, a 28 mpg gas car at $4.60 a gallon
+    const g = page.gasCompare(268, 61, 30, 3, 28, 4.6);
+    near(g.miles, 804);
+    near(g.gasCost, 804 / 28 * 4.6);
+    near(g.gridOnly, 80.4);
+    near(g.paid, 80.4 - 61);
+    near(g.solar, 61);
+    near(g.evVsGas, 804 / 28 * 4.6 - 80.4);
+    near(g.less, g.evVsGas + g.solar, 0.001, 'the two reasons add up to the whole saving');
+});
+
+test('the sun is never credited with more than the grid-only cost, so paid is never negative', () => {
+    const g = page.gasCompare(10, 12, 30, 3, 28, 4.6);   // peak pricing can make the recorded saving larger than 10 kWh at the normal price
+    near(g.gridOnly, 3);
+    near(g.solar, 3);
+    near(g.paid, 0);
+});
+
+test('an expensive grid and a thrifty gas car can come out the wrong way round, and the numbers say so', () => {
+    const g = page.gasCompare(10, 0, 80, 2, 40, 3);
+    near(g.gasCost, 1.5);
+    near(g.gridOnly, 8);
+    near(g.evVsGas, -6.5);
+    near(g.less, -6.5);
+});
+
+test('dollars in the comparison: cents below $100, whole dollars above, a proper minus', () => {
+    assert.equal(page.fmtDollars(112.69), '$113');
+    assert.equal(page.fmtDollars(19.4), '$19.40');
+    assert.equal(page.fmtDollars(-6.5), '−$6.50');
+    assert.equal(page.fmtDollars(0), '$0.00');
+});
