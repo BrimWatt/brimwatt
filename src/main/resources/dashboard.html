@@ -121,12 +121,7 @@
         .vshare .vr b { color: var(--ink); font-variant-numeric: tabular-nums; }
         .vbar { height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden; }
         .vbar i { display: block; height: 100%; width: 0; border-radius: 4px; background: linear-gradient(90deg, var(--solar), var(--green)); transition: width 0.7s ease; }
-        .vbars { display: flex; align-items: flex-end; gap: 3px; height: 56px; }
-        .vb { flex: 1; min-width: 0; min-height: 0; height: 100%; padding: 0; background: none; border-radius: 3px; display: flex; align-items: flex-end; cursor: pointer; }
-        .vb[disabled] { cursor: default; }
-        .vb i { display: block; width: 100%; height: var(--h, 2px); min-height: 2px; border-radius: 3px 3px 0 0; background: var(--green); opacity: 0.8; transition: height 0.5s ease; }
-        .vb.now i { background: var(--blue); opacity: 1; }
-        .vcap { display: flex; justify-content: space-between; gap: 8px; font-size: 0.72rem; color: var(--muted); }
+        .vsee { align-self: flex-end; min-height: 34px; padding: 0 4px; background: transparent; color: var(--link); font-size: 0.8rem; font-weight: 600; }
         .sessdone { display: flex; align-items: center; gap: 10px; background: var(--ok-bg); color: var(--ok-tx); }
         .sessdone[hidden] { display: none; }
         .sessdone .sd-ic { font-size: 1.4rem; }
@@ -394,8 +389,7 @@
                 <div class="vr"><span>From your solar<button type="button" class="info" data-tip="share" aria-label="What is From your solar?">i</button></span><b id="v-share">–</b></div>
                 <div class="vbar"><i id="v-share-bar"></i></div>
             </div>
-            <div class="vbars" id="v-bars" role="group" aria-label="Energy added per day"></div>
-            <div class="vcap"><span id="v-cap">&nbsp;</span><span id="v-hint">&nbsp;</span></div>
+            <button type="button" class="vsee" onclick="seeGraph()">See graph ↓</button>
         </section>
         <section class="tile sessdone" id="sesscard" role="status" aria-live="polite" hidden>
             <span class="sd-ic" aria-hidden="true">⚡</span>
@@ -450,8 +444,8 @@
         <section class="tile" id="chartcard">
             <div class="tabs" id="tabs" role="tablist" aria-label="History range">
                 <button role="tab" id="tab-day" class="active" aria-selected="true" onclick="setRange('day')">Today</button>
-                <button role="tab" id="tab-7" aria-selected="false" onclick="setRange('7')">7 days</button>
-                <button role="tab" id="tab-30" aria-selected="false" onclick="setRange('30')">30 days</button>
+                <button role="tab" id="tab-7" aria-selected="false" onclick="setRange('7')">Week</button>
+                <button role="tab" id="tab-30" aria-selected="false" onclick="setRange('30')">Month</button>
                 <button role="tab" id="tab-365" aria-selected="false" onclick="setRange('365')">Year</button>
             </div>
             <div class="charthead"><h2 id="chart-title">Today</h2><button id="chart-back" class="chip" hidden onclick="backToRange()">‹ Back</button></div>
@@ -1478,16 +1472,15 @@ function renderStats() {
     ensureValueDays();
 }
 
-// ---- the value card: miles or kWh added, money saved, the solar share, one bar per day ----
-const VALUE_PERIODS = ['today', 'week', 'month', 'year'];
+// ---- the value card: miles or kWh added, money saved, the solar share. Its tabs and the graph's are one control (`range`). ----
 const VALUE_LABEL = { today: 'Today', week: 'This week', month: 'This month', year: 'Last 12 months' };
-const VALUE_CAP = { today: 'Last 14 days', week: 'Last 7 days', month: 'Last 30 days', year: 'By month' };
-let valuePeriod = 'today';
-try { const p = localStorage.getItem('valper'); if (VALUE_PERIODS.includes(p)) valuePeriod = p; } catch (e) { /* no storage: Today */ }
+const KIND_OF_RANGE = { day: 'today', 7: 'week', 30: 'month', 365: 'year' }, RANGE_OF_KIND = { today: 'day', week: '7', month: '30', year: '365' };
 const valueDays = { 30: null, 365: null }, valueDaysAt = { 30: 0, 365: 0 }, valueLoading = { 30: false, 365: false };
 /**
- * Totals and one bar per day (per month for the year) from the daily rows of /api/days; today's row is replaced by the live
- * totals so the card agrees with the graph. Days with no row count as zero. The sun's share can never exceed what the car took.
+ * Energy, solar energy and money saved for a period, from the daily rows of /api/days; today's row is replaced by the live
+ * totals so the card agrees with the graph. Today is today; Week is the last 7 days, Month the last 30, Year the twelve months
+ * ending this month (the same window the graph's bars use). Days with no row count as zero. The sun's share can never exceed
+ * what the car took.
  */
 function valueSummary(kind, days, totals) {
     const sunOf = (sun, car) => Math.min(Math.max(0, sun), Math.max(0, car));
@@ -1495,68 +1488,33 @@ function valueSummary(kind, days, totals) {
     if (days) days.days.forEach(r => { const sun = sunOf(r[3], r[2]); rows.set(r[0], { car: r[2], sun, saved: savedOrEstimate(r[6], sun) }); });
     const today = days ? days.today : (hist ? hist.today : 0);
     if (totals) { const sun = sunOf(totals.carSolarKwh, totals.carKwh); rows.set(today, { car: totals.carKwh, sun, saved: savedOrEstimate(totals.savedDollars, sun) }); }
-    const at = k => rows.get(today - k) || { car: 0, sun: 0, saved: 0 };
-    const sum = list => list.reduce((a, r) => ({ car: a.car + r.car, sun: a.sun + r.sun, saved: a.saved + r.saved }), { car: 0, sun: 0, saved: 0 });
-    let bars = [], total;
-    if (kind === 'year') {   // twelve months ending this month
-        const end = utcDate(today), months = [];
-        for (let k = 11; k >= 0; k--) { const d = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - k, 1)); months.push({ y: d.getUTCFullYear(), m: d.getUTCMonth(), rows: [] }); }
-        rows.forEach((r, day) => { const d = utcDate(day), b = months.find(x => x.y === d.getUTCFullYear() && x.m === d.getUTCMonth()); if (b) b.rows.push(r); });
-        const sums = months.map(b => sum(b.rows));
-        bars = months.map((b, i) => ({ car: sums[i].car, daysAgo: null, label: MONTHS[b.m] + ' ' + b.y }));
-        total = sum(sums);
-    } else {
-        const n = kind === 'week' ? 7 : kind === 'month' ? 30 : 14, list = [];
-        for (let k = n - 1; k >= 0; k--) {
-            const d = utcDate(today - k);
-            bars.push({ car: at(k).car, daysAgo: k, label: DAYS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] });
-            list.push(at(k));
-        }
-        total = kind === 'today' ? at(0) : sum(kind === 'week' ? list.slice(-7) : list);
-    }
-    return { car: total.car, sun: total.sun, saved: total.saved, share: total.car >= 0.05 ? Math.round(total.sun / total.car * 100) : null, bars };
+    let first;
+    if (kind === 'year') { const end = utcDate(today); first = Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - 11, 1) / 86400000; }
+    else first = today - (kind === 'week' ? 6 : kind === 'month' ? 29 : 0);
+    const total = { car: 0, sun: 0, saved: 0 };
+    rows.forEach((r, day) => { if (day >= first && day <= today) { total.car += r.car; total.sun += r.sun; total.saved += r.saved; } });
+    return { car: total.car, sun: total.sun, saved: total.saved, share: total.car >= 0.05 ? Math.round(total.sun / total.car * 100) : null };
 }
 function renderValue() {
     if (!hist || !hist.totals) return;
-    const days = valueDays[valuePeriod === 'year' ? 365 : 30], v = valueSummary(valuePeriod, days, hist.totals);
+    const kind = KIND_OF_RANGE[range] || 'today';
+    const days = valueDays[kind === 'year' ? 365 : 30], v = valueSummary(kind, days, hist.totals);
     const rate = lastData ? lastData.rateCents : 30, peak = lastData && lastData.peakRateCents > 0 ? lastData.peakRateCents : 0;
-    [...el('vper').children].forEach(b => { const on = b.dataset.p === valuePeriod; b.classList.toggle('active', on); b.setAttribute('aria-pressed', on); });
+    [...el('vper').children].forEach(b => { const on = b.dataset.p === kind; b.classList.toggle('active', on); b.setAttribute('aria-pressed', on); });
     el('vunit').textContent = unitMiles ? 'Miles' : 'kWh';
     el('v-added-label').textContent = unitMiles ? 'Range added' : 'Energy added';
     glide('v-added', v.car, fmtEnergy);
-    setText('v-added-sub', VALUE_LABEL[valuePeriod]);
+    setText('v-added-sub', VALUE_LABEL[kind]);
     glide('v-saved', v.saved, x => '$' + x.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     setText('v-saved-sub', peak ? rate + '¢, peak ' + peak + '¢' : 'at ' + rate + '¢/kWh');
     setText('v-share', v.share === null ? '–' : v.share + '%');
     el('v-share-bar').style.width = (v.share === null ? 0 : v.share) + '%';
-    const box = el('v-bars'), max = Math.max(0.01, ...v.bars.map(b => b.car));
-    box.innerHTML = '';
-    v.bars.forEach((b, i) => {
-        const bar = document.createElement('button'), fill = document.createElement('i');
-        bar.type = 'button'; bar.className = 'vb' + (i === v.bars.length - 1 ? ' now' : '');
-        fill.style.cssText = '--h:' + (b.car > 0.005 ? Math.max(4, Math.round(b.car / max * 100)) + '%' : '2px');
-        bar.appendChild(fill);
-        bar.setAttribute('aria-label', b.label + ': ' + fmtEnergy(b.car));
-        bar.title = b.label + ': ' + fmtEnergy(b.car);
-        if (b.daysAgo === null) bar.disabled = true; else bar.addEventListener('click', () => openDay(b.daysAgo));
-        box.appendChild(bar);
-    });
-    setText('v-cap', VALUE_CAP[valuePeriod]);
-    setText('v-hint', valuePeriod === 'year' ? '' : 'Tap a bar for that day');
 }
-/** Opens that day's curve in the graph card and scrolls to it. */
-function openDay(daysAgo) {
-    if (daysAgo === 0) { if (range !== 'day' || pastDay !== null) setRange('day'); } else showPastDay(daysAgo);
-    el('chartcard').scrollIntoView({ block: 'start', behavior: motionOk() ? 'smooth' : 'auto' });
-}
-function setValuePeriod(p) {
-    if (!VALUE_PERIODS.includes(p)) return;
-    valuePeriod = p;
-    try { localStorage.setItem('valper', p); } catch (e) { /* not saved */ }
-    renderValue(); ensureValueDays();
-}
+/** The card's tabs drive the graph's: one control, two places. */
+function setValuePeriod(p) { if (RANGE_OF_KIND[p]) setRange(RANGE_OF_KIND[p]); }
+function seeGraph() { el('chartcard').scrollIntoView({ block: 'start', behavior: motionOk() ? 'smooth' : 'auto' }); }
 function flipUnit() { unitMiles = !unitMiles; saveUnits(); applyUnits(); }
-/** Daily rows for the bars: 30 days for Today, Week and Month, a year for Year; refreshed at most every 5 minutes. */
+/** Daily rows for the totals: 30 days for Today, Week and Month, a year for Year; refreshed at most every 5 minutes. */
 async function loadValueDays(n) {
     if (valueLoading[n]) return;
     valueLoading[n] = true;
@@ -1567,7 +1525,7 @@ async function loadValueDays(n) {
     valueLoading[n] = false;
 }
 function ensureValueDays() {
-    const n = valuePeriod === 'year' ? 365 : 30;
+    const n = range === '365' ? 365 : 30;
     if (valueDays[n] === null || Date.now() - valueDaysAt[n] > 300000) loadValueDays(n);
 }
 
@@ -1796,6 +1754,8 @@ function showMode() {
     ['day', '7', '30', '365'].forEach(r => { const b = el('tab-' + r); b.classList.toggle('active', r === range); b.setAttribute('aria-selected', r === range); });
     el('legend-curve').hidden = !curve; el('legend-bars').hidden = curve;
     el('range-summary').hidden = false;
+    renderValue();
+    ensureValueDays();
     el('chart-back').hidden = pastDay === null;
     el('readout').textContent = ''; el('readout').className = '';
     if (pastDay !== null && pastHist) {
