@@ -327,6 +327,9 @@ void loop() {
     carService.loop();
     carCommander.loop();
     followTeslaMode();
+    // Home Wi-Fi lost while running: rejoin by ourselves. Tesla mode has its own slower retry (followTeslaMode), and the setup network
+    // owns the radio while it is open.
+    if (!teslaMode.enabled() && !portal.isActive()) wifi.keepAlive();
 
     if (!controlStarted) {
         if (device::TimeSync::isValid()) {
