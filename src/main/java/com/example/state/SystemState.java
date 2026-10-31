@@ -25,6 +25,7 @@ public class SystemState {
     private volatile int peakRateCents = 0;
     private volatile int peakStartHour = 16;
     private volatile int peakEndHour = 21;
+    private volatile boolean peakWeekends = true;   // false: the expensive hours only apply Monday to Friday
 
     /** Result of the latest control decision, shown on the dashboard. */
     public record Control(double availableAmps, double smoothedAmps, int targetAmps, String reason,
@@ -78,6 +79,10 @@ public class SystemState {
     public void setPeakRate(int cents, int startHour, int endHour) {
         this.peakRateCents = cents; this.peakStartHour = startHour; this.peakEndHour = endHour;
     }
+
+    /** Whether the expensive hours also apply on Saturday and Sunday. */
+    public boolean peakWeekends() { return peakWeekends; }
+    public void setPeakWeekends(boolean weekends) { this.peakWeekends = weekends; }
 
     /** The departure goal: at least {@code goalKwh} kWh (0 = no goal) by {@code goalMinutes} after local midnight. */
     /** The web address notifications are posted to, or empty for none. */

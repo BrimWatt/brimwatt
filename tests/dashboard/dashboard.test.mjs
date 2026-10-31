@@ -125,7 +125,7 @@ test('every ending reason from the wallbox has plain words', () => {
 });
 
 test('the modes are named for people, and the old name is gone from the page', () => {
-    assert.deepEqual({ ...read('MODE_NAME') }, { ECO: 'Eco', MAX_SOLAR: 'Max solar', FAST: 'Custom' });
+    assert.deepEqual({ ...read('MODE_NAME') }, { ECO: 'Eco', MAX_SOLAR: 'Max solar', FAST: 'Custom', CHEAPEST: 'Cheapest hours' });
     assert.ok(!/BALANCED/.test(html), 'the internal name is MAX_SOLAR now');
 });
 
@@ -660,4 +660,55 @@ test('dollars in the comparison: cents below $100, whole dollars above, a proper
     assert.equal(page.fmtDollars(19.4), '$19.40');
     assert.equal(page.fmtDollars(-6.5), '−$6.50');
     assert.equal(page.fmtDollars(0), '$0.00');
+});
+
+// ---- Cheapest hours ----
+const cheapData = mutate => {
+    const d = base();
+    d.currentMode = 'CHEAPEST'; d.meterLinked = false; d.maxAmps = 32; d.rateCents = 30; d.peakRateCents = 52;
+    d.peakStartHour = 16; d.peakEndHour = 21; d.peakWeekends = true;
+    d.charger = { status: 'PREPARING', amps: 0, limitAmps: 0 };
+    d.controller = Object.assign({}, d.controller, { expensiveNow: true, secondsToPriceChange: 2 * 3600 + 600 });
+    mutate(d);
+    return d;
+};
+
+test('price view: expensive hours show the peak price and when it gets cheap', () => {
+    const v = page.priceView(cheapData(() => {}));
+    assert.equal(v.expensive, true);
+    assert.equal(v.price, '52¢');
+    assert.equal(v.nextLabel, 'Cheap at');
+    assert.equal(v.nextValue, '9:00 pm');
+    assert.equal(v.nextSub, 'in 2 h');
+    assert.equal(v.line, 'Charges at up to 32 A, except 4:00 pm – 9:00 pm every day.');
+});
+
+test('price view: cheap hours show the normal price and when it gets expensive; weekdays-only is said', () => {
+    const v = page.priceView(cheapData(d => { d.controller.expensiveNow = false; d.controller.secondsToPriceChange = 25 * 60; d.peakWeekends = false; }));
+    assert.equal(v.price, '30¢');
+    assert.equal(v.nextLabel, 'Peak at');
+    assert.equal(v.nextValue, '4:00 pm');
+    assert.equal(v.nextSub, 'in 25 min');
+    assert.ok(v.line.endsWith('on weekdays.'));
+});
+
+test('price view: a change days away is said in days, and no change at all is said too', () => {
+    assert.equal(page.priceView(cheapData(d => { d.controller.expensiveNow = false; d.controller.secondsToPriceChange = 66 * 3600; })).nextSub, 'in 2.8 days');
+    assert.equal(page.priceView(cheapData(d => { d.controller.secondsToPriceChange = -1; })).nextSub, 'none set');
+});
+
+test('the headline waits for cheaper hours with the start time, and stays quiet once charging', () => {
+    const h = page.waitView(cheapData(() => {}));
+    assert.equal(h.title, 'Waiting for cheaper hours');
+    assert.ok(h.sub.startsWith('Charging starts at 9:00 pm.'));
+    assert.equal(page.waitView(cheapData(d => { d.controller.expensiveNow = false; })), null);
+    assert.equal(page.waitView(cheapData(d => { d.charger = { status: 'CHARGING', amps: 30, limitAmps: 30 }; d.controller.expensiveNow = false; })), null);
+    assert.equal(page.waitView(cheapData(d => { d.paused = true; })), null);
+});
+
+test('Cheapest hours is a flat mode like Custom: no solar hours, no meter notice, no resting text', () => {
+    const d = cheapData(d2 => { d2.daylight = { open: false }; });
+    assert.equal(page.flatMode(d), true);
+    assert.equal(page.isResting(d), false);
+    assert.equal(page.flatMode(base()), false);
 });

@@ -197,13 +197,23 @@
         /* today's numbers */
 
         /* controls */
-        .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+        .seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
         .seg button { font-size: 0.85rem; }
         .seg button.active { background: var(--blue); color: #fff; }
         .seg { position: relative; }
         .seg button { position: relative; }
-        .seg::before { content: ""; grid-area: 1 / 1; align-self: stretch; justify-self: stretch; border-radius: 10px; background: var(--blue); opacity: 0; pointer-events: none; transform: translateX(calc(var(--i, 0) * (100% + 8px))); }
-        .seg > button:nth-of-type(1) { grid-area: 1 / 1; } .seg > button:nth-of-type(2) { grid-area: 1 / 2; } .seg > button:nth-of-type(3) { grid-area: 1 / 3; }
+        .seg::before { content: ""; grid-area: 1 / 1; align-self: stretch; justify-self: stretch; border-radius: 10px; background: var(--blue); opacity: 0; pointer-events: none; transform: translate(calc(var(--cx, 0) * (100% + 8px)), calc(var(--cy, 0) * (100% + 8px))); }
+        .seg > button:nth-of-type(1) { grid-area: 1 / 1; } .seg > button:nth-of-type(2) { grid-area: 1 / 2; } .seg > button:nth-of-type(3) { grid-area: 2 / 1; } .seg > button:nth-of-type(4) { grid-area: 2 / 2; }
+        #flow[hidden], #nosolar[hidden] { display: none !important; }
+        .nosolar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+        .nosolar .nt { background: var(--tint); border-left: 4px solid var(--stop); border-radius: 12px; padding: 8px 10px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .nosolar .nt .fl { font-size: 0.7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+        .nosolar .nt b { font-size: 1.25rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
+        .nosolar .nt small { font-size: 0.75rem; color: var(--muted); }
+        @media (max-width: 360px) { .nosolar .nt b { font-size: 1.05rem; } .nosolar { gap: 6px; } }
+        .nosolar .nt.exp { border-left-color: var(--red); } .nosolar .nt.cheap { border-left-color: var(--green); } .nosolar .nt.chg { border-left-color: var(--car); }
+        #cheap-panel .cheap-line { margin: 0 0 8px; font-size: 0.92rem; }
+        #cheap-panel .linkbtn { background: none; border: 0; color: var(--link); font: inherit; padding: 4px 0; cursor: pointer; text-decoration: underline; }
         .seg.hl::before { opacity: 1; }
         .seg.hl button.active, .seg.hl button.active:hover:not(:disabled) { background: transparent; }
         .seg button.locked { opacity: 0.45; cursor: not-allowed; }
@@ -361,7 +371,7 @@
 
         /* on a phone the two stacks dissolve into one list, in this order */
         .stack { display: contents; }
-        #hero { order: 1; } #sesscard { order: 2; } #flow { order: 3; } #chartcard { order: 4; } #modes { order: 5; } #carcard { order: 6; }
+        #hero { order: 1; } #sesscard { order: 2; } #flow, #nosolar { order: 3; } #chartcard { order: 4; } #modes { order: 5; } #carcard { order: 6; }
         #feedcard { order: 7; } #sessions { order: 8; }
 
         /* wider screens: the headline across the top; below it the savings and graph card on the left, level with the power flow and the modes on
@@ -374,7 +384,8 @@
             .stack > *, #chartcard { order: 0 !important; margin-bottom: 12px; }   /* margins, not row gaps: a hidden Tesla tile must not leave a gap */
             #hero { grid-column: 1 / -1; grid-row: 1; } #sesscard { grid-column: 1 / -1; grid-row: 2; }
             #chartcard { grid-column: 1; grid-row: 3 / span 3; }
-            #flow { grid-column: 2; grid-row: 3; display: flex; flex-direction: column; }
+            #flow, #nosolar { grid-column: 2; grid-row: 3; } #flow { display: flex; flex-direction: column; }
+            #nosolar .nt { justify-content: center; } #nosolar .nt b { font-size: 1.5rem; }   /* the row takes the height of the card beside it: tiles fill it instead of leaving a gap */
             #flow .flowgrid { flex: 1 1 auto; grid-template-rows: auto minmax(40px, 1fr) auto minmax(40px, 1fr) auto; }   /* 40 px arrows at least; any extra height is shared by the two arrow rows */
             #modes { grid-column: 2; grid-row: 4; } #carcard { grid-column: 2; grid-row: 5; }
             #feedcard { grid-column: 1; grid-row: 6; } #sessions { grid-column: 2; grid-row: 6; }
@@ -428,11 +439,17 @@
                 <div class="ft car" id="car-tile"><span class="fl">🚗 Car</span><b id="charger-power">–</b><small id="charger-sub">&nbsp;</small></div>
             </div>
         </section>
+        <section class="tile nosolar" id="nosolar" hidden aria-label="Price and charging now">
+            <div class="nt" id="ns-price"><span class="fl">💲 Price now</span><b id="ns-price-v">–</b><small id="ns-price-s">&nbsp;</small></div>
+            <div class="nt" id="ns-next"><span class="fl">🕘 <span id="ns-next-l">Next change</span></span><b id="ns-next-v">–</b><small id="ns-next-s">&nbsp;</small></div>
+            <div class="nt" id="ns-car"><span class="fl">🚗 Car</span><b id="ns-car-v">–</b><small id="ns-car-s">&nbsp;</small></div>
+        </section>
         <section class="tile" id="modes">
             <div class="seg" id="seg">
                 <button id="opt-ECO" class="active" aria-pressed="true" onclick="setMode('ECO')">☘️ Eco</button>
                 <button id="opt-MAX_SOLAR" aria-pressed="false" onclick="setMode('MAX_SOLAR')">🌞 Max solar</button>
                 <button id="opt-FAST" aria-pressed="false" onclick="setMode('FAST')">🎯 Custom</button>
+                <button id="opt-CHEAPEST" aria-pressed="false" onclick="setMode('CHEAPEST')">🌙 Cheapest hours</button>
             </div>
             <p class="help"><span id="mode-help">Charges with spare solar.</span><button type="button" class="info" data-tip="modes" aria-label="What are the charging modes?">i</button></p>
             <div class="setting" id="fast-panel">
@@ -440,6 +457,10 @@
                 <input type="range" id="fast-amps-input" min="6" max="40" step="1" value="32" aria-valuetext="32 amps" oninput="onSlider(this)">
                 <p class="hint" id="fast-amps-status">&nbsp;</p>
                 <div class="cdbar" id="fast-cd" aria-hidden="true"><i></i></div>
+            </div>
+            <div class="setting" id="cheap-panel">
+                <p class="cheap-line" id="cheap-line">&nbsp;</p>
+                <button type="button" class="linkbtn" id="cheap-change" onclick="changeCheapHours()">Change the hours</button>
             </div>
             <div class="setting" id="allowance-panel">
                 <div class="top"><span><label for="allowance-slider">Grid allowance</label><button type="button" class="info" data-tip="allowance" aria-label="What is the grid allowance?">i</button></span><output id="allowance-value" for="allowance-slider">1000 W</output></div>
@@ -547,6 +568,7 @@
             <div class="subbox" id="peak-fields" hidden>
             <div class="field"><span><label for="peak-cents">Peak price (cents)</label></span><span class="edit"><input type="number" id="peak-cents" inputmode="numeric" min="0" max="200" step="1" value="0"><button id="peak-save-cents" class="savebtn" hidden aria-label="Save peak price" title="Save" onclick="sendPeak()">✓</button></span></div>
             <div class="field peakhours"><label for="peak-start">Peak hours (24 h clock)</label><span class="edit"><input type="number" id="peak-start" inputmode="numeric" min="0" max="23" step="1" value="16" aria-label="Peak starts at hour"><button id="peak-save-start" class="savebtn" hidden aria-label="Save peak hours" title="Save" onclick="sendPeak()">✓</button></span><span class="edit"><input type="number" id="peak-end" inputmode="numeric" min="1" max="24" step="1" value="21" aria-label="Peak ends at hour"><button id="peak-save-end" class="savebtn" hidden aria-label="Save peak hours" title="Save" onclick="sendPeak()">✓</button></span></div>
+            <label class="check"><input type="checkbox" id="peak-weekends" checked onchange="sendWeekends(this)"><span>Also on weekends<button type="button" class="info" data-tip="weekends" aria-label="What does this change?">i</button></span></label>
             </div>
 </section>
 <section class="sc" id="sec-messages"><h4>Messages</h4>
@@ -612,7 +634,7 @@ let lastData = null, hist = null;
 // ---- little "i" buttons: a short explanation in plain words ----
 const TIPS = {
     allowance: ['Grid allowance', ['A small top-up from the electric grid for the car. It lets the car reach the next whole amp, or the 6 A minimum, instead of leaving a little solar unused or stopping.', '0 W means no top-up: the car only uses solar. A higher number tops up more, but uses more grid power.', 'It matters in Eco and Max solar. Custom ignores it.']],
-    modes: ['Charging modes', ['Eco: charges only with the solar left over after the house. Slowest, but the cheapest.', 'Max solar: charges the car at the speed your solar panels are producing, no matter what the house is using. If the house needs more power than the panels give, the extra comes from the grid.', 'Custom: charges at the speed you pick, any time of day, sun or not.']],
+    modes: ['Charging modes', ['Eco: charges only with the solar left over after the house. Slowest, but the cheapest.', 'Max solar: charges the car at the speed your solar panels are producing, no matter what the house is using. If the house needs more power than the panels give, the extra comes from the grid.', 'Custom: charges at the speed you pick, any time of day, sun or not.', 'Cheapest hours: charges at your maximum current whenever power is not expensive, and stops during the expensive hours. It does not need solar. Set the expensive hours (for example 4 pm to 9 pm) in Settings > Money.']],
     current: ['Charging current', ['How fast the car charges. More amps means faster charging and more power used.', 'Each amp is about 0.24 kW. For example, 10 A is about 2.4 kW.', 'The car or charger may limit it.']],
     flow: ['Reading the power picture', ['Solar is what your panels make right now. Home is what the house uses, not counting the car. Car is what the car is taking.', 'Grid is power coming from the electric company. If it shows sending, your extra solar is going back to the grid.', 'The arrows show where the power goes. Grey dashes mean nothing is flowing.']],
     bars: ['Sun and grid bars', ['Each bar is the energy that charged the car that day.', 'Yellow (sun) is the part that came from your solar panels. Red (grid) is the part that came from the electric grid.']],
@@ -628,6 +650,7 @@ const TIPS = {
     notify: ['Messages', ['WattSync can post a short message to a web address when charging ends, the solar meter is lost, or the charger disconnects. Paste a webhook address from Slack, Discord, Home Assistant, IFTTT or Zapier.', 'The address is kept on the controller and never shown back in full. Clear the box and save to turn messages off.']],
     goal: ['Ready by', ['Say how much energy you want and by when, for example 20 kWh by 7:00 am or by 5:30 pm. Until time gets short, charging works as normal, from the sun.', 'When the time left is only just enough, WattSync charges at the lowest speed that still gets there, using the grid if needed, even at night.', 'Only while a car is plugged in, never while paused or in Custom mode. Turn the switch off to stop.']],
     maxamps: ['Maximum current', ['The most current the charger is ever asked for, in any mode. Set it to what your wiring and breaker can safely carry for charging, for example 16 A on a small circuit.', 'Eco and Max solar also stop at 32 A. The Custom slider cannot go above this number.']],
+    weekends: ['Also on weekends', ['On: the expensive hours apply every day, which is how most California time-of-use plans work.', 'Off: they only apply Monday to Friday, so Saturday and Sunday are cheap all day.']],
     peak: ['Peak price', ['If your power company charges more at certain hours, turn this on and set that price and those hours. Money saved then counts the sun at the price of the hour it was used.', 'Leave it off to use one price all day. The hours use a 24 hour clock, for example 16 to 21 is 4 pm to 9 pm.']],
     theme: ['Theme', ['Match my phone follows your phone\'s light or dark setting and changes with it, for example when your phone goes dark in the evening.', 'Light or Dark keeps this page that way on this phone, whatever the phone does.', 'This changes only how the page looks, on this phone.']],
     units: ['Show energy as', ['Choose kWh or miles for the energy that went into the car. Miles are an estimate: kWh times the miles per kWh you enter, shown with a ~.', 'Use the miles per kWh your car really gets, counted from the wall (it is a little less than the car\'s own figure because charging loses some). 3 is a common starting point.', 'This changes only what you see on this phone. Savings stay in dollars, and the charger, the goal and the export file still use kWh.']],
@@ -798,7 +821,7 @@ function fmtAge(s) {
     return '~' + days + 'd ago';
 }
 /** At night the app deliberately stops reading the meter, so an old reading is expected, not a problem. */
-function isResting(data) { return data.currentMode !== 'FAST' && !data.daylight.open; }
+function isResting(data) { return data.currentMode !== 'FAST' && data.currentMode !== 'CHEAPEST' && !data.daylight.open; }
 const RESTING = 'Resting until sunrise';
 function fmtClock(hhmm) { const [h, m] = hhmm.split(':').map(Number); return ((h + 11) % 12 + 1) + ':' + String(m).padStart(2, '0') + ' ' + (h >= 12 ? 'pm' : 'am'); }
 function fmtWindow(text) { const m = /^(\d\d:\d\d) to (\d\d:\d\d)$/.exec(text); return m ? fmtClock(m[1]) + ' – ' + fmtClock(m[2]) : text; }
@@ -833,6 +856,7 @@ function whyText(data) {
     if (c.status === 'SUSPENDED_EVSE') return 'Charger has paused charging';
     if (c.status === 'FINISHING') return 'Charge finished';
     if (fast) return 'Fixed current you set';
+    if (data.currentMode === 'CHEAPEST') return k && k.expensiveNow ? 'Expensive hours: waiting for cheaper power' : 'Cheap hours: charging allowed';
     if (!data.daylight.open) return 'Outside solar hours';
     if (k.failSafe) return 'Lost contact with the solar meter: charging stopped';
     if (!k.hasReading) return 'Getting the first solar reading…';
@@ -862,6 +886,12 @@ function kwText(watts) { return (Math.max(0, watts) / 1000).toFixed(1) + ' kW'; 
  */
 function waitView(data) {
     const c = data.charger, k = data.controller, p = data.power;
+    if (data.currentMode === 'CHEAPEST') {
+        // The price period decides, not the sun: say when charging will start. A car that is charging gets the usual headline.
+        if (data.paused || !k || !k.expensiveNow || ['NONE', 'FAULTED', 'AVAILABLE', 'FINISHING'].includes(c.status) || (c.status === 'CHARGING' && c.amps > 0)) return null;
+        const pv = priceView(data);
+        return { cls: 'wait', icon: '🌙', title: 'Waiting for cheaper hours', sub: 'Charging starts at ' + fmtHour(data.peakEndHour) + '.' + (pv.nextSub.startsWith('in ') ? ' (' + pv.nextSub + ')' : '') };
+    }
     if (data.paused || data.currentMode === 'FAST' || !k || k.failSafe || !k.hasReading) return null;
     if (['NONE', 'FAULTED', 'AVAILABLE', 'SUSPENDED_EV', 'SUSPENDED_EVSE', 'FINISHING'].includes(c.status)) return null;
     const charging = c.status === 'CHARGING' && c.amps > 0;
@@ -890,8 +920,8 @@ function waitView(data) {
 }
 
 // ---- actions ----
-const MODE_NAME = { ECO: 'Eco', MAX_SOLAR: 'Max solar', FAST: 'Custom' };
-const MODE_HELP = { ECO: 'Charges with spare solar.', MAX_SOLAR: 'Follows the sun, ignores the house.', FAST: 'Your speed, sun or not.' };
+const MODE_NAME = { ECO: 'Eco', MAX_SOLAR: 'Max solar', FAST: 'Custom', CHEAPEST: 'Cheapest hours' };
+const MODE_HELP = { ECO: 'Charges with spare solar.', MAX_SOLAR: 'Follows the sun, ignores the house.', FAST: 'Your speed, sun or not.', CHEAPEST: 'Charges when power is cheap. No solar needed.' };
 
 async function setMode(modeId) {
     if (busy) return;
@@ -1365,12 +1395,12 @@ async function setDaylight(box) {
 }
 
 // ---- rendering ----
-const MODE_INDEX = { ECO: 0, MAX_SOLAR: 1, FAST: 2 };
+const MODE_INDEX = { ECO: 0, MAX_SOLAR: 1, FAST: 2, CHEAPEST: 3 };
 function updateUI(modeId) {
     currentSystemMode = modeId;
     const seg = el('seg');
     if (!seg.classList.contains('hl')) { seg.classList.add('nomove', 'hl'); setTimeout(() => seg.classList.remove('nomove'), 60); }   // first placement does not slide
-    seg.style.cssText = '--i:' + (MODE_INDEX[modeId] || 0);
+    { const i = MODE_INDEX[modeId] || 0; seg.style.cssText = '--i:' + i + ';--cx:' + (i % 2) + ';--cy:' + Math.floor(i / 2); }
     document.querySelectorAll('#seg button').forEach(btn => {
         const on = btn.id === 'opt-' + modeId;
         btn.classList.toggle('active', on);
@@ -1379,8 +1409,63 @@ function updateUI(modeId) {
     el('mode-help').textContent = MODE_HELP[modeId] || '';
     el('fast-panel').style.display = modeId === 'FAST' ? 'block' : 'none';
     el('allowance-panel').style.display = modeId === 'ECO' || modeId === 'MAX_SOLAR' ? 'block' : 'none';
-    el('daylight-panel').style.display = modeId === 'FAST' ? 'none' : 'flex';
-    ['dl-start', 'dl-end'].forEach(id => { el(id).closest('.field').style.display = modeId === 'FAST' ? 'none' : 'flex'; });   // the minutes mean nothing in Custom
+    el('daylight-panel').style.display = modeId === 'FAST' || modeId === 'CHEAPEST' ? 'none' : 'flex';
+    ['dl-start', 'dl-end'].forEach(id => { el(id).closest('.field').style.display = modeId === 'FAST' || modeId === 'CHEAPEST' ? 'none' : 'flex'; });   // the minutes mean nothing in Custom or Cheapest hours
+    el('cheap-panel').style.display = modeId === 'CHEAPEST' ? 'block' : 'none';
+    if (lastData) renderCheapPanel(lastData);
+}
+
+/** Custom and Cheapest hours do not follow the sun: no solar hours, no meter needed for charging. */
+function flatMode(data) { return data.currentMode === 'FAST' || data.currentMode === 'CHEAPEST'; }
+/** "4:00 pm" for an hour 0-24. */
+function fmtHour(h) { return fmtClock(String(h % 24).padStart(2, '0') + ':00'); }
+/**
+ * The plain words for Cheapest hours, from telemetry: price now, when it changes, and the line under the mode buttons. Pure and tested.
+ * Expensive hours are the peak window from Settings; with "Also on weekends" off they only apply Monday to Friday.
+ */
+function priceView(data) {
+    const k = data.controller || {}, expensive = k.expensiveNow === true, secs = k.secondsToPriceChange;
+    const from = fmtHour(data.peakStartHour), to = fmtHour(data.peakEndHour);
+    const peak = data.peakRateCents > 0 ? data.peakRateCents : null;
+    const v = { expensive, price: (expensive && peak ? peak : data.rateCents) + '¢', priceSub: expensive ? 'per kWh, expensive' : 'per kWh, cheap',
+                nextLabel: expensive ? 'Cheap at' : 'Peak at', nextValue: '–', nextSub: ' ',
+                window: from + ' – ' + to, weekends: data.peakWeekends !== false };
+    if (typeof secs === 'number' && secs >= 0) {
+        const hour = expensive ? data.peakEndHour : data.peakStartHour;
+        v.nextValue = fmtHour(hour);
+        v.nextSub = secs > 20 * 3600 ? 'in ' + Math.round(secs / 3600 / 24 * 10) / 10 + ' days' : secs >= 3600 ? 'in ' + Math.round(secs / 3600) + ' h' : 'in ' + Math.max(1, Math.round(secs / 60)) + ' min';
+    } else { v.nextLabel = 'Next change'; v.nextSub = 'none set'; }
+    v.line = 'Charges at up to ' + data.maxAmps + ' A, except ' + v.window + (v.weekends ? ' every day.' : ' on weekdays.');
+    return v;
+}
+function renderCheapPanel(data) {
+    if (data.currentMode !== 'CHEAPEST') return;
+    el('cheap-line').textContent = priceView(data).line;
+}
+/** Opens Settings at Money with the hours boxes showing, so the expensive hours can be changed. */
+function changeCheapHours() {
+    openSettings();
+    if (!el('peak-toggle').checked) { el('peak-toggle').checked = true; peakSwitch(el('peak-toggle')); }
+    setTimeout(() => { const t = el('sec-money'); if (t && t.scrollIntoView) t.scrollIntoView({ block: 'start' }); }, 50);
+}
+async function sendWeekends(cb) {
+    const result = await post('/api/rate?peakWeekends=' + (cb.checked ? 'true' : 'false'));
+    if (result.ok) toast(cb.checked ? 'Expensive hours: every day' : 'Expensive hours: weekdays only', 'ok');
+    else { cb.checked = !cb.checked; toast("Couldn't save", 'err', result.text); }
+    refresh();
+}
+/** A home with no solar meter (the board has none set up) shows price tiles instead of the power flow. */
+function renderNoSolar(data) {
+    const none = data.meterLinked === false;
+    el('flow').hidden = none; el('nosolar').hidden = !none;
+    document.querySelector('#value .vshare').hidden = none;   // no solar, no solar share
+    if (!none) return;
+    const v = priceView(data), c = data.charger, p = data.power;
+    setText('ns-price-v', v.price); setText('ns-price-s', v.priceSub);
+    el('ns-price').classList.toggle('exp', v.expensive); el('ns-price').classList.toggle('cheap', !v.expensive);
+    setText('ns-next-l', v.nextLabel); setText('ns-next-v', v.nextValue); setText('ns-next-s', v.nextSub);
+    setText('ns-car-v', c.amps > 0 ? fmtCarPower(p.chargerWatts) : '0 W'); setText('ns-car-s', c.amps > 0 ? fmtCarPowerOther(p.chargerWatts) : fmtStatus(c.status));
+    el('ns-car').classList.toggle('chg', c.amps > 0);
 }
 
 /** Eco and Max solar need the meter: grey them out while it is missing, so Custom is the obvious choice. */
@@ -1414,7 +1499,7 @@ function renderHeadline(data) {
         const carW = p.chargerWatts, sun = Math.min(carW, Math.max(0, p.solarWatts - p.homeWatts)), grid = Math.max(0, carW - sun);
         // This charger may not report its real current; then the number is the limit it was set to, so say "up to".
         h = { cls: 'good', icon: '⚡', title: (c.drawMeasured ? 'Charging at ' : 'Charging, set to ') + Math.round(c.limitAmps || c.amps) + ' A',
-              sub: (c.drawMeasured ? (unitMiles ? 'Adding ' : 'Using ') : 'Up to ') + fmtCarPower(carW) + ': ' + fmtCarPower(sun) + ' from the sun' + (grid >= 50 ? ', ' + fmtCarPower(grid) + ' from the grid' : '') };
+              sub: (c.drawMeasured ? (unitMiles ? 'Adding ' : 'Using ') : 'Up to ') + fmtCarPower(carW) + (data.meterLinked === false ? ' from the grid' : ': ' + fmtCarPower(sun) + ' from the sun' + (grid >= 50 ? ', ' + fmtCarPower(grid) + ' from the grid' : '')) };
     } else h = { cls: '', icon: c.status === 'AVAILABLE' ? '🔌' : '🅿️', title: c.status === 'AVAILABLE' ? 'No car plugged in' : 'Not charging', sub: c.status === 'AVAILABLE' ? 'Charging starts by itself once one is plugged in.' : whyText(data) };
     const g = data.goal;
     if (g && g.kwh > 0 && !data.paused && c.status !== 'NONE' && c.status !== 'FAULTED' && c.status !== 'AVAILABLE' && data.currentMode !== 'FAST') {
@@ -1449,7 +1534,7 @@ function renderHeadline(data) {
 
 function renderFlow(data) {
     const p = data.power, c = data.charger, k = data.controller;
-    const stale = !k.hasReading || !data.enphaseOk || k.readingAgeSeconds > k.pollSeconds * 3 || (data.currentMode !== 'FAST' && !data.daylight.open);
+    const stale = !k.hasReading || !data.enphaseOk || k.readingAgeSeconds > k.pollSeconds * 3 || (!flatMode(data) && !data.daylight.open);
     el('flow').classList.toggle('stale', stale);
     if (!k.hasReading) {
         ['solar-power', 'home-power', 'grid-power'].forEach(id => { glideStop(id); setText(id, '–'); });
@@ -1675,8 +1760,8 @@ function checkSessionDone() {
 
 /** The pill says Live; in the daytime, if the solar meter has gone quiet, it turns amber and says how old the reading is. */
 function renderPill(data) {
-    const k = data.controller, d = data.daylight, fast = data.currentMode === 'FAST';
-    const stale = k.hasReading && k.readingAgeSeconds > k.pollSeconds * 3 && (fast || d.open);
+    const k = data.controller, d = data.daylight, fast = flatMode(data);
+    const stale = data.meterLinked !== false && k.hasReading && k.readingAgeSeconds > k.pollSeconds * 3 && (fast || d.open);
     const pill = el('conn');
     pill.className = 'pill ' + (stale ? 'warn' : 'on');
     pill.textContent = stale ? 'Meter ' + fmtAge(k.readingAgeSeconds).replace(' ago', '') + ' old' : 'Live';
@@ -1712,7 +1797,7 @@ function renderNotice(data, online) {
     if (!online) { notice.className = 'notice soft'; notice.innerText = "Can't reach the controller. Retrying…"; notice.style.display = 'block'; return; }
     const m = meterView(data);
     // 'none' is a standing fact; 'lost' is only worth a bar by day, when the meter is being polled.
-    if (!data.paused && m.state !== 'ok' && data.currentMode !== 'FAST' && (m.state === 'none' || data.daylight.open)) {
+    if (!data.paused && m.state !== 'ok' && !flatMode(data) && (m.state === 'none' || data.daylight.open)) {
         notice.className = m.soft ? 'notice soft' : 'notice';
         notice.innerText = (m.soft ? '' : '⚠️ ') + m.title + '. ' + m.tail;
         notice.style.display = 'block';
@@ -2077,7 +2162,9 @@ async function refresh() {
         lastData = data; failedPolls = 0; lastOkAt = Date.now();
         if (wasOffline) { wasOffline = false; toast('Reconnected', 'ok'); }
         renderConnection(true);
-        if (!busy) { if (data.currentMode !== 'FAST' && ampsTimer !== null) cancelPending(); updateUI(data.currentMode); }
+        if (!busy) { if (data.currentMode !== 'FAST' && ampsTimer !== null) cancelPending(); updateUI(data.currentMode); renderCheapPanel(data); }
+        renderNoSolar(data);
+        el('peak-weekends').checked = data.peakWeekends !== false;
         if (!ampsEdited) { el('fast-amps-input').value = data.fastModeAmps; el('fast-amps-value').textContent = data.fastModeAmps + ' A'; }
         if (!allowanceEdited) { el('allowance-slider').value = data.gridAllowanceWatts; el('allowance-value').textContent = data.gridAllowanceWatts + ' W'; }
         if (!rateEdited && document.activeElement !== el('rate-input')) el('rate-input').value = data.rateCents;

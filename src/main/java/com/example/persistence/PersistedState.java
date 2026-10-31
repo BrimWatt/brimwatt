@@ -11,4 +11,4 @@ public record PersistedState(ChargingMode mode, int fastModeAmps, Map<String, Ch
                              Integer rateCents, Integer daylightStartMinutes, Integer daylightEndMinutes,
                              Integer maxAmps, Integer peakRateCents, Integer peakStartHour, Integer peakEndHour,
                              Integer goalKwh, Integer goalMinutes,
-                             String notifyUrl) {}
+                             String notifyUrl, Boolean peakWeekends) {}

@@ -21,6 +21,7 @@ struct Settings {
     int peakRateCents = 0;   // 0 = no peak pricing
     int peakStartHour = 16;
     int peakEndHour = 21;
+    bool peakWeekends = true;   // false: the expensive hours only apply Monday to Friday
     std::string notifyUrl;   // empty = no notifications
     int goalKwh = 0;         // 0 = no departure goal
     int goalMinutes = 420;   // by this time of day

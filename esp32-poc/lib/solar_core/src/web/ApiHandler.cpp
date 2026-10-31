@@ -1,5 +1,7 @@
 #include "web/ApiHandler.h"
 
+#include "planner/CheapHours.h"
+
 #include <ArduinoJson.h>
 
 #include <algorithm>
@@ -195,7 +197,11 @@ HttpResponse ApiHandler::updateRate(const Params& query) {
     const std::string* peakParam = find(query, "peakCents");
     const std::string* fromParam = find(query, "peakStart");
     const std::string* toParam = find(query, "peakEnd");
-    if (!centsParam && !peakParam && !fromParam && !toParam) return text(400, "Give cents, peakCents, peakStart or peakEnd.");
+    const std::string* weekendsParam = find(query, "peakWeekends");
+    if (!centsParam && !peakParam && !fromParam && !toParam && !weekendsParam) {
+        return text(400, "Give cents, peakCents, peakStart, peakEnd or peakWeekends.");
+    }
+    if (weekendsParam && *weekendsParam != "true" && *weekendsParam != "false") return text(400, "peakWeekends must be true or false");
     // Check everything before changing anything, so a bad value never half-applies. A part that is not given keeps its value.
     const SystemState& state = controller_.state();
     auto pick = [&](const std::string* param, int current, int low, int high) -> std::optional<int> {
@@ -212,7 +218,7 @@ HttpResponse ApiHandler::updateRate(const Params& query) {
     auto from = pick(fromParam, state.peakStartHour(), 0, 23);
     auto to = pick(toParam, state.peakEndHour(), 1, 24);
     if (!from || !to || *from == *to) return text(400, "peakStart must be 0 to 23 and peakEnd 1 to 24, and they must differ");
-    controller_.setPrices(*cents, *peak, *from, *to);
+    controller_.setPrices(*cents, *peak, *from, *to, weekendsParam ? std::optional<bool>(*weekendsParam == "true") : std::nullopt);
     return text(200, "Price updated");
 }
 
@@ -341,7 +347,7 @@ HttpResponse ApiHandler::sessions(const Params& query) {
         // Money recorded for only part of the session (it began before prices were recorded) would read far too low:
         // treat a price well under the cheapest rate in use as "not recorded" so the page estimates it instead.
         out["saved"] = plausibleSaving(controller_.state(), x.savedCents, x.sunWh) ? std::round(x.savedCents) / 100.0 : -1.0;
-        out["mode"] = x.mode == 0 ? "ECO" : x.mode == 1 ? "MAX_SOLAR" : x.mode == 2 ? "FAST" : "";
+        out["mode"] = x.mode == 0 ? "ECO" : x.mode == 1 ? "MAX_SOLAR" : x.mode == 2 ? "FAST" : x.mode == 3 ? "CHEAPEST" : "";
         out["modeMixed"] = x.mixed;
     };
     if (history_) {
@@ -662,6 +668,7 @@ HttpResponse ApiHandler::telemetry() {
     doc["peakRateCents"] = state.peakRateCents();
     doc["peakStartHour"] = state.peakStartHour();
     doc["peakEndHour"] = state.peakEndHour();
+    doc["peakWeekends"] = state.peakWeekends();
     doc["fastModeAmps"] = state.fastModeAmps();
     doc["maxAmps"] = state.maxAmps();
     doc["notifyTo"] = Notifier::maskedHost(state.notifyUrl());
@@ -721,7 +728,11 @@ HttpResponse ApiHandler::telemetry() {
     }
     ctl["waitSeconds"] = waitLeft;
     // ECO and MAX_SOLAR both use the allowance; Custom (FAST) ignores it.
-    ctl["gridAllowanceWatts"] = state.mode() != ChargingMode::Fast ? state.gridAllowanceWatts() : 0;
+    ctl["gridAllowanceWatts"] = state.mode() == ChargingMode::Eco || state.mode() == ChargingMode::MaxSolar ? state.gridAllowanceWatts() : 0;
+    // Cheapest hours: is the price high right now, and how long until it changes (-1: never within a week).
+    ctl["expensiveNow"] = CheapHours::expensive(epoch, platform_.utcOffsetSeconds(epoch), state.peakStartHour(), state.peakEndHour(), state.peakWeekends());
+    ctl["secondsToPriceChange"] = CheapHours::secondsToChange(epoch, [this](int64_t t) { return platform_.utcOffsetSeconds(t); },
+                                                              state.peakStartHour(), state.peakEndHour(), state.peakWeekends());
     ctl["failSafe"] = state.failSafe();
     ctl["pollSeconds"] = config::kPollIntervalSeconds;
     addCarToTelemetry(doc.as<JsonObject>(), car_, router_, mode_, platform_.epochSeconds() > 1700000000);

@@ -74,6 +74,7 @@ public class StatePersistence {
                     && peakFrom >= 0 && peakFrom <= 23 && peakTo >= 1 && peakTo <= 24) {
                 state.setPeakRate(peak, peakFrom, peakTo);
             }
+            if (saved.peakWeekends() != null) state.setPeakWeekends(saved.peakWeekends());   // missing in older files: every day
             Integer goalKwh = saved.goalKwh(), goalMinutes = saved.goalMinutes();   // missing in older files
             if (goalKwh != null && goalMinutes != null && goalKwh >= 0 && goalKwh <= AppConfig.MAX_GOAL_KWH && goalMinutes >= 0 && goalMinutes <= 1439) {
                 state.setGoal(goalKwh, goalMinutes);
@@ -139,7 +140,7 @@ public class StatePersistence {
             String json = store.toJson(new PersistedState(state.mode(), state.fastModeAmps(), new TreeMap<>(known),
                     state.gridAllowanceWatts(), state.daylightWindowEnabled(), state.paused(),
                     state.rateCents(), state.daylightStartMinutes(), state.daylightEndMinutes(), state.maxAmps(),
-                    state.peakRateCents(), state.peakStartHour(), state.peakEndHour(), state.goalKwh(), state.goalMinutes(), state.notifyUrl()));
+                    state.peakRateCents(), state.peakStartHour(), state.peakEndHour(), state.goalKwh(), state.goalMinutes(), state.notifyUrl(), state.peakWeekends()));
             if (!json.equals(lastWritten)) {
                 store.write(json);
                 lastWritten = json;

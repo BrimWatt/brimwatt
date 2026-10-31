@@ -74,7 +74,8 @@ public:
     /** What a kWh costs, 0 to 200 cents; used to put a value on the sun's share of the car's energy. */
     bool setRateCents(int cents);
     /** The normal price and an optional peak price (0 = none) with its hours. False, changing nothing, if any is out of range. */
-    bool setPrices(int cents, int peakCents, int startHour, int endHour);
+    /** weekends: nullopt keeps the current choice (true = the expensive hours apply every day). */
+    bool setPrices(int cents, int peakCents, int startHour, int endHour, std::optional<bool> weekends = std::nullopt);
 
     /** Call after the device in command changed (wallbox <-> car): the planner starts from scratch and a fixed current is re-applied. */
     void onCommanderChanged();
@@ -106,6 +107,10 @@ private:
     }
     std::string reasonForLimit(int newAmps, std::optional<int> before, double solarWatts, double homeWatts, ChargingMode mode);
     void applyHold();
+    /** Cheapest hours: is the price high at this moment? */
+    bool expensiveNow() const;
+    /** Cheapest hours: hold the right limit for this moment and log a price change once. */
+    void applyCheapHours();
     bool insideDaylightWindow(int64_t epochSeconds);
     void pauseForNight();
     bool carPluggedIn();
@@ -130,6 +135,7 @@ private:
     uint64_t lastErrorLogged_ = 0;
     bool failSafeActive_ = false;
     bool goalForcing_ = false;
+    std::optional<bool> wasExpensive_;
     std::optional<double> lastAllowanceWatts_;
     std::optional<uint64_t> lastDisplayErrorLogged_;
     HistoryService* history_ = nullptr;

@@ -590,6 +590,70 @@ void test_a_restored_fast_mode_takes_effect_when_the_charger_reports() {
 
 }  // namespace
 
+// ---- Cheapest hours ----
+
+void test_cheapest_hours_charges_at_the_maximum_in_the_cheap_hours_without_the_sun() {
+    Rig r;
+    r.platform.epoch = 1762405200;   // Wednesday 10 pm local
+    r.controller.setMode(ChargingMode::Cheapest);
+    r.waiting();
+    r.link.sent.clear();
+    TEST_ASSERT_TRUE(r.poll(0, 0));                      // night, no solar: irrelevant
+    TEST_ASSERT_TRUE(r.state.control().has_value());
+    TEST_ASSERT_EQUAL(r.state.maxAmps(), r.state.control()->targetAmps);
+    TEST_ASSERT_EQUAL_STRING("cheap hours", r.state.control()->reason.c_str());
+    TEST_ASSERT_TRUE(r.sentCount("RemoteStartTransaction") >= 1);
+}
+
+void test_cheapest_hours_stops_when_the_expensive_hours_begin() {
+    Rig r;
+    r.platform.epoch = 1762380000;   // Wednesday 3 pm local
+    r.controller.setMode(ChargingMode::Cheapest);
+    r.charging(7, r.state.maxAmps());
+    r.poll(0, 0);
+    r.platform.epoch = 1762387200;   // 5 pm: inside the default 4-9 pm window
+    r.link.sent.clear();
+    r.poll(0, 0);
+    TEST_ASSERT_EQUAL(0, r.state.control()->targetAmps);
+    TEST_ASSERT_EQUAL_STRING("expensive hours", r.state.control()->reason.c_str());
+    TEST_ASSERT_TRUE(r.sentCount("RemoteStopTransaction") >= 1);
+    TEST_ASSERT_TRUE(r.logged("Expensive hours began"));
+}
+
+void test_cheapest_hours_never_trips_the_meter_fail_safe() {
+    Rig r;
+    r.platform.epoch = 1762405200;
+    r.controller.setMode(ChargingMode::Cheapest);
+    r.charging(7, r.state.maxAmps());
+    for (int i = 0; i < 10; i++) r.pollFailing();
+    TEST_ASSERT_FALSE(r.state.failSafe());
+}
+
+void test_weekends_are_cheap_all_day_when_the_window_is_weekdays_only() {
+    Rig r;
+    r.platform.epoch = 1762646400;   // Saturday 5 pm local
+    r.controller.setPrices(30, 0, 16, 21, false);
+    r.controller.setMode(ChargingMode::Cheapest);
+    r.waiting();
+    r.poll(0, 0);
+    TEST_ASSERT_EQUAL(r.state.maxAmps(), r.state.control()->targetAmps);
+    TEST_ASSERT_FALSE(r.state.peakWeekends());
+    r.controller.setPrices(30, 0, 16, 21, true);
+    TEST_ASSERT_TRUE(r.state.peakWeekends());
+}
+
+void test_the_weekend_choice_is_saved_and_restored() {
+    Rig r;
+    r.controller.setPrices(30, 0, 16, 21, false);
+    TEST_ASSERT_TRUE(r.store.saved.has_value());
+    TEST_ASSERT_FALSE(r.store.saved->peakWeekends);
+    SystemState fresh;
+    Rig r2;
+    r2.store.saved = r.store.saved;
+    r2.controller.restoreSettings();
+    TEST_ASSERT_FALSE(r2.state.peakWeekends());
+}
+
 void setUp() {}
 void tearDown() {}
 
@@ -715,5 +779,10 @@ int main() {
     RUN_TEST(test_the_departure_goal_needs_a_car_and_is_ignored_when_off_or_paused);
     RUN_TEST(test_the_departure_goal_is_range_checked_saved_and_restored);
     RUN_TEST(test_goal_arithmetic);
+    RUN_TEST(test_cheapest_hours_charges_at_the_maximum_in_the_cheap_hours_without_the_sun);
+    RUN_TEST(test_cheapest_hours_stops_when_the_expensive_hours_begin);
+    RUN_TEST(test_cheapest_hours_never_trips_the_meter_fail_safe);
+    RUN_TEST(test_weekends_are_cheap_all_day_when_the_window_is_weekdays_only);
+    RUN_TEST(test_the_weekend_choice_is_saved_and_restored);
     return UNITY_END();
 }

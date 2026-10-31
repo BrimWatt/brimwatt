@@ -30,6 +30,7 @@ std::optional<solar::Settings> NvsSettingsStore::load() {
         settings.peakRateCents = prefs.getInt("peakCents", settings.peakRateCents);
         settings.peakStartHour = prefs.getInt("peakFrom", settings.peakStartHour);
         settings.peakEndHour = prefs.getInt("peakTo", settings.peakEndHour);
+        settings.peakWeekends = prefs.getBool("peakWknd", settings.peakWeekends);   // missing on older boards: every day
         settings.notifyUrl = prefs.getString("notifyUrl", "").c_str();
         settings.goalKwh = prefs.getInt("goalKwh", settings.goalKwh);
         settings.goalMinutes = prefs.getInt("goalMin", settings.goalMinutes);
@@ -58,6 +59,7 @@ void NvsSettingsStore::save(const solar::Settings& settings) {
     prefs.putInt("peakCents", settings.peakRateCents);
     prefs.putInt("peakFrom", settings.peakStartHour);
     prefs.putInt("peakTo", settings.peakEndHour);
+    prefs.putBool("peakWknd", settings.peakWeekends);
     prefs.putString("notifyUrl", settings.notifyUrl.c_str());
     prefs.putInt("goalKwh", settings.goalKwh);
     prefs.putInt("goalMin", settings.goalMinutes);

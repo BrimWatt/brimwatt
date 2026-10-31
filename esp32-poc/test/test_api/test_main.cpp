@@ -468,6 +468,21 @@ void test_a_bad_daysago_is_refused() {
     TEST_ASSERT_EQUAL(200, r.api.handle("GET", "/api/history", {{"daysAgo", "364"}}).status);
 }
 
+void test_cheapest_hours_mode_and_the_weekend_switch() {
+    Rig r;
+    TEST_ASSERT_TRUE(r.telemetry()["peakWeekends"].as<bool>());                          // every day until changed
+    TEST_ASSERT_EQUAL(200, r.post("/api/mode", {{"mode", "CHEAPEST"}}).status);
+    TEST_ASSERT_EQUAL_STRING("CHEAPEST", r.telemetry()["currentMode"].as<const char*>());
+    TEST_ASSERT_EQUAL(200, r.post("/api/mode", {{"mode", "cheap"}}).status);            // the short spelling works too
+    TEST_ASSERT_EQUAL(200, r.post("/api/rate", {{"peakWeekends", "false"}}).status);
+    TEST_ASSERT_FALSE(r.telemetry()["peakWeekends"].as<bool>());
+    TEST_ASSERT_FALSE(r.store.saved->peakWeekends);
+    TEST_ASSERT_EQUAL(400, r.post("/api/rate", {{"peakWeekends", "maybe"}}).status);
+    TEST_ASSERT_FALSE(r.state.peakWeekends());                                           // a bad value changed nothing
+    TEST_ASSERT_TRUE(r.telemetry()["controller"].containsKey("secondsToPriceChange"));
+    TEST_ASSERT_TRUE(r.telemetry()["controller"].containsKey("expensiveNow"));
+}
+
 void test_the_peak_price_and_its_hours_are_validated_applied_and_saved() {
     Rig r;
     TEST_ASSERT_EQUAL(0, r.telemetry()["peakRateCents"].as<int>());                    // off until set
@@ -1065,6 +1080,7 @@ int main() {
     RUN_TEST(test_a_past_day_comes_from_the_coarser_records);
     RUN_TEST(test_a_bad_daysago_is_refused);
     RUN_TEST(test_the_peak_price_and_its_hours_are_validated_applied_and_saved);
+    RUN_TEST(test_cheapest_hours_mode_and_the_weekend_switch);
     RUN_TEST(test_the_days_endpoint_lists_daily_totals);
     RUN_TEST(test_the_daylight_margins_are_validated_applied_and_saved);
     RUN_TEST(test_the_csv_export_has_a_header_and_one_line_per_day);

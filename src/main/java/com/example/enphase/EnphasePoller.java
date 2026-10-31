@@ -90,10 +90,16 @@ public class EnphasePoller {
 
     void poll() {
         ChargingMode mode = state.mode();
+        if (mode == ChargingMode.CHEAPEST && !state.paused() && wallbox.hasConnectedChargers()) {
+            // Cheapest hours needs no solar: the price period decides. A departure goal that is running out of time still wins.
+            long t = clock.getAsLong();
+            if (goalTakesOver(t)) return;
+            applyCheapHours(t);
+        }
         // FAST uses a fixed current, so the meters are only read for the dashboard; with no charger there is
         // nothing to show or control. Either way history goes stale, so the planner and any outage tracking
         // start fresh next time.
-        if (mode == ChargingMode.FAST || state.paused() || !wallbox.hasConnectedChargers()) {
+        if (mode == ChargingMode.FAST || mode == ChargingMode.CHEAPEST || state.paused() || !wallbox.hasConnectedChargers()) {
             plannedMode = null;
             failingSince = -1;
             failSafeActive = false;
@@ -166,6 +172,17 @@ public class EnphasePoller {
             h.recordSample(solarWatts, netGridWatts, wallbox.currentDrawAmps() * AppConfig.voltage(), state.mode(),
                     state.paused());
         }
+        if (state.mode() == ChargingMode.CHEAPEST) {
+            boolean expensive = com.example.charging.CheapHours.expensive(now, AppConfig.siteZone(), state.peakStartHour(),
+                    state.peakEndHour(), state.peakWeekends());
+            int shown = state.paused() || expensive ? 0 : state.maxAmps();
+            state.setControl(new SystemState.Control(0, 0, shown, state.paused() ? "paused" : expensive ? "expensive hours" : "cheap hours",
+                    netGridWatts, now));   // no wait timer: the price change time is telemetry secondsToPriceChange
+            logger.info("[{}] solar {}W, grid {}W (+import/-export), charger {}A, {}", state.paused() ? "PAUSED" : "CHEAPEST",
+                    Math.round(solarWatts), Math.round(netGridWatts), String.format("%.1f", wallbox.currentDrawAmps()),
+                    state.paused() ? "charging paused" : expensive ? "expensive hours: not charging" : "cheap hours: up to " + state.maxAmps() + "A");
+            return;
+        }
         int shownTarget = state.paused() ? 0 : state.fastModeAmps();
         state.setControl(new SystemState.Control(0, 0, shownTarget, state.paused() ? "paused" : "custom current",
                 netGridWatts, now));
@@ -224,6 +241,21 @@ public class EnphasePoller {
         wallbox.sendChargingLimit(d.forcedAmps());
         wallbox.setCommandContext("");
         return true;
+    }
+
+    private Boolean wasExpensive;
+
+    /** Cheapest hours: charge at the maximum current in the cheap hours, not at all in the expensive ones. */
+    private void applyCheapHours(long now) {
+        boolean expensive = com.example.charging.CheapHours.expensive(now, AppConfig.siteZone(), state.peakStartHour(),
+                state.peakEndHour(), state.peakWeekends());
+        if (wasExpensive == null || wasExpensive != expensive) {
+            if (wasExpensive != null) event(expensive ? "Expensive hours began: charging stopped" : "Cheap hours began: charging allowed");
+            wasExpensive = expensive;
+        }
+        wallbox.setCommandContext(expensive ? "expensive hours" : "cheap hours");
+        wallbox.sendChargingLimit(expensive ? 0 : state.maxAmps());
+        wallbox.setCommandContext("");
     }
 
     private boolean insideDaylightWindow(long now) {
