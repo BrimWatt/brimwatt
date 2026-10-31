@@ -29,7 +29,7 @@ Board: ESP32-S3-DevKit N16R8 (16 MB flash, 8 MB octal PSRAM), Arduino framework,
 |---|---|
 | `lib/solar_core/` | Portable logic with no hardware dependency, tested on the computer: `ocpp/` (frame builders, router, handlers), `wallbox/` (charger model, registry, controller), `planner/` (smoothing and the ECO/BALANCED rules), `daylight/` (sun calculation and window), `control/SolarController` (the poll cycle, fail-safe and settings), `web/` (the dashboard API: telemetry JSON and the mode, allowance and daylight endpoints), `setup/` (what the setup form may contain, the Wi-Fi change that is tried and undone, the scan list, the `/api/setup/...` endpoints), `state/`, `common/` (config, scheduler, logging) |
 | `src/platform/` | Real clock, time zone offset and random numbers for the core, the flash settings store, the flash store for what is entered on the setup page, serial logging |
-| `src/net/` | Wi-Fi with the device name, the setup network (`SetupPortal`), network time, mDNS, OTA |
+| `src/net/` | Wi-Fi with the device name and its rejoin watchdog (`WifiConnection::keepAlive`, rules in `lib/solar_core/src/net/WifiWatchdog.h`), the setup network (`SetupPortal`), network time, mDNS, OTA |
 | `src/enphase/` | Envoy client and the meter poller (its own task, so the slow HTTPS call never delays the wallbox) |
 | `src/ocpp_server/` | The WebSocket endpoint the wallbox connects to (transport only) |
 | `src/web/` | The dashboard: HTTP server on port 80 and the embedded page, in front of the portable API (`lib/solar_core/src/web/ApiHandler`) |
@@ -60,6 +60,8 @@ open -e src/secrets.h
 Since the setup network exists, these values are only **defaults**: anything saved from the setup page (section 1b) wins over `secrets.h`, field by field. You can still flash with real values in `secrets.h` and never use the setup page. With the placeholders left in, the board simply fails to join, and after 3 minutes the setup network opens.
 
 The device name is `kHostname` in `src/config/DeviceConfig.h` (letters, digits and hyphens, 24 characters at most). It is both the DHCP name the router lists and the mDNS name (`wattsync.local`). Until you flash this version the board shows under the default name `esp32s3-XXXXXX`.
+
+**If the Wi-Fi drops while running** (router restarted or off): the radio's own reconnect gets 15 s, then the board asks it to reconnect, then every minute joins again from scratch, and every fifth try also switches the radio off and on. It never restarts itself for this. The log says `Wi-Fi: still down, ...` and, when it returns, `Wi-Fi: back after N s`. Not used in Tesla mode (it has its own slower retry) or while the setup network is open.
 
 ## 1b. The setup network (change Wi-Fi and the Enphase details from a phone)
 

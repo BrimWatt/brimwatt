@@ -8,6 +8,8 @@
 namespace device {
 
 bool WifiConnection::connect(const std::string& ssid, const std::string& password, uint32_t timeoutMillis, bool keepAccessPoint) {
+    ssid_ = ssid;   // kept so keepAlive() can rejoin by itself
+    password_ = password;
     if (isConnected()) return true;
     LOG_INFO("Wi-Fi: connecting to \"%s\" as \"%s\" ...", ssid.c_str(), hostname_);   // never the password
 
@@ -33,6 +35,38 @@ bool WifiConnection::connect(const std::string& ssid, const std::string& passwor
     LOG_INFO("Wi-Fi: connected in %lu ms, IP %s, signal %d dBm, device name \"%s\"", (unsigned long)(millis() - start),
              WiFi.localIP().toString().c_str(), WiFi.RSSI(), WiFi.getHostname());
     return true;
+}
+
+void WifiConnection::keepAlive() {
+    if (ssid_.empty()) return;
+    using Step = solar::WifiWatchdog::Step;
+    const Step step = watchdog_.update(isConnected(), millis());
+    if (watchdog_.takeRecovered()) {
+        LOG_INFO("Wi-Fi: back after %lu s, IP %s, signal %d dBm", (unsigned long)watchdog_.outageSeconds(), WiFi.localIP().toString().c_str(), WiFi.RSSI());
+    }
+    switch (step) {
+        case Step::None: break;
+        case Step::Reconnect:
+            LOG_WARN("Wi-Fi: still down, asking the radio to reconnect.");
+            WiFi.reconnect();
+            break;
+        case Step::Rejoin:
+        case Step::ResetRadio:
+            if (step == Step::ResetRadio) {
+                LOG_WARN("Wi-Fi: still down, resetting the radio.");
+                WiFi.disconnect(false);
+                WiFi.mode(WIFI_OFF);
+                delay(200);
+                WiFi.setHostname(hostname_);
+                WiFi.mode(WIFI_STA);
+            } else {
+                LOG_WARN("Wi-Fi: still down, joining \"%s\" again.", ssid_.c_str());   // never the password
+                WiFi.disconnect(false);
+            }
+            WiFi.setAutoReconnect(true);
+            WiFi.begin(ssid_.c_str(), password_.empty() ? nullptr : password_.c_str());
+            break;
+    }
 }
 
 bool WifiConnection::isConnected() const { return WiFi.status() == WL_CONNECTED; }

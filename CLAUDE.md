@@ -153,6 +153,7 @@ namespace `net` (`NvsCredentialStore`) and **win over `secrets.h` field by field
 - Hardware glue: `src/net/SetupPortal` (AP+STA, DNS catch-all, async scan, 15-minute no-use limit, BOOT held 5 s on GPIO0, restart after a save), start-up flow in
   `main.cpp` `bringUpNetwork()` (the web server now starts BEFORE Wi-Fi so the page can be served), routes and captive-portal redirects in `WebServerAdapter`.
 - Opens: no Wi-Fi set (never closes), joining fails 3 min at start-up (once per start), BOOT held, or console `setup`. Console also has `wifi` and `setup clear`.
+- **Wi-Fi lost while running** (found 2026-10-31: the board stayed offline after the router came back): `WifiConnection::keepAlive()` in `loop()` follows `solar::WifiWatchdog` (pure, host-tested in `test/test_wifi_watchdog`: 15 s grace, reconnect, fresh join every 60 s, radio reset every 5th; never restarts the board). Skipped in Tesla mode and while the setup network is open. Flashed, but the real router-off test has not been run.
 - A changed Wi-Fi is a **trial**: saved with the previous one remembered, tried at the next start; if it cannot join, the previous is put back and the reason is shown on the
   page (`TrialState.lastError`). Never drop saved credentials just because a join failed. With no OTA password anywhere, OTA stays off.
 - Known gaps: password is the same on every board (planned: derive from the chip ID); nothing opens by itself if Wi-Fi is lost while running.
