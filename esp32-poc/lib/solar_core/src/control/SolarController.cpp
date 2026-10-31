@@ -1,5 +1,7 @@
 #include "control/SolarController.h"
 
+#include "planner/CheapHours.h"
+
 #include "notify/Notifier.h"
 #include "planner/GoalPlanner.h"
 
@@ -49,6 +51,7 @@ void SolarController::restoreSettings() {
     if (saved->goalKwh >= 0 && saved->goalKwh <= config::kMaxGoalKwh && saved->goalMinutes >= 0 && saved->goalMinutes <= 1439) {
         state_.setGoal(saved->goalKwh, saved->goalMinutes);
     }
+    state_.setPeakWeekends(saved->peakWeekends);
     if (saved->peakRateCents >= 0 && saved->peakRateCents <= config::kMaxRateCents && saved->peakStartHour >= 0 &&
         saved->peakStartHour <= 23 && saved->peakEndHour >= 1 && saved->peakEndHour <= 24) {
         state_.setPeakRate(saved->peakRateCents, saved->peakStartHour, saved->peakEndHour);
@@ -73,6 +76,7 @@ void SolarController::saveSettings() {
     settings.peakRateCents = state_.peakRateCents();
     settings.peakStartHour = state_.peakStartHour();
     settings.peakEndHour = state_.peakEndHour();
+    settings.peakWeekends = state_.peakWeekends();
     settings.notifyUrl = state_.notifyUrl();
     settings.goalKwh = state_.goalKwh();
     settings.goalMinutes = state_.goalMinutes();
@@ -88,16 +92,37 @@ void SolarController::applyHold() {
         wallbox_.holdFixedLimit(0, "paused by you");
     } else if (state_.mode() == ChargingMode::Fast) {
         wallbox_.holdFixedLimit(state_.fastModeAmps(), "custom current");
+    } else if (state_.mode() == ChargingMode::Cheapest) {
+        const bool expensive = expensiveNow();
+        wallbox_.holdFixedLimit(expensive ? 0 : state_.maxAmps(), expensive ? "expensive hours" : "cheap hours");
     } else {
         wallbox_.holdFixedLimit(std::nullopt);
     }
+}
+
+bool SolarController::expensiveNow() const {
+    const int64_t now = platform_.epochSeconds();
+    return CheapHours::expensive(now, platform_.utcOffsetSeconds(now), state_.peakStartHour(), state_.peakEndHour(), state_.peakWeekends());
+}
+
+void SolarController::applyCheapHours() {
+    const bool expensive = expensiveNow();
+    if (wasExpensive_ && *wasExpensive_ != expensive) {
+        event(expensive ? "Expensive hours began: charging stopped" : "Cheap hours began: charging allowed");
+    }
+    wasExpensive_ = expensive;
+    applyHold();
+}
+
+static const char* modeLabel(ChargingMode mode) {
+    return mode == ChargingMode::Fast ? "Custom" : mode == ChargingMode::Eco ? "Eco" : mode == ChargingMode::Cheapest ? "Cheapest hours" : "Max solar";
 }
 
 void SolarController::setMode(ChargingMode mode) {
     state_.setMode(mode);
     saveSettings();
     LOG_INFO("[MODE] Switched to %s.", toString(mode));
-    event(std::string("Mode set to ") + (mode == ChargingMode::Fast ? "Custom" : mode == ChargingMode::Eco ? "Eco" : "Max solar"));
+    event(std::string("Mode set to ") + modeLabel(mode));
     applyHold();
 }
 
@@ -156,7 +181,7 @@ bool SolarController::setDaylightMargins(int startMinutes, int endMinutes) {
 void SolarController::setPaused(bool paused) {
     state_.setPaused(paused);
     saveSettings();
-    const char* modeName = state_.mode() == ChargingMode::Fast ? "Custom" : state_.mode() == ChargingMode::Eco ? "Eco" : "Max solar";
+    const char* modeName = modeLabel(state_.mode());
     if (paused) {
         LOG_INFO("[PAUSE] Charging paused by the user (mode %s is kept).", toString(state_.mode()));
         event("Charging paused by you");
@@ -189,11 +214,13 @@ bool SolarController::setNotifyUrl(const std::string& url) {
     return true;
 }
 
-bool SolarController::setPrices(int cents, int peakCents, int startHour, int endHour) {
+bool SolarController::setPrices(int cents, int peakCents, int startHour, int endHour, std::optional<bool> weekends) {
     if (cents < 0 || cents > config::kMaxRateCents || peakCents < 0 || peakCents > config::kMaxRateCents) return false;
     if (startHour < 0 || startHour > 23 || endHour < 1 || endHour > 24 || startHour == endHour) return false;
     const bool rateChanged = cents != state_.rateCents();
     const bool peakChanged = peakCents != state_.peakRateCents() || startHour != state_.peakStartHour() || endHour != state_.peakEndHour();
+    const bool weekendsChanged = weekends && *weekends != state_.peakWeekends();
+    if (weekends) state_.setPeakWeekends(*weekends);
     state_.setRateCents(cents);
     state_.setPeakRate(peakCents, startHour, endHour);
     saveSettings();
@@ -204,6 +231,8 @@ bool SolarController::setPrices(int cents, int peakCents, int startHour, int end
                              : "Peak price set to " + std::to_string(peakCents) + "¢ from " + std::to_string(startHour) + ":00 to " +
                                    std::to_string(endHour) + ":00");
     }
+    if (weekendsChanged) event(state_.peakWeekends() ? "Expensive hours apply every day" : "Expensive hours apply Monday to Friday only");
+    if ((peakChanged || weekendsChanged) && state_.mode() == ChargingMode::Cheapest) applyHold();   // the new window reaches the charger now
     return true;
 }
 
@@ -238,10 +267,19 @@ std::string SolarController::daylightText() const { return schedule_.describe(pl
 bool SolarController::tick() {
     ChargingMode mode = state_.mode();
     bool charger = wallbox_.hasConnectedChargers();
+    if (mode == ChargingMode::Cheapest && !state_.paused() && charger) {
+        // Cheapest hours needs no solar: the price period decides. A departure goal that is running out of time still wins.
+        if (goalTakesOver()) {
+            wallbox_.holdFixedLimit(std::nullopt);   // do not fight the goal's current; the hold comes back when it lets go
+            wasExpensive_.reset();
+            return true;
+        }
+        applyCheapHours();
+    }
     // FAST uses a fixed current and a paused system acts on nothing, so in both the meters are only read for the
     // dashboard; with no charger there is nothing to show or control. Either way history goes stale, so the
     // planner and any outage tracking start fresh.
-    if (mode == ChargingMode::Fast || state_.paused() || !charger) {
+    if (mode == ChargingMode::Fast || mode == ChargingMode::Cheapest || state_.paused() || !charger) {
         plannedMode_.reset();
         failingSince_.reset();
         failSafeActive_ = false;
@@ -354,7 +392,7 @@ void SolarController::onMeterResult(const MeterResult& result) {
     if (!wallbox_.hasConnectedChargers()) return;
 
     uint64_t now = platform_.nowMillis();
-    if (mode == ChargingMode::Fast || state_.paused() || goalForcing_) {   // (or it changed to one of them meanwhile)
+    if (mode == ChargingMode::Fast || mode == ChargingMode::Cheapest || state_.paused() || goalForcing_) {   // (or it changed to one of them meanwhile)
         showReading(now, result);
         return;
     }
@@ -391,6 +429,15 @@ void SolarController::showReading(uint64_t now, const MeterResult& result) {
         state_.setControl({0, 0, state_.goalForcedAmps(), "departure goal", result.reading.gridWatts, now});
         LOG_INFO("[GOAL] solar %.0fW, grid %.0fW (+import/-export), charger %.1fA, departure goal asks for %dA", state_.solarWatts(),
                  result.reading.gridWatts, wallbox_.currentDrawAmps(), state_.goalForcedAmps());
+        return;
+    }
+    if (state_.mode() == ChargingMode::Cheapest) {
+        const bool expensive = expensiveNow();
+        state_.setControl({0, 0, paused || expensive ? 0 : state_.maxAmps(), paused ? "paused" : expensive ? "expensive hours" : "cheap hours",
+                           result.reading.gridWatts, now});   // no wait timer: the price change time is telemetry secondsToPriceChange
+        LOG_INFO("[%s] solar %.0fW, grid %.0fW (+import/-export), charger %.1fA, %s", paused ? "PAUSED" : "CHEAPEST", state_.solarWatts(),
+                 result.reading.gridWatts, wallbox_.currentDrawAmps(),
+                 paused ? "charging paused" : expensive ? "expensive hours: not charging" : ("cheap hours: up to " + std::to_string(state_.maxAmps()) + "A").c_str());
         return;
     }
     state_.setControl({0, 0, paused ? 0 : state_.fastModeAmps(), paused ? "paused" : "custom current",

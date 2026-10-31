@@ -53,7 +53,7 @@ void HistoryService::recordSample(double solarWatts, double gridWatts, double ca
     sample.home = clampWatts(homeWatts);
     sample.grid = clampWatts(gridWatts);
     sample.car = clampWatts(carWatts);
-    sample.mode = mode == ChargingMode::Eco ? 0 : mode == ChargingMode::MaxSolar ? 1 : 2;
+    sample.mode = mode == ChargingMode::Eco ? 0 : mode == ChargingMode::MaxSolar ? 1 : mode == ChargingMode::Cheapest ? 3 : 2;
     sample.flags = static_cast<uint8_t>((carWatts >= 100 ? kFlagCharging : 0) | (paused ? kFlagPaused : 0));
 
     // Energy since the previous reading, counted into the local day it ended in.

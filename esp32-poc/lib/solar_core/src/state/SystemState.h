@@ -47,6 +47,10 @@ public:
         peakEndHour_ = endHour;
     }
 
+    /** Whether the expensive hours also apply on Saturday and Sunday. */
+    bool peakWeekends() const { return peakWeekends_; }
+    void setPeakWeekends(bool weekends) { peakWeekends_ = weekends; }
+
     /** The departure goal: at least goalKwh kWh (0 = no goal) by goalMinutes after local midnight. */
     /** The web address notifications are posted to, or empty for none. */
     const std::string& notifyUrl() const { return notifyUrl_; }
@@ -123,6 +127,7 @@ private:
     int peakRateCents_ = 0;
     int peakStartHour_ = 16;
     int peakEndHour_ = 21;
+    bool peakWeekends_ = true;
     bool daylightWindowEnabled_ = true;
     int daylightStartMinutes_ = config::kDaylightStartAfterSunriseSeconds / 60;
     int daylightEndMinutes_ = config::kDaylightEndBeforeSunsetSeconds / 60;

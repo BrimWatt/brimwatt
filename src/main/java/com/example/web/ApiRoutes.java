@@ -118,8 +118,11 @@ public class ApiRoutes {
 
         state.setMode(mode);
         logger.info("[MODE SWITCH] System strategy updated to: {}", mode);
-        history.addEvent("Mode set to " + (mode == ChargingMode.FAST ? "Custom" : mode == ChargingMode.ECO ? "Eco" : "Max solar"));
+        history.addEvent("Mode set to " + modeLabel(mode));
 
+        if (mode == ChargingMode.CHEAPEST && !state.paused()) {
+            applyCheapNow();
+        }
         if (mode == ChargingMode.FAST) {
             fastAmps.ifPresent(amps -> {
                 state.setFastModeAmps(amps);
@@ -183,6 +186,7 @@ public class ApiRoutes {
         state.setMaxAmps(amps.getAsInt());
         logger.info("[MAX CURRENT] Maximum current set to {} A", amps.getAsInt());
         history.addEvent("Maximum current set to " + amps.getAsInt() + " A");
+        if (state.mode() == ChargingMode.CHEAPEST && !state.paused()) applyCheapNow();
         if (state.fastModeAmps() > amps.getAsInt()) {
             state.setFastModeAmps(amps.getAsInt());
             history.addEvent("Custom speed lowered to " + amps.getAsInt() + " A");
@@ -224,8 +228,8 @@ public class ApiRoutes {
             wallbox.setCommandContext("");
         } else {
             logger.info("[PAUSE] Charging resumed: back to {}.", state.mode());
-            history.addEvent("Charging resumed (" + (state.mode() == ChargingMode.FAST ? "Custom"
-                    : state.mode() == ChargingMode.ECO ? "Eco" : "Max solar") + ")");
+            history.addEvent("Charging resumed (" + modeLabel(state.mode()) + ")");
+            if (state.mode() == ChargingMode.CHEAPEST) applyCheapNow();
             if (state.mode() == ChargingMode.FAST) {
                 wallbox.setCommandContext("custom current");
                 wallbox.sendChargingLimit(state.fastModeAmps());
@@ -233,6 +237,19 @@ public class ApiRoutes {
             }
         }
         ctx.status(200).result(pause ? "Charging paused" : "Charging resumed");
+    }
+
+    static String modeLabel(ChargingMode mode) {
+        return mode == ChargingMode.FAST ? "Custom" : mode == ChargingMode.ECO ? "Eco" : mode == ChargingMode.CHEAPEST ? "Cheapest hours" : "Max solar";
+    }
+
+    /** Cheapest hours: send the right limit for this moment (maximum current in the cheap hours, stop in the expensive ones). */
+    private void applyCheapNow() {
+        boolean expensive = com.example.charging.CheapHours.expensive(System.currentTimeMillis(), AppConfig.siteZone(),
+                state.peakStartHour(), state.peakEndHour(), state.peakWeekends());
+        wallbox.setCommandContext(expensive ? "expensive hours" : "cheap hours");
+        wallbox.sendChargingLimit(expensive ? 0 : state.maxAmps());
+        wallbox.setCommandContext("");
     }
 
     /** A whole number in a range, or empty. */
@@ -249,9 +266,13 @@ public class ApiRoutes {
     /** The price of electricity: the normal price (cents) and, optionally, a peak price with its hours. Every part is optional. */
     private void updateRate(Context ctx) {
         String centsParam = ctx.queryParam("cents"), peakParam = ctx.queryParam("peakCents");
-        String fromParam = ctx.queryParam("peakStart"), toParam = ctx.queryParam("peakEnd");
-        if (centsParam == null && peakParam == null && fromParam == null && toParam == null) {
-            ctx.status(400).result("Give cents, peakCents, peakStart or peakEnd.");
+        String fromParam = ctx.queryParam("peakStart"), toParam = ctx.queryParam("peakEnd"), weekendsParam = ctx.queryParam("peakWeekends");
+        if (centsParam == null && peakParam == null && fromParam == null && toParam == null && weekendsParam == null) {
+            ctx.status(400).result("Give cents, peakCents, peakStart, peakEnd or peakWeekends.");
+            return;
+        }
+        if (weekendsParam != null && !"true".equals(weekendsParam) && !"false".equals(weekendsParam)) {
+            ctx.status(400).result("peakWeekends must be true or false");
             return;
         }
         // Check everything before changing anything, so a bad value never half-applies.
@@ -270,6 +291,9 @@ public class ApiRoutes {
         boolean rateChanged = cents.getAsInt() != state.rateCents();
         boolean peakChanged = peak.getAsInt() != state.peakRateCents() || from.getAsInt() != state.peakStartHour()
                 || to.getAsInt() != state.peakEndHour();
+        boolean weekends = weekendsParam == null ? state.peakWeekends() : Boolean.parseBoolean(weekendsParam);
+        boolean weekendsChanged = weekends != state.peakWeekends();
+        state.setPeakWeekends(weekends);
         state.setRateCents(cents.getAsInt());
         state.setPeakRate(peak.getAsInt(), from.getAsInt(), to.getAsInt());
         logger.info("[RATE] Price {} c/kWh, peak {} c/kWh from {}:00 to {}:00", cents.getAsInt(), peak.getAsInt(), from.getAsInt(), to.getAsInt());
@@ -278,6 +302,8 @@ public class ApiRoutes {
             history.addEvent(peak.getAsInt() == 0 ? "Peak price turned off"
                     : "Peak price set to " + peak.getAsInt() + "¢ from " + from.getAsInt() + ":00 to " + to.getAsInt() + ":00");
         }
+        if (weekendsChanged) history.addEvent(weekends ? "Expensive hours apply every day" : "Expensive hours apply Monday to Friday only");
+        if ((peakChanged || weekendsChanged) && state.mode() == ChargingMode.CHEAPEST && !state.paused()) applyCheapNow();
         ctx.status(200).result("Price updated");
     }
 
@@ -442,7 +468,7 @@ public class ApiRoutes {
         out.put("avgAmps", Math.round(energyWh / hours / AppConfig.voltage() * 10) / 10.0);
         out.put("reason", x.reason);
         out.put("saved", plausibleSaving(x.savedCents, x.sunWh) ? Math.round(x.savedCents) / 100.0 : -1);
-        out.put("mode", x.mode == 0 ? "ECO" : x.mode == 1 ? "MAX_SOLAR" : x.mode == 2 ? "FAST" : "");
+        out.put("mode", x.mode == 0 ? "ECO" : x.mode == 1 ? "MAX_SOLAR" : x.mode == 2 ? "FAST" : x.mode == 3 ? "CHEAPEST" : "");
         out.put("modeMixed", x.mixed);
         return out;
     }
@@ -618,7 +644,13 @@ public class ApiRoutes {
                 : Math.max(0, control.waitSeconds() - (System.currentTimeMillis() - control.readingAtMillis()) / 1000);
         controller.put("waitSeconds", waitLeft);
         // ECO and MAX_SOLAR both use the allowance; Custom (FAST) ignores it.
-        controller.put("gridAllowanceWatts", state.mode() != ChargingMode.FAST ? state.gridAllowanceWatts() : 0);
+        controller.put("gridAllowanceWatts", state.mode() == ChargingMode.ECO || state.mode() == ChargingMode.MAX_SOLAR ? state.gridAllowanceWatts() : 0);
+        // Cheapest hours: is the price high right now, and how long until it changes (-1: never within a week).
+        boolean expensiveNow = com.example.charging.CheapHours.expensive(System.currentTimeMillis(), AppConfig.siteZone(),
+                state.peakStartHour(), state.peakEndHour(), state.peakWeekends());
+        controller.put("expensiveNow", expensiveNow);
+        controller.put("secondsToPriceChange", com.example.charging.CheapHours.secondsToChange(System.currentTimeMillis(), AppConfig.siteZone(),
+                state.peakStartHour(), state.peakEndHour(), state.peakWeekends()));
         controller.put("failSafe", state.failSafe());
         controller.put("pollSeconds", AppConfig.POLL_INTERVAL_SECONDS);
 
@@ -630,6 +662,7 @@ public class ApiRoutes {
         body.put("peakRateCents", state.peakRateCents());
         body.put("peakStartHour", state.peakStartHour());
         body.put("peakEndHour", state.peakEndHour());
+        body.put("peakWeekends", state.peakWeekends());
         body.put("fastModeAmps", state.fastModeAmps());
         body.put("maxAmps", state.maxAmps());
         Map<String, Object> goal = new LinkedHashMap<>();

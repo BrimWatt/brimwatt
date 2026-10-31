@@ -547,4 +547,53 @@ class EnphasePollerTest {
         pollFor(30);
         assertFalse(state.goalForcing());
     }
+
+    // --- Cheapest hours ---
+
+    private void setLocalTime(int month, int day, int hour) {
+        clock.set(java.time.ZonedDateTime.of(2026, month, day, hour, 0, 0, 0, com.example.config.AppConfig.siteZone()).toInstant().toEpochMilli());
+    }
+
+    @Test
+    void cheapestHoursChargesAtTheMaximumInTheCheapHoursWithoutLookingAtTheSun() {
+        state.setMode(ChargingMode.CHEAPEST);
+        state.setMaxAmps(32);
+        solarWatts = 0;                              // night, no solar: irrelevant
+        setLocalTime(11, 4, 22);
+        poller.poll();
+        assertEquals(List.of(32), sentLimits);
+        assertEquals("cheap hours", state.control().reason());
+        assertEquals(32, state.control().targetAmps());
+    }
+
+    @Test
+    void cheapestHoursStopsWhenTheExpensiveHoursBegin() {
+        state.setMode(ChargingMode.CHEAPEST);
+        state.setMaxAmps(32);
+        setLocalTime(11, 4, 15);
+        poller.poll();
+        setLocalTime(11, 4, 16);                     // 4 pm: the default peak window opens
+        poller.poll();
+        assertEquals(List.of(32, 0), sentLimits);
+        assertEquals("expensive hours", state.control().reason());
+    }
+
+    @Test
+    void cheapestHoursDoesNotTripTheMeterFailSafe() {
+        state.setMode(ChargingMode.CHEAPEST);
+        failure = new IOException("no meter at all");
+        setLocalTime(11, 4, 23);
+        pollFor(600);
+        assertFalse(state.failSafe());
+        assertEquals(state.maxAmps(), sentLimits.get(sentLimits.size() - 1).intValue());
+    }
+
+    @Test
+    void cheapestHoursStaysStoppedWhilePaused() {
+        state.setMode(ChargingMode.CHEAPEST);
+        state.setPaused(true);
+        setLocalTime(11, 4, 23);
+        poller.poll();
+        assertEquals(List.of(0), sentLimits);
+    }
 }

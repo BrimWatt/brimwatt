@@ -129,7 +129,7 @@ S.append(side(shot("top-goal", caption="Top of the page"), [
 
 # ---- modes ----------------------------------------------------------------------------------------------------------
 S += [P("2. Choose how to charge", h2),
-      P("Three modes sit under the numbers. Tap one. The line below the buttons describes it in a sentence.")]
+      P("Four modes sit under the numbers. Tap one. The line below the buttons describes it in a sentence.")]
 S.append(side(shot("modes-eco", width=2.0 * inch, caption="Eco, with the grid allowance"), [
     P("<b>Eco</b> charges only with spare solar: what the panels make, minus what the house is using. It is the only mode that takes the house into account. "
       "Charging needs at least 6 amps and starts once there is room for about 7 amps."),
@@ -137,6 +137,9 @@ S.append(side(shot("modes-eco", width=2.0 * inch, caption="Eco, with the grid al
       "Zero means sun only. The default is 1000 W. Moving the slider sends the new value a few seconds after you stop."),
     P("<b>Max solar</b> uses everything the panels make and ignores the house. The grid allowance only tops the car up to the next whole amp, or to 6 amps when it is close."),
     P("<b>Custom</b> charges at a fixed current you choose, from 6 to 40 amps, whether the sun is out or not."),
+    P("<b>Cheapest hours</b> is for power plans that cost more at certain hours (time of use). It charges at your maximum current whenever power is not expensive and stops during the expensive hours, "
+      "with or without solar panels. Set the expensive hours (for example 4 pm to 9 pm) and the <i>Also on weekends</i> switch in Settings, under Money, with <i>Higher price at certain hours</i>. "
+      "The headline then says <i>Waiting for cheaper hours</i> and when charging starts. A <i>Ready by</i> goal still takes over if time runs short."),
 ], pic_left=True))
 S.append(side(shot("modes-custom", width=2.0 * inch, caption="Custom: a fixed current"), [
     P("In Custom, a <b>Current</b> slider sets the speed. It ignores the sun, the grid allowance, the solar hours and the lost-meter safety stop, so it can use grid power day or night. "

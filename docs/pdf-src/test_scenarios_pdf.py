@@ -220,6 +220,22 @@ S += section("J. Dashboard feedback", [
     (37, "Pause survives a restart", "With the pause on and the car plugged in, restart the app (<font face='Courier'>sudo systemctl restart solar-charger</font>, or the ESP32's RESET). Then press <i>Resume charging</i>.",
      "After the restart the dashboard still shows the pause banner and nothing charges. After Resume, the earlier mode takes over again (Eco starts on real surplus, Custom starts at its set current).", True)])
 
+S += section("K. Cheapest hours (time-of-use plans)", [
+    (63, "Charges outside the expensive hours", "In Settings > Money turn on <i>Higher price at certain hours</i> and set 4 to 9 pm. Plug the car in at 10 pm and choose Cheapest hours.",
+     "Within a minute <font face='Courier'>RemoteStartTransaction</font> at the maximum current, headline <i>Charging at N A</i>. The mode help line says what the hours are. No solar is needed.", True),
+    (64, "Stops when the expensive hours begin", "Leave it charging until 4 pm (or set the start hour to the next full hour).",
+     "Activity says <i>Expensive hours began: charging stopped</i>, a stop is sent, and the headline reads <i>Waiting for cheaper hours</i> with <i>Charging starts at 9:00 pm</i>.", True),
+    (65, "Starts again when it gets cheap", "Stay plugged in through 9 pm.",
+     "Activity says <i>Cheap hours began: charging allowed</i> and charging restarts at the maximum current without touching the app.", False),
+    (66, "Weekends", "Turn <i>Also on weekends</i> off and look on a Saturday, or change the start hour so a weekday is cheap.",
+     "On Saturday and Sunday it charges all day. Turning the switch back on makes the hours apply every day again.", False),
+    (67, "A car plugged in during the expensive hours", "Plug a car in at 5 pm in Cheapest hours.",
+     "Nothing starts until 9 pm. A car plugged in at 10 pm starts at once.", False),
+    (68, "Ready by wins", "Set a goal of 20 kWh by 7:00 am and plug in at 5 pm with Cheapest hours.",
+     "Charging waits for the cheap hours, but if the time left becomes only just enough it starts anyway (<i>Departure goal needs charging now</i>).", False),
+    (69, "No solar meter", "On a board with no Envoy set up, choose Cheapest hours.",
+     "The power picture is replaced by <i>Price now</i>, <i>Cheap at</i> or <i>Peak at</i> and <i>Car</i> tiles; Eco and Max solar are greyed out; there is no meter warning bar.", False)])
+
 S += [Spacer(1, 10), Paragraph("Useful log filters", h2),
       code_block('journalctl -u solar-charger --since "1 hour ago" --no-pager \\\n    | grep -E "DISPATCH|status:|answered|FAILSAFE|Restored|DAYLIGHT"')]
 

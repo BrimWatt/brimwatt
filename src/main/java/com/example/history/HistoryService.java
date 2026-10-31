@@ -55,7 +55,7 @@ public class HistoryService {
         public double sunWh;              // the part of that which the sun covered
         public String reason = "";        // why it ended, as the wallbox reported it
         public double savedCents;         // what the sun's share was worth at the prices of the hours it was charged
-        public int mode = -1;             // mode code (0 Eco, 1 Max solar, 2 Custom) at the first reading of the session, -1 if unknown
+        public int mode = -1;             // mode code (0 Eco, 1 Max solar, 2 Custom, 3 Cheapest hours) at the first reading of the session, -1 if unknown
         public boolean mixed;             // the mode changed during the session
 
         public double energyWh() { return meterWh >= 0 ? meterWh : estimatedWh; }
@@ -146,7 +146,7 @@ public class HistoryService {
         carWatts = Math.max(0, carWatts);
         double homeWatts = Math.max(0, solarWatts + gridWatts - carWatts);
 
-        int modeCode = mode == ChargingMode.ECO ? 0 : mode == ChargingMode.MAX_SOLAR ? 1 : 2;
+        int modeCode = mode == ChargingMode.ECO ? 0 : mode == ChargingMode.MAX_SOLAR ? 1 : mode == ChargingMode.CHEAPEST ? 3 : 2;
         int flags = (carWatts >= 100 ? FLAG_CHARGING : 0) | (paused ? FLAG_PAUSED : 0);
 
         // Energy since the previous reading, counted into the local day it ended in.

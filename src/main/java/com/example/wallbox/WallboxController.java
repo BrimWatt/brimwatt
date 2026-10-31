@@ -168,6 +168,12 @@ public class WallboxController implements ChargerGateway {
             context = "custom current";
             apply(charger, state.fastModeAmps());
             context = "";
+        } else if (state.mode() == ChargingMode.CHEAPEST) {
+            int amps = com.example.charging.CheapHours.expensive(System.currentTimeMillis(), AppConfig.siteZone(), state.peakStartHour(),
+                    state.peakEndHour(), state.peakWeekends()) ? 0 : state.maxAmps();
+            context = amps > 0 ? "cheap hours" : "expensive hours";
+            apply(charger, amps);
+            context = "";
         }
     }
 
