@@ -120,8 +120,10 @@ S.append(side(shot("top-goal", caption="Top of the page"), [
       "When it is not charging, it also says why. The red <b>Pause</b> button is next to it."),
     P("<b>The power flow</b> shows four boxes. <b>Solar</b> is what your panels make. <b>Home</b> is what the house uses without the car. "
       "<b>Car</b> is what the charger is drawing. <b>Grid</b> is power bought from, or sent to, the power company (green with an up arrow means you are sending power out)."),
-    P("<b>Today's numbers</b> sit under the flow: <b>Saved today</b> (money saved by using the sun instead of the grid), <b>From the sun</b> "
-      "(the share of the car's energy that came from your panels) and <b>Car today</b> (the energy the car took)."),
+    P("<b>What the charging gave you</b> is the card right under the headline: the energy the car took (or estimated miles of range) and <b>Saved</b> "
+      "(money saved by using the sun instead of the grid), with a switch for <b>Today</b>, <b>Week</b>, <b>Month</b> and <b>Year</b>, a bar for the share that came "
+      "from your panels, and a bar for each day (tap a day to see its curve in the graph). The <b>Miles</b> / <b>kWh</b> button flips the unit. "
+      "When a charge finishes, a short green card says what was added, the solar share and the saving."),
     P("<b>Live pill.</b> The small pill at the top says <i>Live</i>. If it turns amber and says something like <i>Meter 12m old</i>, the solar readings are getting stale."),
 ], pic_left=True))
 
@@ -204,7 +206,7 @@ S.append(side(shot("top-miles", width=2.35 * inch, caption="Miles view (estimate
     P("Prefer miles to kilowatt-hours? In <b>Settings</b>, open <b>Units</b> and set <b>Show energy as</b> to <b>Miles</b>. Enter <b>Miles per kWh</b> for your car "
       "(1 to 6; it starts at 3). Miles are an estimate: the energy times that number, shown with a <b>~</b>."),
     P("Use the figure your car really gets, counted from the wall. It is a little lower than the car's own figure because charging loses some energy on the way."),
-    P("<b>What changes.</b> The tile becomes <i>Range today</i>; the 7-day, 30-day and Year totals say <i>range added</i>; each charging session shows range added; "
+    P("<b>What changes.</b> The value card says <i>Range added</i> (its button flips back to kWh); the 7-day, 30-day and Year totals say <i>range added</i>; each charging session shows range added; "
       "the Car box shows <i>mi/h</i> (miles of range per hour) instead of kW; and the goal is typed in miles, with a small note under it showing the whole kWh that is actually sent to the charger."),
     P("<b>What does not change.</b> Savings stay in dollars. The power flow still shows watts. The activity lines the controller writes still say kWh, and so do the CSV export and message text. "
       "The choice is kept on this phone only."),
