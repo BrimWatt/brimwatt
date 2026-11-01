@@ -837,3 +837,18 @@ test('the Impact sheet opens from the chip, closes with Done, Escape or the back
     assert.ok(html.includes('onclick="openImpact()"') && html.includes('onclick="closeImpact()"'));
     assert.ok(html.includes("e.target === el('impact-back')") && html.includes("el('impact').classList.contains('open')) closeImpact()"));
 });
+
+test('long waits (night, expensive hours) are marked as rest so the spinning arc does not run all night', () => {
+    assert.ok(/\.hero\.wait:not\(\.ring\):not\(\.rest\) \.badge::before/.test(html));
+    assert.ok(html.includes("(h.rest ? ' rest' : '')"));
+    assert.equal(page.waitView(cheapData(() => {})).rest, true);
+    const night = idle(d => { d.daylight.open = false; });
+    assert.equal(night.title, 'Waiting for sunrise');
+    assert.equal(night.rest, true);
+    assert.notEqual(idle(d => { d.controller.reason = 'waiting for surplus'; }).rest, true);   // a daytime wait still spins
+});
+
+test('diagnostics says where the lowest memory was reached', () => {
+    assert.equal(page.lowestMemoryText({ minFreeKb: 88, atStartUp: true, atUptimeSeconds: 12, largestKb: 95 }, 25000), '88 KB, during start-up (largest block 95 KB)');
+    assert.equal(page.lowestMemoryText({ minFreeKb: 96, atStartUp: false, atUptimeSeconds: 14200, largestKb: 0 }, 25000), '96 KB, ~3h ago');
+});
