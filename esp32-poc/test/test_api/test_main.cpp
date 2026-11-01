@@ -638,6 +638,43 @@ void test_diagnostics_are_404_without_a_source_and_list_only_what_the_platform_k
     TEST_ASSERT_TRUE(bare["wifiRssi"].isNull());
 }
 
+void test_diagnostics_show_psram_the_lowest_memory_and_samples_only_on_request() {
+    Rig r;
+    FakeDiagnostics fake;
+    fake.value.platform = "ESP32-S3";
+    fake.value.freeHeapKb = 150; fake.value.minFreeHeapKb = 88; fake.value.largestBlockKb = 95;
+    fake.value.freePsramKb = 6100; fake.value.minFreePsramKb = 6000;
+    solar::MemoryWatch watch;
+    watch.update(20, 0, 150, 88, 95, 6100);
+    watch.update(320, 1760000000, 140, 80, 90, 6090);
+    fake.value.memoryWatch = &watch;
+    r.api.setDiagnostics(&fake);
+
+    JsonDocument plain;
+    TEST_ASSERT_FALSE(deserializeJson(plain, r.api.handle("GET", "/api/diagnostics", {}).body));
+    TEST_ASSERT_EQUAL(6100, plain["memory"]["psramFreeKb"].as<int>());
+    TEST_ASSERT_EQUAL(80, plain["memory"]["lowest"]["minFreeKb"].as<int>());
+    TEST_ASSERT_FALSE(plain["memory"]["lowest"]["atStartUp"].as<bool>());
+    TEST_ASSERT_EQUAL(320, plain["memory"]["lowest"]["atUptimeSeconds"].as<int>());
+    TEST_ASSERT_TRUE(plain["memorySamples"].isNull());   // only when asked for
+
+    JsonDocument full;
+    TEST_ASSERT_FALSE(deserializeJson(full, r.api.handle("GET", "/api/diagnostics", {{"memory", "1"}}).body));
+    TEST_ASSERT_EQUAL(300, full["memorySamples"]["everySeconds"].as<int>());
+    TEST_ASSERT_EQUAL(2, (int)full["memorySamples"]["freeKb"].size());
+    TEST_ASSERT_EQUAL(140, full["memorySamples"]["freeKb"][1].as<int>());
+    TEST_ASSERT_EQUAL(6090, full["memorySamples"]["psramKb"][1].as<int>());
+    TEST_ASSERT_EQUAL(320, full["memorySamples"]["newestAtUptimeSeconds"].as<int>());
+
+    fake.value.memoryWatch = nullptr;                   // a platform that does not watch
+    fake.value.freePsramKb = -1;
+    JsonDocument bare;
+    TEST_ASSERT_FALSE(deserializeJson(bare, r.api.handle("GET", "/api/diagnostics", {{"memory", "1"}}).body));
+    TEST_ASSERT_TRUE(bare["memory"]["lowest"].isNull());
+    TEST_ASSERT_TRUE(bare["memory"]["psramFreeKb"].isNull());
+    TEST_ASSERT_TRUE(bare["memorySamples"].isNull());
+}
+
 void test_sessions_can_be_paged_with_an_offset() {
     Rig r;
     for (int i = 1; i <= 7; i++) {
@@ -1086,6 +1123,7 @@ int main() {
     RUN_TEST(test_the_csv_export_has_a_header_and_one_line_per_day);
     RUN_TEST(test_changing_requests_without_the_safe_header_are_refused);
     RUN_TEST(test_events_come_one_page_at_a_time_newest_first_with_the_total);
+    RUN_TEST(test_diagnostics_show_psram_the_lowest_memory_and_samples_only_on_request);
     RUN_TEST(test_sessions_can_be_paged_with_an_offset);
     RUN_TEST(test_diagnostics_are_404_without_a_source_and_list_only_what_the_platform_knows);
     RUN_TEST(test_unknown_paths_and_wrong_methods_are_not_found);
