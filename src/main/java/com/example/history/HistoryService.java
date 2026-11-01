@@ -58,6 +58,7 @@ public class HistoryService {
         public int mode = -1;             // mode code (0 Eco, 1 Max solar, 2 Custom, 3 Cheapest hours) at the first reading of the session, -1 if unknown
         public boolean mixed;             // the mode changed during the session
         public long pluggedAt;            // when the car was plugged in before this session started, 0 if we did not see it
+        public String tag = "";           // a short one-way fingerprint of the ID tag the charger sent (never the tag itself), "" if none
 
         public double energyWh() { return meterWh >= 0 ? meterWh : estimatedWh; }
 
@@ -65,7 +66,7 @@ public class HistoryService {
             Session c = new Session();
             c.start = start; c.end = end; c.meterStartWh = meterStartWh; c.meterWh = meterWh;
             c.estimatedWh = estimatedWh; c.sunWh = sunWh; c.reason = reason; c.savedCents = savedCents;
-            c.mode = mode; c.mixed = mixed; c.pluggedAt = pluggedAt;
+            c.mode = mode; c.mixed = mixed; c.pluggedAt = pluggedAt; c.tag = tag;
             return c;
         }
     }
@@ -219,7 +220,10 @@ public class HistoryService {
     }
 
     /** The wallbox started a session; {@code meterStartWh} is its meter reading, or -1 if it gave none. */
-    public synchronized void sessionStarted(double meterStartWh) {
+    public void sessionStarted(double meterStartWh) { sessionStarted(meterStartWh, ""); }
+
+    /** As above; {@code tagHash} is the fingerprint from {@link com.example.ocpp.IdTagHash}, never the raw ID tag. */
+    public synchronized void sessionStarted(double meterStartWh, String tagHash) {
         long now = nowSeconds();
         if (now <= 0) return;
         if (open != null) {   // we never saw the previous one end: close it where it stands
@@ -230,6 +234,7 @@ public class HistoryService {
         }
         open = new Session();
         open.start = now;
+        open.tag = tagHash == null ? "" : tagHash;
         open.pluggedAt = pluggedAt > 0 && pluggedAt <= now && now - pluggedAt < 3 * 86400 ? pluggedAt : 0;
         open.meterStartWh = meterStartWh;
         dirty = journalDirty = true;
@@ -447,8 +452,8 @@ public class HistoryService {
     public synchronized int longRecordCount() { return fiveMin.size() + hourly.size(); }
 
     private static String sessionLine(char tag, Session x) {
-        return String.format(java.util.Locale.ROOT, "%c\t%d\t%d\t%.1f\t%.1f\t%.1f\t%.1f\t%s\t%.2f\t%d\t%d\t%d", tag, x.start, x.end,
-                x.meterStartWh, x.meterWh, x.estimatedWh, x.sunWh, x.reason, x.savedCents, x.mode, x.mixed ? 1 : 0, x.pluggedAt);
+        return String.format(java.util.Locale.ROOT, "%c\t%d\t%d\t%.1f\t%.1f\t%.1f\t%.1f\t%s\t%.2f\t%d\t%d\t%d\t%s", tag, x.start, x.end,
+                x.meterStartWh, x.meterWh, x.estimatedWh, x.sunWh, x.reason, x.savedCents, x.mode, x.mixed ? 1 : 0, x.pluggedAt, x.tag);
     }
 
     /** A goal result is its own line type, so an older version reading the file just skips it. */
@@ -498,6 +503,7 @@ public class HistoryService {
                     x.savedCents = p.length > 8 ? Double.parseDouble(p[8]) : 0;   // older files have no money column
                     if (p.length > 10) { x.mode = Integer.parseInt(p[9]); x.mixed = "1".equals(p[10]); }   // older files have no mode
                     if (p.length > 11) x.pluggedAt = Long.parseLong(p[11]);   // older files do not know when the car was plugged in
+                    if (p.length > 12 && p[12].matches("[0-9a-f]{0,8}")) x.tag = p[12];   // older files have no tag fingerprint; anything else is ignored
                     if (x.start <= 0) return;
                     if (p[0].charAt(0) == 'T') {
                         for (Session known : sessions) if (known.start == x.start) return;

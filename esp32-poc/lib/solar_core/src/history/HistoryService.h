@@ -57,6 +57,7 @@ struct HistorySession {
     int mode = -1;              // mode code (0 Eco, 1 Max solar, 2 Custom) at the first reading of the session, -1 if unknown
     bool mixed = false;         // the mode changed during the session
     uint32_t pluggedAt = 0;     // when the car was plugged in before this session started, 0 if we did not see it
+    std::string tag;            // a short one-way fingerprint of the ID tag the charger sent (never the tag itself), "" if none
     double savedCents = 0;      // what the sun's share was worth at the prices of the hours it was charged
 
     double energyWh() const { return meterWh >= 0 ? meterWh : estimatedWh; }
@@ -101,7 +102,7 @@ public:
     void recordSample(double solarWatts, double gridWatts, double carWatts, ChargingMode mode, bool paused);
 
     /** The wallbox started a session; `meterStartWh` is its meter reading, or -1 if it gave none. */
-    void sessionStarted(double meterStartWh);
+    void sessionStarted(double meterStartWh, const std::string& tagHash = "");   // tagHash: the fingerprint from idTagHash(), never the raw ID tag
 
     /** The wallbox ended the session. Ignored if we never saw it start (the app was not running). */
     void sessionStopped(double meterStopWh, const std::string& reason);

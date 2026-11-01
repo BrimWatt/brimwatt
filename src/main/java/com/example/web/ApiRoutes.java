@@ -467,6 +467,7 @@ public class ApiRoutes {
         out.put("sunKwh", kwh(Math.min(x.sunWh, x.estimatedWh)));
         out.put("avgAmps", Math.round(energyWh / hours / AppConfig.voltage() * 10) / 10.0);
         out.put("reason", x.reason);
+        out.put("tag", x.tag);   // fingerprint of the charger's ID tag, "" if none (never the tag itself)
         out.put("plugged", x.pluggedAt);   // when the car was plugged in before this session, 0 if unknown
         out.put("saved", plausibleSaving(x.savedCents, x.sunWh) ? Math.round(x.savedCents) / 100.0 : -1);
         out.put("mode", x.mode == 0 ? "ECO" : x.mode == 1 ? "MAX_SOLAR" : x.mode == 2 ? "FAST" : x.mode == 3 ? "CHEAPEST" : "");

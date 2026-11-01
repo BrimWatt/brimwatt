@@ -134,7 +134,7 @@ void HistoryService::flushHourly() {
     acc60_ = Accum();
 }
 
-void HistoryService::sessionStarted(double meterStartWh) {
+void HistoryService::sessionStarted(double meterStartWh, const std::string& tagHash) {
     int64_t now = platform_.epochSeconds();
     if (now < kMinValidEpoch) return;
     if (open_) {   // we never saw the previous one end (a lost message, or a restart in between): close it where it stands
@@ -146,6 +146,7 @@ void HistoryService::sessionStarted(double meterStartWh) {
     HistorySession session;
     session.start = static_cast<uint32_t>(now);
     session.meterStartWh = meterStartWh;
+    session.tag = tagHash;
     session.pluggedAt = pluggedAt_ > 0 && pluggedAt_ <= now && now - pluggedAt_ < 3 * 86400 ? pluggedAt_ : 0;
     open_ = session;
     dirty_ = journalDirty_ = true;
@@ -294,7 +295,7 @@ void HistoryService::forEachLine(const std::function<void(const std::string&)>& 
                       x.meterStartWh, x.meterWh, x.estimatedWh, x.sunWh);
         char saved[64];
         std::snprintf(saved, sizeof saved, "\t%.2f\t%d\t%d\t%u", x.savedCents, x.mode, x.mixed ? 1 : 0, (unsigned)x.pluggedAt);   // after the reason, so older readers still find it
-        write(std::string(buffer) + x.reason + saved);
+        write(std::string(buffer) + x.reason + saved + "\t" + x.tag);
     };
     for (const auto& x : sessions_) sessionLine('T', x);
     if (open_) sessionLine('O', *open_);
@@ -332,7 +333,7 @@ void HistoryService::forEachJournalLine(const std::function<void(const std::stri
                       x.meterStartWh, x.meterWh, x.estimatedWh, x.sunWh);
         char saved[64];
         std::snprintf(saved, sizeof saved, "\t%.2f\t%d\t%d\t%u", x.savedCents, x.mode, x.mixed ? 1 : 0, (unsigned)x.pluggedAt);   // after the reason, so older readers still find it
-        write(std::string(buffer) + x.reason + saved);
+        write(std::string(buffer) + x.reason + saved + "\t" + x.tag);
     };
     for (const auto& x : sessions_) if (since(x.end)) sessionLine('T', x);
     if (open_) sessionLine('O', *open_);
@@ -407,6 +408,11 @@ void HistoryService::loadLine(const std::string& line) {
                 x.savedCents = p.size() > 8 ? std::atof(p[8].c_str()) : 0;   // older files have no money column
                 if (p.size() > 10) { x.mode = std::atoi(p[9].c_str()); x.mixed = p[10] == "1"; }   // older files have no mode
                 if (p.size() > 11) x.pluggedAt = static_cast<uint32_t>(std::strtoul(p[11].c_str(), nullptr, 10));   // older files do not know when the car was plugged in
+                if (p.size() > 12 && p[12].size() <= 8) {   // older files have no tag fingerprint; anything but lower-case hex is ignored
+                    bool hex = true;
+                    for (char c : p[12]) if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) hex = false;
+                    if (hex) x.tag = p[12];
+                }
                 if (x.start == 0) return;
                 if (p[0][0] == 'T') {
                     for (const auto& known : sessions_) if (known.start == x.start) return;

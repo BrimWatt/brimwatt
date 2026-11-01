@@ -74,7 +74,7 @@ public final class CoreHandlers {
                     int transactionId = nextTransactionId.incrementAndGet();
                     c.setTransactionId(transactionId);
                     logger.info("Charger {} started transaction {}", c.id(), transactionId);
-                    if (history != null) history.sessionStarted(p.path("meterStart").asDouble(-1));
+                    if (history != null) history.sessionStarted(p.path("meterStart").asDouble(-1), IdTagHash.of(p.path("idTag").asText("")));   // only a fingerprint is kept
                     onChargerChanged.accept(c);
                     return Map.of("transactionId", transactionId, "idTagInfo", Map.of("status", "Accepted"));
                 }),

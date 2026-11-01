@@ -695,6 +695,7 @@ void test_day_rows_end_with_the_goal_outcome_and_sessions_say_when_the_car_was_p
     JsonDocument sessions;
     TEST_ASSERT_FALSE(deserializeJson(sessions, r.api.handle("GET", "/api/sessions", {}).body));
     TEST_ASSERT_EQUAL(plugged, sessions["sessions"][0]["plugged"].as<uint32_t>());
+    TEST_ASSERT_TRUE(sessions["sessions"][0]["tag"].is<const char*>());   // the tag fingerprint is there (empty when the charger sent none)
 }
 
 void test_sessions_can_be_paged_with_an_offset() {

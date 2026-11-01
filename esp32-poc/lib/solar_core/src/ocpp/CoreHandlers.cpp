@@ -6,6 +6,7 @@
 
 #include "common/Config.h"
 #include "common/Log.h"
+#include "ocpp/IdTagHash.h"
 
 namespace solar::ocpp {
 
@@ -106,7 +107,7 @@ void registerCoreHandlers(OcppRouter& router, Platform& platform, std::function<
         int transactionId = ++*nextTransactionId;
         c.setTransactionId(transactionId);
         LOG_INFO("Charger %s started transaction %d", c.id().c_str(), transactionId);
-        if (history) history->sessionStarted(p["meterStart"].isNull() ? -1.0 : p["meterStart"].as<double>());
+        if (history) history->sessionStarted(p["meterStart"].isNull() ? -1.0 : p["meterStart"].as<double>(), idTagHash(std::string(p["idTag"] | "")));   // only a fingerprint is kept
         onChargerChanged(c);
         reply["transactionId"] = transactionId;
         reply["idTagInfo"]["status"] = "Accepted";
