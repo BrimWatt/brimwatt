@@ -377,7 +377,8 @@
         #hero { order: 1; } #sesscard { order: 2; } #flow, #nosolar { order: 3; } #chartcard { order: 4; } #modes { order: 5; } #carcard { order: 6; }
         #feedcard { order: 7; } #sessions { order: 8; }
         #impact { order: 9; } #impact[hidden] { display: none; }
-        .impchip { display: inline-flex; align-items: center; gap: 4px; margin: 6px 6px 0 0; min-height: 30px; padding: 0 12px; border-radius: 999px; background: var(--tint); color: var(--green); border: 1px solid var(--line); font-size: 0.82rem; font-weight: 600; }
+        .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+        .impchip { display: inline-flex; align-items: center; gap: 4px; margin: 0; min-height: 34px; padding: 0 12px; border-radius: 999px; background: var(--tint); color: var(--green); border: 1px solid var(--line); font-size: 0.82rem; font-weight: 600; }
         #impact-back { position: fixed; inset: 0; z-index: 18; background: rgba(15, 23, 42, 0.4); } #impact-back[hidden] { display: none; }
         #sharebox img { display: block; width: 100%; max-width: 360px; margin: 8px auto; border-radius: 12px; border: 1px solid var(--line); -webkit-touch-callout: default; user-select: auto; }
         #sharebox .hint-share { color: var(--muted); font-size: 0.88rem; margin: 6px 0; } #sharebox #share-save { width: 100%; margin-top: 6px; }
@@ -474,7 +475,7 @@
         <div class="stack stack-a">
         <section class="tile hero" id="hero" aria-live="polite">
             <div class="badge" id="hero-icon">⚡</div>
-            <div class="txt"><div class="title" id="hero-title">Connecting…</div><div class="sub" id="hero-sub">&nbsp;</div><button type="button" class="impchip wheeled" id="imp-chip" hidden onclick="openImpact()" aria-haspopup="dialog"><span class="chipwheel" aria-hidden="true"><span class="ring" id="imp-chip-ring" style="--p: 0"></span><b id="imp-chip-letter"></b></span><span id="imp-chip-text">Your impact ›</span></button><button type="button" class="impchip" id="fc-chip" hidden onclick="openForecast()" aria-haspopup="dialog">Tomorrow ›</button><button type="button" class="impchip warn" id="site-chip" hidden onclick="openSiteSettings()">Set your location ›</button></div>
+            <div class="txt"><div class="title" id="hero-title">Connecting…</div><div class="sub" id="hero-sub">&nbsp;</div><div class="chips"><button type="button" class="impchip wheeled" id="imp-chip" hidden onclick="openImpact()" aria-haspopup="dialog"><span class="chipwheel" aria-hidden="true"><span class="ring" id="imp-chip-ring" style="--p: 0"></span><b id="imp-chip-letter"></b></span><span id="imp-chip-text">Your impact ›</span></button><button type="button" class="impchip" id="fc-chip" hidden onclick="openForecast()" aria-haspopup="dialog">Tomorrow ›</button><button type="button" class="impchip warn" id="site-chip" hidden onclick="openSiteSettings()">Set your location ›</button></div></div>
             <button id="pause-btn" onclick="togglePause()"><svg class="ic" id="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><span id="pause-label">Pause</span></button>
         </section>
         <section class="tile sessdone" id="sesscard" role="status" aria-live="polite" hidden>
