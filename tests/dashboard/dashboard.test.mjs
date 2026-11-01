@@ -1128,3 +1128,9 @@ test('the grade letter takes the colour the gradient has reached, and the wheel 
     assert.ok(page.wheelLabel(none).startsWith('Charge Score '));
     assert.equal(page.wheelLabel(null), 'No score yet');
 });
+
+test('the headline buttons sit in one row that centres them, so a taller one (with the ring) does not push the others off line', () => {
+    assert.ok(/\.chips \{ display: flex; flex-wrap: wrap; align-items: center;/.test(html));
+    const row = html.slice(html.indexOf('<div class="chips">'), html.indexOf('</div>', html.indexOf('<div class="chips">')));
+    ['imp-chip', 'fc-chip', 'site-chip'].forEach(id => assert.ok(row.includes('id="' + id + '"'), id + ' is inside the row'));
+});
