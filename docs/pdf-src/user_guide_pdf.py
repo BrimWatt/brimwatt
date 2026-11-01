@@ -148,7 +148,7 @@ S.append(side(shot("cheapest", width=2.0 * inch, caption="Cheapest hours (sample
     shot("no-solar", width=2.0 * inch, caption="A home with no solar meter (sample data)"),
 ], pic_left=True))
 S.append(side(shot("impact", width=2.1 * inch, caption="Your impact (sample data)"), [
-    P("<b>Your impact</b> opens from the small score button under the headline (for example <i>Solar Score 81 B</i>), as a sheet with Week and Month tabs. It gives a score out of 100 and a letter. "
+    P("<b>Your impact</b> opens from the small score button under the headline (<i>Solar Score 81</i> beside a grade ring), as a sheet with Week and Month tabs. It gives a score out of 100 and a letter. "
       "With solar, half the points come from how much of the car's energy came from your panels, 30 from charging outside your expensive hours and 20 from Ready by goals met."),
     P("Without solar it is called <b>Charge Score</b> and counts only the parts that apply. Under the score you see miles, how much cheaper than gas, what Cheapest hours saved (an estimate), a streak of good days, badges, and a "
       "<i>Share image</i> button that makes a picture on your phone."),

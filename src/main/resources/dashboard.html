@@ -2267,12 +2267,12 @@ function impactContext() {
              meterLinked: d.meterLinked, peakCents: d.peakRateCents || 0, maxAmps: d.maxAmps || 32, volts: (d.power && d.power.voltage) || 240 };
 }
 let lastImpact = null;
-/** The text on the small button under the headline, for example "Solar Score 74 C ›"; empty when there is no score yet. */
+/** The text on the small button under the headline, for example "Solar Score 74 ›" (the grade is the letter in its ring); empty when there is no score yet. */
 /** The colour of the grade letter: where the gold-to-green gradient of the wheel has reached at that score. Pure and tested. */
 function gradeColor(score) { const p = Math.max(0, Math.min(100, Math.round(score))); return 'color-mix(in srgb, var(--green) ' + p + '%, var(--solar))'; }
 /** The words for screen readers on the wheel. */
 function wheelLabel(view) { return view && view.score ? (view.noSolar ? 'Charge Score ' : 'Solar Score ') + view.score.score + ' out of 100, grade ' + view.score.grade : 'No score yet'; }
-function impactChipText(view) { return view && view.score ? (view.noSolar ? 'Charge Score ' : 'Solar Score ') + view.score.score + ' ' + view.score.grade + ' ›' : ''; }
+function impactChipText(view) { return view && view.score ? (view.noSolar ? 'Charge Score ' : 'Solar Score ') + view.score.score + ' ›' : ''; }   // the grade is the letter in the small ring beside it, so it is not said twice
 function openImpact() {
     const t = el('impact');
     if (t.hidden) return;
