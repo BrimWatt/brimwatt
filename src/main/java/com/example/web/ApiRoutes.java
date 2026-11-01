@@ -72,6 +72,7 @@ public class ApiRoutes {
         app.post("/api/maxamps", this::updateMaxAmps);
         app.post("/api/goal", this::updateGoal);
         app.post("/api/notify", this::updateNotify);
+        app.post("/api/site", this::updateSite);
         app.post("/api/notify/test", this::testNotify);
         // The car link (Bluetooth) exists on the ESP32 board only; the Pi answers the same routes so the dashboard behaves the same.
         for (String carRoute : CAR_ROUTES) app.post(carRoute, ctx -> ctx.status(400).result(CAR_UNSUPPORTED));
@@ -264,6 +265,29 @@ public class ApiRoutes {
     }
 
     /** The price of electricity: the normal price (cents) and, optionally, a peak price with its hours. Every part is optional. */
+    /** A value from the form body (where the dashboard puts the location) or, failing that, the address. */
+    private static String formOrQuery(Context ctx, String name) {
+        String v = ctx.formParam(name);
+        return v != null ? v : ctx.queryParam(name);
+    }
+
+    /** Saves where the panels are. It is used from the next start of the app (the clock, the history days and the daylight window are set up then). */
+    private void updateSite(Context ctx) {
+        String lat = formOrQuery(ctx, "lat"), lon = formOrQuery(ctx, "lon"), tz = formOrQuery(ctx, "tz");
+        if (lat == null || lon == null || tz == null) {
+            ctx.status(400).result("Missing lat, lon or tz.");
+            return;
+        }
+        var result = com.example.config.SiteInput.parse(lat, lon, tz, formOrQuery(ctx, "name"));
+        if (!result.ok()) {
+            ctx.status(400).result(result.error());
+            return;
+        }
+        var site = result.site();
+        state.setSite(site.latitude(), site.longitude(), site.timezone(), site.name());
+        ctx.result("Location saved. Restart the app to use it for sunrise times and the clock.");
+    }
+
     private void updateRate(Context ctx) {
         String centsParam = ctx.queryParam("cents"), peakParam = ctx.queryParam("peakCents");
         String fromParam = ctx.queryParam("peakStart"), toParam = ctx.queryParam("peakEnd"), weekendsParam = ctx.queryParam("peakWeekends");
@@ -691,8 +715,14 @@ public class ApiRoutes {
         body.put("daylight", daylightInfo);
         // Where the site is, rounded to a tenth of a degree (about 11 km): enough for a weather forecast, not a street address.
         Map<String, Object> site = new LinkedHashMap<>();
-        site.put("lat", Math.round(AppConfig.siteLatitude() * 10) / 10.0);
-        site.put("lon", Math.round(AppConfig.siteLongitude() * 10) / 10.0);
+        // `set` is false until the owner has saved a location; then the environment or the built-in default is what the app uses.
+        double siteLat = state.siteSet() ? state.siteLatitude() : AppConfig.siteLatitude();
+        double siteLon = state.siteSet() ? state.siteLongitude() : AppConfig.siteLongitude();
+        site.put("lat", Math.round(siteLat * 10) / 10.0);
+        site.put("lon", Math.round(siteLon * 10) / 10.0);
+        site.put("set", state.siteSet());
+        site.put("timezone", state.siteSet() ? state.siteTimezone() : AppConfig.siteZone().getId());
+        site.put("name", state.siteSet() ? state.siteName() : "");
         body.put("site", site);
         body.put("power", power);
         body.put("charger", charger);

@@ -6,6 +6,7 @@
 #include "car/CarControl.h"
 #include "car/ChargeRouter.h"
 #include "car/TeslaMode.h"
+#include "site/Site.h"
 #include "notify/Notifier.h"
 #include "common/Platform.h"
 #include "control/SolarController.h"
@@ -38,6 +39,7 @@ struct HttpResponse {
  *   GET  /api/sessions?n=10[&offset=0]       the charging sessions, newest first (one page), the total, and the one running now
  *   GET  /api/events?n=5[&offset=0]          the activity log, newest first (one page, n up to 20), and the total
  *   GET  /api/days?n=30                      daily energy totals for the last n days (up to 365)
+ *   POST /api/site (lat, lon, tz, name; send them in the body)   where the panels are: sunrise, the clock and the forecast; restarts the board
  *   GET  /api/diagnostics                    restarts and crashes, uptime, memory, Wi-Fi signal (404 if the platform has none)
  *   GET  /api/export.csv                     every day's energy totals as a spreadsheet file
  *   POST /api/car/mode?enabled=true|false&confirm=yes   Tesla mode (off by default): Bluetooth, the wattsync-tesla Wi-Fi and the car in command; restarts the board
@@ -79,6 +81,7 @@ public:
     void setRouter(ChargeRouter* router) { router_ = router; }
     /** Tesla mode. Without it the car endpoints always work (the Pi, the tests). */
     void setTeslaMode(TeslaModeControl* mode) { mode_ = mode; }
+    void setSite(SiteControl* site) { site_ = site; }
     /** Whether a solar meter has been set up at all (telemetry `meterLinked`); true unless told otherwise. */
     void setMeterLinked(bool linked) { meterLinked_ = linked; }
 
@@ -98,6 +101,7 @@ private:
     HttpResponse sessions(const Params& query);
     HttpResponse events(const Params& query);
     HttpResponse diagnostics(const Params& query);
+    HttpResponse updateSite(const Params& query);
     HttpResponse exportCsv();
     HttpResponse car(const std::string& path, const Params& query);
     HttpResponse teslaMode(const Params& query);
@@ -114,6 +118,7 @@ private:
     CarControl* car_ = nullptr;
     ChargeRouter* router_ = nullptr;
     TeslaModeControl* mode_ = nullptr;
+    SiteControl* site_ = nullptr;
     bool meterLinked_ = true;
 };
 

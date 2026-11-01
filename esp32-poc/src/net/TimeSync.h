@@ -14,7 +14,8 @@ public:
      * Starts SNTP in the background and returns at once. The router's address is added as a third time server
      * (most routers answer NTP), so the clock can be set even while the internet is down.
      */
-    void begin(const char* gatewayAddress);
+    /** `posixZone` is the clock rule for the site (daylight saving included), e.g. "PST8PDT,M3.2.0,M11.1.0". */
+    void begin(const char* gatewayAddress, const char* posixZone);
 
     /** True once the clock has been set (by any of the servers). */
     static bool isValid();
