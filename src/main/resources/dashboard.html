@@ -2652,23 +2652,31 @@ const savedOrEstimate = (recorded, sunKwh) => (recorded !== undefined && recorde
 function barRows() {
     const sunOf = (sun, car) => Math.min(Math.max(0, sun), Math.max(0, car));   // the sun's share can never exceed what the car took
     const today = daysData.today, map = new Map(daysData.days.map(r => [r[0], r]));
-    const row = (label, daysAgo, cars, carSolars, saved) => ({ label, daysAgo, car: cars, sun: sunOf(carSolars, cars), grid: Math.max(0, cars - sunOf(carSolars, cars)), saved: saved || 0 });
+    const row = (label, daysAgo, cars, carSolars, saved, date) => ({ label, daysAgo, date: date || label, car: cars, sun: sunOf(carSolars, cars), grid: Math.max(0, cars - sunOf(carSolars, cars)), saved: saved || 0 });
     if (range === 'day') return [];
     if (range === '365') {   // twelve months ending this month
         const end = utcDate(today), months = [];
         for (let k = 11; k >= 0; k--) months.push({ y: new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - k, 1)).getUTCFullYear(), m: new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - k, 1)).getUTCMonth(), saved: 0, car: 0, sun: 0 });
         daysData.days.forEach(r => { const d = utcDate(r[0]); const b = months.find(x => x.y === d.getUTCFullYear() && x.m === d.getUTCMonth()); if (b) { b.car += r[2]; b.sun += r[3]; b.saved += savedOrEstimate(r[6], r[3]); } });
-        return months.map(b => row(MONTHS[b.m], null, b.car, b.sun, b.saved));
+        return months.map(b => row(MONTHS[b.m], null, b.car, b.sun, b.saved, MONTHS[b.m] + ' ' + b.y));
     }
     const n = Number(range), rows = [];
     for (let k = n - 1; k >= 0; k--) {
         const day = today - k, r = map.get(day), d = utcDate(day);
         const label = n <= 7 ? DAYS[d.getUTCDay()] : (k % 5 === 0 || k === n - 1 ? String(d.getUTCDate()) : '');
-        rows.push(row(label, k, r ? r[2] : 0, r ? r[3] : 0, r ? savedOrEstimate(r[6], r[3]) : 0));
+        rows.push(row(label, k, r ? r[2] : 0, r ? r[3] : 0, r ? savedOrEstimate(r[6], r[3]) : 0, DAYS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()]));
     }
     return rows;
 }
 
+/** What hovering a bar says: the day, the energy that charged the car (or the range, in miles mode), its split into sun and grid, and the saving. Pure and tested. */
+function barReadoutText(r, miles) {
+    const amount = v => miles ? '~' + Math.round(v) + ' mi' : v.toFixed(1) + ' kWh';
+    if (!(r.car >= 0.05)) return r.date + ': no charging';
+    return r.date + ': ' + amount(r.car) + ' (sun ' + amount(r.sun) + ', grid ' + amount(r.grid) + ')' + (r.saved >= 0.005 ? ' \u00b7 saved $' + r.saved.toFixed(2) : '');
+}
+/** A mouse can hover; a finger cannot, so the hint under the bars differs. */
+function canHover() { try { return window.matchMedia('(hover: hover)').matches; } catch (e) { return false; } }
 function drawBars() {
     const box = el('chart');
     if (!daysData) { box.innerHTML = '<div class="empty">Loading…</div>'; return; }
@@ -2692,13 +2700,17 @@ function drawBars() {
         const g = svgEl(svg, 'g', { style: r.daysAgo !== null ? 'cursor:pointer' : '' });
         if (r.daysAgo !== null) { g.addEventListener('click', () => showPastDay(r.daysAgo)); }
         svgEl(g, 'rect', { x: x, y: T, width: bw, height: plotB - T, fill: 'transparent' });   // a generous tap target
+        const lit = svgEl(g, 'rect', { x: x - 3, y: T, width: bw + 6, height: plotB - T, rx: 4, fill: cv('--soft'), opacity: 0 });   // the bar under the mouse
+        g.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') { lit.setAttribute('opacity', '1'); el('readout').textContent = barReadoutText(r, unitMiles); } });
+        g.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { lit.setAttribute('opacity', '0'); el('readout').textContent = barHint(); } });
         if (r.sun > 0.01) svgEl(g, 'rect', { x: x, y: plotB - sunH, width: bw, height: sunH, rx: 3, fill: cv('--solar') });
         if (r.grid > 0.01) svgEl(g, 'rect', { x: x, y: plotB - sunH - gridH - 1, width: bw, height: gridH, rx: 3, fill: cv('--grid'), opacity: 0.85 });
         if (r.label) svgEl(svg, 'text', { x: x + bw / 2, y: height - 6, 'text-anchor': 'middle', 'font-size': 11, fill: cv('--faint') }, r.label);
         if (rows.length <= 7 && r.car >= 0.1) svgEl(svg, 'text', { x: x + bw / 2, y: plotB - sunH - gridH - 5, 'text-anchor': 'middle', 'font-size': 10, fill: cv('--sub') }, unitMiles ? String(Math.round(r.car)) : r.car.toFixed(1));
     });
-    el('readout').textContent = range === '365' ? '' : 'Tap a day to see its curve.';
+    el('readout').textContent = barHint();
 }
+function barHint() { return range === '365' ? (canHover() ? 'Hover a month for its numbers.' : '') : (canHover() ? 'Hover a day for its numbers, click to see its curve.' : 'Tap a day to see its curve.'); }
 
 // ---- charging sessions ----
 let sessionsData = null;

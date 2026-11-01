@@ -1144,3 +1144,20 @@ test('a saved forecast is only reused while it still includes tomorrow (after mi
     assert.ok(html.includes('forecastCovers(c.data, hist.today)'), 'the saved answer is checked before it is reused');
     assert.ok(html.includes('const dayRolled'), 'a new day asks again even inside the 3 hours');
 });
+
+// ---- hovering the bars ----
+test('hovering a bar says the day, the energy and its split, in the chosen unit', () => {
+    const r = { date: 'Fri 24 Oct', car: 29.64, sun: 21.5, grid: 8.14, saved: 5.2 };
+    assert.equal(page.barReadoutText(r, false), 'Fri 24 Oct: 29.6 kWh (sun 21.5 kWh, grid 8.1 kWh) \u00b7 saved $5.20');
+    const mi = { date: 'Fri 24 Oct', car: 89, sun: 64.5, grid: 24.4, saved: 5.2 };   // already converted to miles by the chart
+    assert.equal(page.barReadoutText(mi, true), 'Fri 24 Oct: ~89 mi (sun ~65 mi, grid ~24 mi) \u00b7 saved $5.20');
+    assert.equal(page.barReadoutText({ date: 'Sat 25 Oct', car: 0, sun: 0, grid: 0, saved: 0 }, false), 'Sat 25 Oct: no charging');
+    assert.equal(page.barReadoutText({ date: 'Oct 2026', car: 410.2, sun: 300, grid: 110.2, saved: 0 }, false), 'Oct 2026: 410.2 kWh (sun 300.0 kWh, grid 110.2 kWh)');   // no saving, nothing said about it
+});
+
+test('every bar carries its full date, and the chart wires the mouse (not the finger) to the readout and keeps the tap', () => {
+    assert.ok(html.includes("DAYS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()]));"));
+    assert.ok(html.includes("e.pointerType === 'mouse') { lit.setAttribute('opacity', '1')"));
+    assert.ok(html.includes("g.addEventListener('click', () => showPastDay(r.daysAgo))"), 'tapping a bar still opens that day');
+    assert.ok(read('typeof barHint') === 'function' && read('typeof canHover') === 'function');
+});
