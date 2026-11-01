@@ -379,11 +379,8 @@
         #impact-back { position: fixed; inset: 0; z-index: 18; background: rgba(15, 23, 42, 0.4); } #impact-back[hidden] { display: none; }
         #impact #imp-title:focus { outline: none; } #impact #imp-share { margin-top: 12px; }
         #impact .gotit { width: 100%; margin-top: 10px; background: var(--blue); color: #fff; }
-        @media (max-width: 899px) {
-            #impact:not(.open) { display: none; }
-            #impact.open { position: fixed; left: 0; right: 0; bottom: 0; z-index: 19; max-height: 88vh; overflow-y: auto; overscroll-behavior: contain; margin: 0; border-radius: 16px 16px 0 0; padding-bottom: max(16px, env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.25); }
-        }
-        @media (min-width: 900px) { .impchip, #imp-done, #impact-back { display: none; } }
+        #impact:not(.open) { display: none; }
+        #impact.open { position: fixed; left: 0; right: 0; bottom: 0; z-index: 19; max-height: 88vh; overflow-y: auto; overscroll-behavior: contain; margin: 0; border-radius: 16px 16px 0 0; padding-bottom: max(16px, env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.25); }
         #impact .imp-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
         #impact .imp-score { display: flex; align-items: baseline; gap: 10px; margin: 12px 0 2px; }
         #impact .imp-score b { font-size: 2.6rem; line-height: 1; } #impact .imp-grade { font-size: 1.5rem; font-weight: 700; color: var(--green); }
@@ -392,7 +389,7 @@
         #impact .imp-bar { height: 6px; border-radius: 3px; background: var(--soft); overflow: hidden; margin-top: 4px; } #impact .imp-bar i { display: block; height: 100%; background: var(--green); }
         #impact .imp-nums { display: grid; gap: 6px; margin-top: 14px; font-size: 0.9rem; } #impact .imp-nums div { display: flex; justify-content: space-between; gap: 8px; }
         #impact .imp-streak { margin-top: 14px; padding: 10px 12px; border-radius: 12px; background: var(--tint); border: 1px solid var(--line); display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-        #impact .imp-streak b { font-size: 1.3rem; }
+        #impact .imp-streak b { font-size: 1.3rem; } #impact .imp-r .imp-streak + #imp-badges { margin-top: 10px; }
         #impact .imp-badge { display: grid; grid-template-columns: minmax(0, 1fr) 90px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 0.9rem; }
         #impact .imp-badge small { display: block; color: var(--muted); } #impact .imp-badge.earned b { color: var(--green); }
         #impact .imp-note { color: var(--muted); font-size: 0.8rem; margin-top: 10px; }
@@ -412,7 +409,7 @@
             #flow .flowgrid { flex: 1 1 auto; grid-template-rows: auto minmax(40px, 1fr) auto minmax(40px, 1fr) auto; }   /* 40 px arrows at least; any extra height is shared by the two arrow rows */
             #modes { grid-column: 2; grid-row: 4; } #carcard { grid-column: 2; grid-row: 5; }
             #feedcard { grid-column: 1; grid-row: 6; } #sessions { grid-column: 2; grid-row: 6; }
-            #impact { grid-column: 1 / -1; grid-row: 7; order: 0; }
+            #impact.open { inset: 0; margin: auto; height: fit-content; width: min(780px, calc(100vw - 48px)); border-radius: 16px; }   /* a centred card, like Settings */
             #impact #imp-body:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; align-items: start; }
             #impact .imp-r .imp-streak { margin-top: 12px; }
             /* inside the card: a compact strip of numbers, the saving line, the Graph / Compared with gas tabs, then the chart filling what is left */
