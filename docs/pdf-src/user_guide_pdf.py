@@ -55,7 +55,7 @@ def shot(name, width=2.35 * inch, crop=None, caption=None):
     ratio = img.height / img.width
     pic = RLImage(buf, width=width, height=width * ratio)
     pic.hAlign = "CENTER"
-    key = [[P("<font color='#e11d48'><b>%d</b></font>&nbsp; <b>%s.</b> %s" % (i + 1, short, long), small)]
+    key = [[P("<font color='#e11d48'><b>%d</b></font>&nbsp; <b>%s.</b> %s" % (i + 1, short.replace("&", "&amp;"), long.replace("&", "&amp;")), small)]
            for i, (_sel, short, long) in enumerate(NOTES.get(name, []))]
     t = Table([[pic]] + ([[P(caption, small)]] if caption else []) + key, colWidths=[width + 8])
     t.setStyle(TableStyle([("BOX", (0, 0), (0, 0), 0.6, colors.HexColor("#cfd6df")), ("LEFTPADDING", (0, 0), (-1, -1), 3),
@@ -141,9 +141,24 @@ S.append(side(shot("modes-eco", width=2.0 * inch, caption="Eco, with the grid al
       "with or without solar panels. Set the expensive hours (for example 4 pm to 9 pm) and the <i>Also on weekends</i> switch in Settings, under Money, with <i>Higher price at certain hours</i>. "
       "The headline then says <i>Waiting for cheaper hours</i> and when charging starts. A <i>Ready by</i> goal still takes over if time runs short."),
 ], pic_left=True))
-S.append(P("<b>Your impact</b> is a card at the bottom of the page, with Week and Month tabs. It gives a score out of 100 and a letter. With solar, half the points come from how much of the car's energy came from your panels and the rest from charging outside your expensive hours. "
-           "Without solar it is called Charge Score and counts only the off-peak part. Under it you see miles, how much cheaper than gas, a streak of good days, badges, and a <i>Share image</i> button that makes a picture on your phone. "
-           "Days with no charging, or too little sun, are skipped and never count against you. Every figure is an estimate."))
+S.append(side(shot("cheapest", width=2.0 * inch, caption="Cheapest hours (sample data)"), [
+    P("With <b>Cheapest hours</b> selected, a panel under the buttons shows the price now, when it changes, and the hours it will not charge. <i>Change the hours</i> opens Settings, under Money. "
+      "In the expensive hours the headline says <i>Waiting for cheaper hours</i> and when charging starts."),
+    P("<b>No solar meter?</b> Then there is no power picture to show. The page shows price tiles instead (price now, when the peak starts or ends, and the car), and the solar share and CO2 lines are left out."),
+    shot("no-solar", width=2.0 * inch, caption="A home with no solar meter (sample data)"),
+], pic_left=True))
+S.append(side(shot("impact", width=2.1 * inch, caption="Your impact (sample data)"), [
+    P("<b>Your impact</b> opens from the small score button under the headline (for example <i>Solar Score 81 B</i>), as a sheet with Week and Month tabs. It gives a score out of 100 and a letter. "
+      "With solar, half the points come from how much of the car's energy came from your panels, 30 from charging outside your expensive hours and 20 from Ready by goals met."),
+    P("Without solar it is called <b>Charge Score</b> and counts only the parts that apply. Under the score you see miles, how much cheaper than gas, what Cheapest hours saved (an estimate), a streak of good days, badges, and a "
+      "<i>Share image</i> button that makes a picture on your phone."),
+    P("Days with no charging, or too little sun, are skipped and never count against you. Every figure is an estimate."),
+    shot("impact-nosolar", width=2.1 * inch, caption="Charge Score, a home without solar"),
+], pic_left=False))
+S.append(side(shot("settings-money", width=2.4 * inch, crop=(0.28, 0.66), caption="Settings: Money, with your plan"), [
+    P("Under <b>Money</b>, turn on <i>Higher price at certain hours</i>. A <b>Your plan</b> list fills in the peak hours for PG&amp;E E-TOU-C or SCE TOU-D-4-9PM (hours only, as published in October 2026; check your bill). "
+      "The prices change, so enter yours. Tap the check mark to save the hours."),
+], pic_left=True))
 S.append(side(shot("modes-custom", width=2.0 * inch, caption="Custom: a fixed current"), [
     P("In Custom, a <b>Current</b> slider sets the speed. It ignores the sun, the grid allowance, the solar hours and the lost-meter safety stop, so it can use grid power day or night. "
       "Use it when you simply need a fast charge."),
