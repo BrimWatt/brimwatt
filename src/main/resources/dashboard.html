@@ -373,6 +373,19 @@
         .stack { display: contents; }
         #hero { order: 1; } #sesscard { order: 2; } #flow, #nosolar { order: 3; } #chartcard { order: 4; } #modes { order: 5; } #carcard { order: 6; }
         #feedcard { order: 7; } #sessions { order: 8; }
+        #impact { order: 9; }
+        #impact .imp-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+        #impact .imp-score { display: flex; align-items: baseline; gap: 10px; margin: 12px 0 2px; }
+        #impact .imp-score b { font-size: 2.6rem; line-height: 1; } #impact .imp-grade { font-size: 1.5rem; font-weight: 700; color: var(--green); }
+        #impact .imp-name { color: var(--muted); font-size: 0.85rem; }
+        #impact .imp-part .row { display: flex; justify-content: space-between; gap: 8px; font-size: 0.88rem; margin-top: 8px; } #impact .imp-part .muted { color: var(--muted); }
+        #impact .imp-bar { height: 6px; border-radius: 3px; background: var(--soft); overflow: hidden; margin-top: 4px; } #impact .imp-bar i { display: block; height: 100%; background: var(--green); }
+        #impact .imp-nums { display: grid; gap: 6px; margin-top: 14px; font-size: 0.9rem; } #impact .imp-nums div { display: flex; justify-content: space-between; gap: 8px; }
+        #impact .imp-streak { margin-top: 14px; padding: 10px 12px; border-radius: 12px; background: var(--tint); border: 1px solid var(--line); display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+        #impact .imp-streak b { font-size: 1.3rem; }
+        #impact .imp-badge { display: grid; grid-template-columns: minmax(0, 1fr) 90px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 0.9rem; }
+        #impact .imp-badge small { display: block; color: var(--muted); } #impact .imp-badge.earned b { color: var(--green); }
+        #impact .imp-note { color: var(--muted); font-size: 0.8rem; margin-top: 10px; }
 
         /* wider screens: the headline across the top; below it the savings and graph card on the left, level with the power flow and the modes on
            the right; activity and sessions underneath. The card spans the flow, modes and Tesla rows; the flow row takes any difference by lengthening
@@ -389,6 +402,9 @@
             #flow .flowgrid { flex: 1 1 auto; grid-template-rows: auto minmax(40px, 1fr) auto minmax(40px, 1fr) auto; }   /* 40 px arrows at least; any extra height is shared by the two arrow rows */
             #modes { grid-column: 2; grid-row: 4; } #carcard { grid-column: 2; grid-row: 5; }
             #feedcard { grid-column: 1; grid-row: 6; } #sessions { grid-column: 2; grid-row: 6; }
+            #impact { grid-column: 1 / -1; grid-row: 7; order: 0; }
+            #impact #imp-body:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; align-items: start; }
+            #impact .imp-r .imp-streak { margin-top: 12px; }
             /* inside the card: a compact strip of numbers, the saving line, the Graph / Compared with gas tabs, then the chart filling what is left */
             #chartcard { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto auto auto minmax(0, 1fr); gap: 10px 8px; }
             #chartcard #value { display: contents; }
@@ -489,6 +505,29 @@
             <div class="pager" id="sess-pager" hidden><button class="chip" id="sess-newer" onclick="sessionPage(-1)">‹ Newer</button><span id="sess-page"></span><button class="chip" id="sess-older" onclick="sessionPage(1)">Older ›</button></div>
         </section>
         </div>
+        <section class="tile" id="impact" hidden>
+            <div class="imp-top">
+                <h2>Your impact<button type="button" class="info" data-tip="impact" aria-label="How is this worked out?">i</button></h2>
+                <div class="vper" role="tablist" aria-label="Period">
+                    <button type="button" role="tab" id="imp-tab-week" class="active" aria-selected="true" onclick="setImpactPeriod('week')">Week</button>
+                    <button type="button" role="tab" id="imp-tab-month" aria-selected="false" onclick="setImpactPeriod('month')">Month</button>
+                </div>
+            </div>
+            <div id="imp-empty" hidden><p class="imp-note">No charging in this period yet. Your score appears after the car charges.</p></div>
+            <div id="imp-body">
+                <div class="imp-l">
+                    <div class="imp-score"><b id="imp-score">–</b><span class="imp-grade" id="imp-grade"></span><span class="imp-name" id="imp-name">Solar Score</span></div>
+                    <div id="imp-parts"></div>
+                    <div class="imp-nums" id="imp-nums"></div>
+                </div>
+                <div class="imp-r">
+                    <div class="imp-streak" id="imp-streak" hidden><span id="imp-streak-l">Streak</span><b id="imp-streak-n">0 days</b></div>
+                    <div id="imp-badges"></div>
+                    <p class="imp-note">Estimates from your charging records, not a meter reading.</p>
+                </div>
+            </div>
+            <button type="button" id="imp-share" onclick="shareImpact()">Share image</button>
+        </section>
         <section class="tile gclosed" id="chartcard">
             <div class="vcard" id="value">
                 <div class="vtop">
@@ -640,6 +679,7 @@ const TIPS = {
     bars: ['Sun and grid bars', ['Each bar is the energy that charged the car that day.', 'Yellow (sun) is the part that came from your solar panels. Red (grid) is the part that came from the electric grid.']],
     saved: ['Saved', ['The money you saved by charging the car from the sun instead of the grid, for the period you picked (Today, Week, Month or the last 12 months).', 'It uses the electricity price in Settings (the gear icon at the top).']],
     gas: ['Compared with gas', ['A gas car would burn fuel for the same miles. This shows what that fuel would cost, what charging would cost with no solar, and what you actually paid.', 'The miles are an estimate: the energy the car took times your Miles per kWh. The gas price and the gas car\'s miles per gallon are yours to set in Settings (they stay on this phone); the first numbers are only a starting guess.', '"Your charging" is the grid part of the charging at your electricity price. "From charging with solar" is the Saved amount above.']],
+    impact: ['Your impact', ['The score is out of 100. With solar: 50 points for the share of the car\'s energy that came from your panels, 30 for charging outside your expensive hours, scaled to 100.', 'Without solar, or with no peak price set, only the parts that apply count. Ready by goals are left out for now because they are not recorded yet.', 'Grades: A is 90 or more, B 75, C 60, D below that.', 'A sunny-day streak counts days the car got at least half its energy from solar. Days with no charging, or too little sun to cover the car, are skipped, not counted against you.', 'A peak-free streak counts charging days with no energy in the expensive hours. Off-peak numbers assume each charge drew evenly from start to stop.', 'Gas and CO2 use your miles per kWh, gas price and mpg from Settings (the first numbers are guesses), about 8.9 kg of CO2 a gallon and a rough 0.23 kg per kWh for the grid. All of it is an estimate.']],
     share: ['From your solar', ['How much of the car\'s energy, in the period you picked, came from your solar panels instead of the grid. 100% means all of it.']],
     hours: ['Solar hours', ['Eco and Max solar only work during the day: from a little after sunrise until a little before sunset. Outside these hours they do nothing.', 'You can change how many minutes after sunrise it starts, and before sunset it stops, in the two boxes below.', 'Custom works at any time.']],
     car: ['Tesla', ['WattSync reads your Tesla over Bluetooth: the battery, the charge limit and the charging current. It only reads. The buttons under For testing in Settings are the only things that change the car, and only when you press them.', 'The controller must be near the car. If the car cannot be reached the numbers stay as they were, with their age.']],
@@ -1657,6 +1697,7 @@ function renderValue() {
     setText('v-share', v.share === null ? '–' : v.share + '%');
     el('v-share-bar').style.width = (v.share === null ? 0 : v.share) + '%';
     renderGas(v);
+    renderImpact(); ensureImpactSessions();
 }
 /** Folds the graph away or opens it in place; the choice is kept on this phone. Wide screens always show it. */
 function toggleGraph() {
@@ -1737,6 +1778,212 @@ async function loadValueDays(n) {
 function ensureValueDays() {
     const n = range === '365' ? 365 : 30;
     if (valueDays[n] === null || Date.now() - valueDaysAt[n] > 300000) loadValueDays(n);
+}
+
+// ---- Your impact: a score, a streak, badges and a shareable card, worked out on the phone from /api/days and /api/sessions ----
+// Everything here is an estimate and says so. The sun's share and the energy come from the board's own records; the off-peak share assumes a
+// charge drew evenly from start to stop; gas and CO2 use the owner's miles per kWh, gas price and mpg (guesses until set) and two fixed factors.
+const IMPACT_KG_PER_GALLON = 8.9, IMPACT_GRID_KG_PER_KWH = 0.23;   // petrol burns about 8.9 kg CO2 a gallon; the grid factor is a rough California guess
+const IMPACT_LADDER = [50, 100, 250, 500, 1000, 2500, 5000];
+/** The site's own hour and weekday for an epoch second, from today's start (so the phone's time zone never matters). Weekday: 0 Sunday. */
+function siteMoment(t, site) {
+    const off = t - site.dayStart, day = site.today + Math.floor(off / 86400), sec = ((off % 86400) + 86400) % 86400;
+    return { day, hour: Math.floor(sec / 3600), weekday: (((day + 4) % 7) + 7) % 7 };   // 1 Jan 1970 was a Thursday
+}
+/** Same rule as the controller's Cheapest hours: the peak window, wrapping past midnight, and only Monday to Friday when weekends is off. */
+function isExpensiveHour(m, startHour, endHour, weekends) {
+    if (!weekends && (m.weekday === 0 || m.weekday === 6)) return false;
+    return startHour < endHour ? m.hour >= startHour && m.hour < endHour : m.hour >= startHour || m.hour < endHour;
+}
+/** Per site day, newest first: the session energy and the part of it inside the expensive hours (a charge is taken as drawing evenly). */
+function perDayPeak(sessions, site, startHour, endHour, weekends, firstSec) {
+    const days = new Map();
+    (sessions || []).forEach(s => {
+        if (!(s.kwh > 0) || !(s.end > s.start) || s.start < firstSec) return;
+        const minutes = Math.max(1, Math.round((s.end - s.start) / 60)), each = s.kwh / minutes;
+        for (let i = 0; i < minutes; i++) {
+            const m = siteMoment(s.start + i * 60 + 30, site);
+            const d = days.get(m.day) || { day: m.day, kwh: 0, peakKwh: 0 };
+            d.kwh += each; if (isExpensiveHour(m, startHour, endHour, weekends)) d.peakKwh += each;
+            days.set(m.day, d);
+        }
+    });
+    return [...days.values()].sort((a, b) => b.day - a.day);
+}
+/** Walks newest first; 'pass' adds to the run, 'skip' leaves it alone, 'fail' ends it. */
+function streakOf(items, judge) {
+    let count = 0;
+    for (const item of items) { const j = judge(item); if (j === 'pass') count++; else if (j === 'fail') return { count, open: false }; }
+    return { count, open: true };   // open: nothing broke it as far back as the records go, so it may be longer
+}
+function gradeOf(score) { return score >= 90 ? 'A' : score >= 75 ? 'B' : score >= 60 ? 'C' : 'D'; }
+/** 50 points for the solar share and 30 for charging outside the expensive hours; a part that does not apply is dropped and the rest share the 100. */
+function impactScore(solarShare, offShare) {
+    const parts = [];
+    if (solarShare !== null) parts.push({ key: 'solar', label: 'Solar share', weight: 50, share: solarShare });
+    if (offShare !== null) parts.push({ key: 'offpeak', label: 'Off-peak charging', weight: 30, share: offShare });
+    const total = parts.reduce((a, p) => a + p.weight, 0);
+    if (!total) return null;
+    parts.forEach(p => { p.of = Math.round(p.weight / total * 100); p.points = Math.round(p.share * p.of); });
+    const score = parts.reduce((a, p) => a + p.points, 0);
+    return { score, grade: gradeOf(score), parts };
+}
+function impactNumbers(carKwh, sunKwh, rateCents, mpk, mpg, price) {
+    const grid = Math.max(0, carKwh - sunKwh), miles = carKwh * mpk, gallons = miles / mpg;
+    const gasKg = gallons * IMPACT_KG_PER_GALLON, gridKg = grid * IMPACT_GRID_KG_PER_KWH, paid = grid * rateCents / 100, gasCost = gallons * price;
+    return { miles, sunMiles: sunKwh * mpk, gallons, gasKg, gridKg, co2Avoided: gasKg - gridKg, gasCost, paid, cheaperBy: gasCost - paid };
+}
+function ladderStep(value) {
+    let earned = 0, next = IMPACT_LADDER[IMPACT_LADDER.length - 1];
+    for (const m of IMPACT_LADDER) { if (value >= m) earned = m; else { next = m; break; } }
+    return { earned, next, pct: Math.min(100, Math.round(value / next * 100)) };
+}
+function impactRows(days, totals, today) {
+    const rows = new Map();
+    if (days) days.days.forEach(r => rows.set(r[0], { solar: r[1], car: r[2], sun: Math.min(Math.max(0, r[3]), Math.max(0, r[2])) }));
+    if (totals) rows.set(today, { solar: totals.solarKwh, car: totals.carKwh, sun: Math.min(Math.max(0, totals.carSolarKwh), Math.max(0, totals.carKwh)) });
+    return rows;
+}
+/**
+ * Everything the Impact tile shows, for 'week' or 'month'. ctx: days (the /api/days reply), totals (today, live), sessions, site {dayStart, today},
+ * rateCents, peakStart, peakEnd, weekends, offpeakApplies (a peak price is set, or Cheapest hours is on), mpk, mpg, price, meterLinked.
+ * No solar (no meter, or no solar energy in the period): the solar part, the CO2 line and the sunny streak are left out; the peak-free streak stands in.
+ */
+function impactView(ctx) {
+    const n = ctx.period === 'month' ? 30 : 7, today = ctx.site.today, first = today - n + 1;
+    const rows = impactRows(ctx.days, ctx.totals, today);
+    let car = 0, sun = 0, solar = 0;
+    rows.forEach((r, day) => { if (day >= first && day <= today) { car += r.car; sun += r.sun; solar += r.solar; } });
+    const noSolar = ctx.meterLinked === false || solar < 0.5;
+    const dayPeaks = perDayPeak(ctx.sessions, ctx.site, ctx.peakStart, ctx.peakEnd, ctx.weekends, ctx.site.dayStart - (n - 1) * 86400);
+    const inWindow = dayPeaks.filter(d => d.day >= first && d.day <= today);
+    const sessKwh = inWindow.reduce((a, d) => a + d.kwh, 0), peakKwh = inWindow.reduce((a, d) => a + d.peakKwh, 0);
+    const offShare = ctx.offpeakApplies && sessKwh >= 0.05 ? 1 - peakKwh / sessKwh : null;
+    const solarShare = noSolar || car < 0.05 ? null : sun / car;
+    const view = { period: ctx.period, noSolar, empty: car < 0.05, car, sun, solarShare, offShare, outsidePeakKwh: Math.max(0, sessKwh - peakKwh), peakKwh,
+                   score: car < 0.05 ? null : impactScore(solarShare, offShare), numbers: impactNumbers(car, sun, ctx.rateCents, ctx.mpk, ctx.mpg, ctx.price), badges: [] };
+    const ordered = [...rows.entries()].filter(e => e[0] <= today).sort((a, b) => b[0] - a[0]).slice(0, 30);
+    let streak = null;
+    if (!noSolar) {
+        const run = streakOf(ordered, ([day, r]) => {
+            if (r.car < 1 || r.solar < r.car) return 'skip';   // no charge that day, or the sun could not have covered it: neither helps nor hurts
+            if (r.sun / r.car >= 0.5) return 'pass';
+            return day === today ? 'skip' : 'fail';              // today is still in progress
+        });
+        streak = { label: 'Sunny-day streak', count: run.count, open: run.open };
+    } else if (ctx.offpeakApplies) {
+        const run = streakOf(dayPeaks, d => d.peakKwh < 0.1 ? 'pass' : (d.day === today ? 'skip' : 'fail'));
+        streak = { label: 'Peak-free streak', count: run.count, open: run.open };
+    }
+    view.streak = streak;
+    if (streak) view.badges.push({ key: 'streak', label: noSolar ? 'Peak-free week' : 'Sunny week', sub: Math.min(streak.count, 7) + ' of 7 days', pct: Math.round(Math.min(streak.count, 7) / 7 * 100), earned: streak.count >= 7 });
+    if (ctx.offpeakApplies && inWindow.length) {
+        const free = inWindow.filter(d => d.peakKwh < 0.1).length;
+        view.badges.push({ key: 'peakfree', label: 'Peak-free days', sub: free + ' of ' + inWindow.length + ' charging days', pct: Math.round(free / inWindow.length * 100), earned: free === inWindow.length && free >= 3 });
+    }
+    const miles = noSolar ? view.numbers.miles : view.numbers.sunMiles, step = ladderStep(miles);
+    view.badges.push({ key: 'miles', label: noSolar ? 'Miles driven' : 'Solar miles', sub: Math.round(miles) + ' of ' + step.next, pct: step.pct, earned: step.earned > 0, earnedAt: step.earned });
+    view.card = shareCardLines(view, ctx.period);
+    return view;
+}
+/** The words on the shareable image, pure so they can be tested. Money and miles only; CO2 appears only for homes with solar. */
+function shareCardLines(view, period) {
+    const nm = view.numbers, title = period === 'month' ? 'Last 30 days' : 'Last 7 days';
+    const dollars = x => '$' + Math.max(0, Math.round(x)).toLocaleString();
+    const card = { title, grade: view.score ? view.score.grade : '', gradeLabel: view.noSolar ? 'Charge Score' : 'Solar Score' };
+    if (view.noSolar) {
+        card.big = Math.round(nm.miles).toLocaleString() + ' miles'; card.sub = 'for ' + dollars(nm.paid);
+        card.a = { value: dollars(nm.cheaperBy), label: 'less than gas' };
+        card.b = view.outsidePeakKwh >= 0.5 ? { value: Math.round(view.outsidePeakKwh) + ' kWh', label: 'charged outside the peak' } : { value: (Math.round(nm.paid / Math.max(1, nm.miles) * 1000) / 10) + '¢', label: 'per mile' };
+    } else {
+        card.big = Math.round(nm.sunMiles).toLocaleString() + ' miles'; card.sub = 'driven on sunshine';
+        card.a = { value: dollars(nm.cheaperBy), label: 'less than gas' };
+        card.b = { value: Math.max(0, Math.round(nm.co2Avoided)).toLocaleString() + ' kg', label: 'CO2 avoided vs gas' };
+    }
+    return card;
+}
+let impactPeriod = 'week', impactSessions = null, impactSessionsAt = 0, impactLoading = false;
+async function loadImpactSessions() {
+    if (impactLoading) return;
+    impactLoading = true;
+    try {
+        const res = await fetchWithTimeout('/api/sessions?n=100', undefined, 15000);
+        if (res.ok) { impactSessions = (await res.json()).sessions || []; impactSessionsAt = Date.now(); renderImpact(); }
+    } catch (e) { /* the next refresh tries again */ }
+    impactLoading = false;
+}
+function impactContext() {
+    const d = lastData || {};
+    return { period: impactPeriod, days: valueDays[30], totals: hist ? hist.totals : null, sessions: impactSessions,
+             site: { dayStart: hist.dayStart, today: hist.today }, rateCents: d.rateCents || 30, peakStart: d.peakStartHour, peakEnd: d.peakEndHour,
+             weekends: d.peakWeekends !== false, offpeakApplies: (d.peakRateCents > 0) || d.currentMode === 'CHEAPEST', mpk: milesPerKwh, mpg: gasMpg, price: gasPrice,
+             meterLinked: d.meterLinked };
+}
+let lastImpact = null;
+function renderImpact() {
+    const tile = el('impact');
+    if (!hist || !hist.totals || !valueDays[30] || impactSessions === null) { tile.hidden = true; return; }
+    const v = lastImpact = impactView(impactContext());
+    tile.hidden = false;
+    ['week', 'month'].forEach(p => { const b = el('imp-tab-' + p); b.classList.toggle('active', impactPeriod === p); b.setAttribute('aria-selected', impactPeriod === p); });
+    el('imp-body').hidden = v.empty; el('imp-empty').hidden = !v.empty;
+    el('imp-share').hidden = v.empty;
+    if (v.empty) return;
+    setText('imp-score', v.score ? String(v.score.score) : '–'); setText('imp-grade', v.score ? v.score.grade : '');
+    setText('imp-name', v.noSolar ? 'Charge Score' : 'Solar Score');
+    const parts = el('imp-parts'); parts.textContent = '';
+    if (v.score) v.score.parts.forEach(p => {
+        const row = document.createElement('div'); row.className = 'imp-part';
+        const top = document.createElement('div'); top.className = 'row';
+        const a = document.createElement('span'); a.textContent = p.label;
+        const b = document.createElement('span'); b.className = 'muted'; b.textContent = Math.round(p.share * 100) + '% · ' + p.points + ' of ' + p.of;
+        top.appendChild(a); top.appendChild(b);
+        const bar = document.createElement('div'); bar.className = 'imp-bar'; const fill = document.createElement('i'); fill.style.width = Math.round(p.share * 100) + '%'; bar.appendChild(fill);
+        row.appendChild(top); row.appendChild(bar); parts.appendChild(row);
+    });
+    const nm = v.numbers, rows = [];
+    rows.push([v.noSolar ? 'Miles driven' : 'Miles on solar', '~' + Math.round(v.noSolar ? nm.miles : nm.sunMiles).toLocaleString()]);
+    rows.push(['Cheaper than gas by', '$' + Math.max(0, Math.round(nm.cheaperBy)).toLocaleString()]);
+    if (!v.noSolar) rows.push(['CO2 avoided vs gas', Math.max(0, Math.round(nm.co2Avoided)).toLocaleString() + ' kg']);
+    else if (v.offShare !== null) rows.push(['Outside the peak', Math.round(v.outsidePeakKwh) + ' of ' + Math.round(v.outsidePeakKwh + v.peakKwh) + ' kWh']);
+    const nums = el('imp-nums'); nums.textContent = '';
+    rows.forEach(r => { const d = document.createElement('div'); const a = document.createElement('span'); a.textContent = r[0]; const b = document.createElement('b'); b.textContent = r[1]; d.appendChild(a); d.appendChild(b); nums.appendChild(d); });
+    const sk = el('imp-streak'); sk.hidden = !v.streak;
+    if (v.streak) { setText('imp-streak-n', v.streak.count + (v.streak.open && v.streak.count >= 7 ? '+' : '') + (v.streak.count === 1 ? ' day' : ' days')); setText('imp-streak-l', v.streak.label); }
+    const bd = el('imp-badges'); bd.textContent = '';
+    v.badges.forEach(b => {
+        const d = document.createElement('div'); d.className = 'imp-badge' + (b.earned ? ' earned' : '');
+        const t = document.createElement('span'); const name = document.createElement('b'); name.textContent = b.label + (b.earned ? ' ✓' : ''); const sub = document.createElement('small'); sub.textContent = b.sub;
+        t.appendChild(name); t.appendChild(sub);
+        const bar = document.createElement('div'); bar.className = 'imp-bar'; const fill = document.createElement('i'); fill.style.width = b.pct + '%'; bar.appendChild(fill);
+        d.appendChild(t); d.appendChild(bar); bd.appendChild(d);
+    });
+}
+function setImpactPeriod(p) { impactPeriod = p === 'month' ? 'month' : 'week'; renderImpact(); }
+function ensureImpactSessions() { if (impactSessions === null || Date.now() - impactSessionsAt > 300000) loadImpactSessions(); }
+/** Draws the card to a picture on the phone and hands it to the share sheet (or saves it). Nothing leaves the phone until the owner picks where. */
+async function shareImpact() {
+    if (!lastImpact || lastImpact.empty) return;
+    const c = lastImpact.card, canvas = document.createElement('canvas'); canvas.width = 1080; canvas.height = 1350;
+    const g = canvas.getContext('2d');
+    g.fillStyle = cv('--card'); g.fillRect(0, 0, 1080, 1350);
+    g.textAlign = 'center'; g.fillStyle = cv('--muted'); g.font = '600 44px system-ui, sans-serif'; g.fillText(c.title, 540, 190);
+    g.fillStyle = cv('--ink'); g.font = '700 150px system-ui, sans-serif'; g.fillText(c.big, 540, 420);
+    g.fillStyle = cv('--muted'); g.font = '500 56px system-ui, sans-serif'; g.fillText(c.sub, 540, 510);
+    [[c.a, 290], [c.b, 790]].forEach(([s, x]) => {
+        g.fillStyle = cv('--soft'); g.fillRect(x - 230, 610, 460, 260);
+        g.fillStyle = cv('--ink'); g.font = '700 84px system-ui, sans-serif'; g.fillText(s.value, x, 750);
+        g.fillStyle = cv('--muted'); g.font = '500 38px system-ui, sans-serif'; g.fillText(s.label, x, 820);
+    });
+    if (c.grade) { g.fillStyle = cv('--muted'); g.font = '500 48px system-ui, sans-serif'; g.fillText(c.gradeLabel, 540, 1010); g.fillStyle = cv('--green'); g.font = '700 210px system-ui, sans-serif'; g.fillText(c.grade, 540, 1200); }
+    g.fillStyle = cv('--muted'); g.font = '600 40px system-ui, sans-serif'; g.fillText('WattSync', 540, 1300);
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    if (!blob) { toast("Couldn't make the picture", 'err'); return; }
+    const file = new File([blob], 'wattsync-impact.png', { type: 'image/png' });
+    try {
+        if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'My WattSync impact' }); return; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'wattsync-impact.png'; document.body.appendChild(a); a.click(); a.remove();
 }
 
 // ---- a short card when a charge finishes ----

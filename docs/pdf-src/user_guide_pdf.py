@@ -141,6 +141,9 @@ S.append(side(shot("modes-eco", width=2.0 * inch, caption="Eco, with the grid al
       "with or without solar panels. Set the expensive hours (for example 4 pm to 9 pm) and the <i>Also on weekends</i> switch in Settings, under Money, with <i>Higher price at certain hours</i>. "
       "The headline then says <i>Waiting for cheaper hours</i> and when charging starts. A <i>Ready by</i> goal still takes over if time runs short."),
 ], pic_left=True))
+S.append(P("<b>Your impact</b> is a card at the bottom of the page, with Week and Month tabs. It gives a score out of 100 and a letter. With solar, half the points come from how much of the car's energy came from your panels and the rest from charging outside your expensive hours. "
+           "Without solar it is called Charge Score and counts only the off-peak part. Under it you see miles, how much cheaper than gas, a streak of good days, badges, and a <i>Share image</i> button that makes a picture on your phone. "
+           "Days with no charging, or too little sun, are skipped and never count against you. Every figure is an estimate."))
 S.append(side(shot("modes-custom", width=2.0 * inch, caption="Custom: a fixed current"), [
     P("In Custom, a <b>Current</b> slider sets the speed. It ignores the sun, the grid allowance, the solar hours and the lost-meter safety stop, so it can use grid power day or night. "
       "Use it when you simply need a fast charge."),
