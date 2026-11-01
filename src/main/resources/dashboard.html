@@ -389,6 +389,7 @@
         #site-box select { display: block; width: 100%; min-height: 44px; margin: 6px 0; padding: 6px 8px; border: 1px solid var(--bd2); border-radius: 8px; background: var(--field); color: var(--ink); font: inherit; font-size: 16px; font-weight: 600; text-overflow: ellipsis; }
         #site-box select[hidden], #site-box button[hidden] { display: none; }
         #site-box #site-use { width: 100%; margin: 4px 0; background: var(--blue); color: #fff; } #site-box .help { margin: 4px 0; }
+        #fcbox p[hidden] { display: none; }
         #fcbox { z-index: 21; } #fcbox p { margin: 8px 0; } #fcbox .hint-share { color: var(--muted); font-size: 0.88rem; }
         #fcbox .fcbars { display: flex; align-items: flex-end; gap: 3px; height: 80px; margin: 10px 0 2px; padding: 0 2px; border-bottom: 1px solid var(--line); }
         #fcbox .fcbars i { flex: 1; min-width: 0; border-radius: 3px 3px 0 0; background: var(--solar); }
@@ -618,6 +619,7 @@
 <div class="fcaxis" aria-hidden="true"><span>6 am</span><span>noon</span><span>6 pm</span></div>
 <p id="fc-line2"></p>
 <p class="hint-share" id="fc-line3"></p>
+<p class="hint-share" id="fc-line4" hidden></p>
 <p class="hint-share">Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a>. A forecast is an estimate.</p>
 <button type="button" class="gotit" id="fc-close" onclick="closeForecast()">Done</button>
 </div></div>
@@ -1999,17 +2001,25 @@ function forecastView(f, daysReply, todayNum, mode) {
     v.chip = 'Tomorrow: ' + label.toLowerCase() + ' ›';
     return v;
 }
-/** The plain lines for the sheet. Pure and tested. */
+/** An amount of solar energy in the owner's unit: "28 kWh", or "~84 mi" (kWh times miles per kWh; the ~ says it is an estimate). */
+function forecastAmount(kwh, miles, mpk) { return miles ? '~' + Math.round(kwh * mpk) + ' mi' : Math.round(kwh) + ' kWh'; }
+/** The text on the Tomorrow button: the conditions, then the expected solar when there is a figure. Pure and tested. */
+function forecastChipText(v, miles, mpk) {
+    return 'Tomorrow: ' + v.label.toLowerCase() + (v.kwh !== null ? ' \u00b7 ' + forecastAmount(v.kwh, miles, mpk) : '') + ' \u203a';
+}
 /** "10 am" for an hour 0-23 (the forecast speaks in whole hours). */
 function hourWords(h) { return ((h + 11) % 12 + 1) + (h % 24 >= 12 ? ' pm' : ' am'); }
-function forecastLines(v) {
+/** The plain lines for the sheet, in kWh or in miles. In miles an extra line says the house takes its share first. Pure and tested. */
+function forecastLines(v, miles, mpk) {
     const lines = [];
-    lines.push(v.kwh !== null ? 'Solar: about ' + v.kwh + ' kWh, ' + v.comparison + ' (your recent days: about ' + v.typicalKwh + ' kWh).'
-                              : 'Solar: not enough recent days yet to say how many kWh.');
+    if (v.kwh === null) lines.push('Solar: not enough recent days yet to say how much.');
+    else if (miles) lines.push('Solar: about ' + Math.round(v.kwh * mpk) + " miles' worth, " + v.comparison + ' (your recent days: about ' + Math.round(v.typicalKwh * mpk) + ' miles).');
+    else lines.push('Solar: about ' + v.kwh + ' kWh, ' + v.comparison + ' (your recent days: about ' + v.typicalKwh + ' kWh).');
     lines.push(v.window ? 'Best solar from about ' + hourWords(v.window.from) + ' to ' + hourWords(v.window.to) + '.' : 'Not much sun is expected.');
     lines.push(v.mode === 'ECO' ? 'Eco charges with what is left after the house takes its share.'
              : v.mode === 'MAX_SOLAR' ? 'Max solar follows what the panels make.'
              : 'Your mode does not need the sun.');
+    if (miles && v.kwh !== null) lines.push('Miles are the solar energy times your miles per kWh (' + mpk + '). The house uses some of it first, so the car gets less.');
     return lines;
 }
 /** Show the forecast only for a home with solar (a meter) and when the owner has not turned it off. */
@@ -2042,13 +2052,19 @@ function renderForecast() {
     lastForecast = forecastWanted(lastData, forecastEnabled()) && forecastData && hist ? forecastView(forecastData, valueDays[30], hist.today, lastData.currentMode) : null;
     chip.hidden = !lastForecast;
     if (!lastForecast) { if (!el('fcbox').hidden) closeForecast(); return; }
-    if (chip.textContent !== lastForecast.chip) chip.textContent = lastForecast.chip;
+    const text = forecastChipText(lastForecast, unitMiles, milesPerKwh);
+    if (chip.textContent !== text) chip.textContent = text;
+}
+function fillForecastSheet() {
+    if (!lastForecast) return;
+    setText('fc-title', 'Tomorrow: ' + lastForecast.label.toLowerCase());
+    const lines = forecastLines(lastForecast, unitMiles, milesPerKwh);
+    setText('fc-line1', lines[0]); setText('fc-line2', lines[1]); setText('fc-line3', lines[2]);
+    setText('fc-line4', lines[3] || ''); el('fc-line4').hidden = !lines[3];
 }
 function openForecast() {
     if (!lastForecast) return;
-    setText('fc-title', 'Tomorrow: ' + lastForecast.label.toLowerCase());
-    const lines = forecastLines(lastForecast);
-    setText('fc-line1', lines[0]); setText('fc-line2', lines[1]); setText('fc-line3', lines[2]);
+    fillForecastSheet();
     const bars = el('fc-bars'); bars.textContent = '';
     lastForecast.bars.forEach(b => { const i = document.createElement('i'); i.style.height = Math.max(3, b.pct) + '%'; bars.appendChild(i); });
     el('fcbox').hidden = false; el('fcbox').querySelector('.card').scrollTop = 0;
@@ -2848,6 +2864,7 @@ function applyUnits() {
     showGoalHint();
     if (lastData) { renderHeadline(lastData); renderFlow(lastData); }
     renderStats();
+    renderForecast(); if (!el('fcbox').hidden) fillForecastSheet();   // the button and card follow the unit
     if (typeof daysData !== 'undefined' && daysData && pastDay === null && range !== 'day') drawBars();
 }
 function saveUnits() { try { localStorage.setItem('unit', unitMiles ? 'miles' : 'kwh'); localStorage.setItem('mpk', String(milesPerKwh)); } catch (e) { /* not saved */ } }

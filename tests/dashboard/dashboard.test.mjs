@@ -1073,3 +1073,36 @@ test('a hidden headline button really is hidden (its style sets display, so it n
     assert.ok(/\.impchip\[hidden\]\s*\{\s*display:\s*none/.test(html));
     assert.ok(/#site-box select\[hidden\]/.test(html), 'the place list too');
 });
+
+test('the Tomorrow button and card show the expected solar in the unit the owner chose', () => {
+    const f = fcReply(FC_TODAY, [700, 700, 700, 700, 700, 700, 700, 700, 900], [10, 10, 10, 10, 10, 10, 10, 10, 10]);
+    const v = page.forecastView(f, fcDays([30, 30, 30, 30, 30, 30, 30]), FC_TODAY, 'ECO');
+    assert.equal(page.forecastChipText(v, false, 3), 'Tomorrow: mostly sunny \u00b7 ' + v.kwh + ' kWh \u203a');
+    assert.equal(page.forecastChipText(v, true, 3), 'Tomorrow: mostly sunny \u00b7 ~' + Math.round(v.kwh * 3) + ' mi \u203a');
+    assert.equal(page.forecastChipText(v, true, 2.5), 'Tomorrow: mostly sunny \u00b7 ~' + Math.round(v.kwh * 2.5) + ' mi \u203a');
+    const kwhLines = page.forecastLines(v, false, 3);
+    assert.equal(kwhLines.length, 3);
+    assert.ok(kwhLines[0].startsWith('Solar: about ' + v.kwh + ' kWh, more than lately'));
+    const miLines = page.forecastLines(v, true, 3);
+    assert.equal(miLines.length, 4);
+    assert.ok(miLines[0].startsWith('Solar: about ' + Math.round(v.kwh * 3) + " miles' worth, more than lately (your recent days: about " + Math.round(v.typicalKwh * 3) + ' miles).'));
+    assert.ok(miLines[3].includes('miles per kWh (3)') && miLines[3].includes('The house uses some of it first'));
+    assert.equal(page.forecastAmount(28.4, false, 3), '28 kWh');
+    assert.equal(page.forecastAmount(28.4, true, 3), '~85 mi');
+});
+
+test('with no kWh figure yet the button shows only the conditions in either unit', () => {
+    const f = fcReply(FC_TODAY, [700, 700, 700, 700, 700, 700, 700, 700, 700], [10, 10, 10, 10, 10, 10, 10, 10, 10]);
+    const v = page.forecastView(f, null, FC_TODAY, 'ECO');
+    assert.equal(v.kwh, null);
+    assert.equal(page.forecastChipText(v, false, 3), 'Tomorrow: mostly sunny \u203a');
+    assert.equal(page.forecastChipText(v, true, 3), 'Tomorrow: mostly sunny \u203a');
+    assert.equal(page.forecastLines(v, true, 3).length, 3);   // no miles caveat without a figure
+    assert.ok(page.forecastLines(v, true, 3)[0].startsWith('Solar: not enough recent days'));
+});
+
+test('a change of unit redraws the forecast button and card, and the card has a line for the miles note', () => {
+    assert.ok(html.includes('renderForecast(); if (!el(\'fcbox\').hidden) fillForecastSheet();'));
+    assert.ok(html.includes('id="fc-line4"'));
+    assert.ok(read('typeof fillForecastSheet') === 'function');
+});
