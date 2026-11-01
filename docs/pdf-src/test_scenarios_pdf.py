@@ -236,6 +236,24 @@ S += section("K. Cheapest hours (time-of-use plans)", [
     (69, "No solar meter", "On a board with no Envoy set up, choose Cheapest hours.",
      "The power picture is replaced by <i>Price now</i>, <i>Cheap at</i> or <i>Peak at</i> and <i>Car</i> tiles; Eco and Max solar are greyed out; there is no meter warning bar.", False)])
 
+S += section("L. Your impact, goals, plug-in time and the share picture (not yet tried on the real house)", [
+    (70, "A Ready by goal is judged at its deadline", "Set a goal (for example 10 kWh by 7:00 am), plug the car in the evening, leave it. Look at Activity after 7:00 am.",
+     "One line within a minute or so of the deadline: <i>Departure goal met: N of 10 kWh</i> or <i>missed</i>. Not again on the next poll. With no car plugged in and nothing charged, no line at all. Not in Custom or while paused.", True),
+    (71, "The goal feeds the score", "Open the score button under the headline the morning after.",
+     "<i>Ready-by goals met</i> appears as a third part of the score, and a <i>Ready on time</i> badge shows the days in a row. Days with no result do not count.", False),
+    (72, "Plug-in time is recorded", "Unplug, wait a minute, plug the car in, wait a while, then let a charge start (in Cheapest hours it waits for the cheap hours). Call <font face='Courier'>GET /api/sessions?n=1</font>.",
+     "The session has <font face='Courier'>plugged</font> with the time the car was plugged in (not 0). After a restart between plug-in and start it is 0.", True),
+    (73, "Saved by Cheapest hours", "Plug in at 5 pm in Cheapest hours with a peak price above the normal price, and let it charge from 9 pm.",
+     "<i>Saved by Cheapest hours</i> appears under Your impact with an amount (an estimate), counting only charges whose plug-in time is known.", False),
+    (74, "Your plan fills in the hours", "Settings > Money, turn on the higher price, choose a plan from <i>Your plan</i>.",
+     "The peak hours show 16 and 21 and the weekend switch is on; the check mark appears if the saved hours were different. Nothing is saved until you tap it.", False),
+    (75, "Share picture on a phone", "Open Your impact, tap <i>Share image</i>.",
+     "A card with <i>Press and hold the picture, then choose Share or Save Image</i> opens (the phone's own share sheet needs a secure page, and this page is plain http). Press and hold offers Share and Save to Photos. <i>Save picture</i> downloads it.", False),
+    (76, "Memory log", "Call <font face='Courier'>GET /api/diagnostics?memory=1</font> a day after a restart.",
+     "<font face='Courier'>memory.lowest</font> says where the free memory was lowest, and <font face='Courier'>memorySamples</font> holds up to 288 five-minute samples. Free memory should stay flat; a steady downward slope would be a leak.", False),
+    (77, "Rejoining Wi-Fi after the router was off", "Switch the router off for 3 minutes, then on again.",
+     "The board comes back by itself within about two minutes of the router returning (watch the dashboard reconnect). The router must be off long enough for the board to notice; it never restarts itself.", False)])
+
 S += [Spacer(1, 10), Paragraph("Useful log filters", h2),
       code_block('journalctl -u solar-charger --since "1 hour ago" --no-pager \\\n    | grep -E "DISPATCH|status:|answered|FAILSAFE|Restored|DAYLIGHT"')]
 

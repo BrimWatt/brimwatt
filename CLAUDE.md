@@ -217,6 +217,7 @@ main                            current work
 before-setup-network            branch: the code as it was before the ESP32 setup network
 snapshot-before-setup-network   tag on that same commit (a fixed marker; a branch can move, a tag does not)
 before-tesla-car-control        tag on main as it was before the Tesla work was merged (2026-10-29, fast-forward; roll back with git checkout before-tesla-car-control)
+before-cheapest-hours-and-impact  tag on main as it was before Cheapest hours, the memory diagnostics, goal and plug-in recording, the plan picker and the Impact card were merged (2026-10-31, fast-forward; the branches cheapest-hours, impact-score and memory-diagnostics are kept)
 ```
 
 The `tesla-car-control` branch (Tesla pairing, status, charge commands, Tesla mode, Control through: Car, the profile isolation, the Settings redesign, dark theme, waiting headline, new day graph) was merged into `main` on 2026-10-29 after a review (secrets scan of the whole history, all three test suites, route registration check). Nothing has been pushed (there is no remote).
@@ -261,6 +262,8 @@ The `tesla-car-control` branch (Tesla pairing, status, charge commands, Tesla mo
 - Test output from `mvn` prints WARN lines (fail-safe tests); they are normal.
 
 ## Not yet verified on real hardware
+
+Merged 2026-10-31 and flashed, but with no real charge since: Cheapest hours on a real wallbox, a Ready by goal being judged at a real deadline (scenario 70), the plug-in time on a real session (72), Saved by Cheapest hours (73), the plan picker saving on the board (74), the share picture on a phone (75), the Wi-Fi rejoin after a router outage (77). Checklist: `docs/test-scenarios.pdf` section L. The Pi jar with the same recording changes is built but was not deployed (the Pi was not on the network on 2026-10-31).
 
 Verified 2026-10-26: the board's OTA update over Wi-Fi end to end (`esp32s3-ota`, 59 s, board came back serving the new dashboard). Not yet verified: the Tesla dashboard UI on the real board with a real car, Control through: Car on a real charge (planner + belief, restart with the car in command), the wake command (whether the security computer accepts it signed this way), and Bluetooth reads running next to Wi-Fi, OCPP and the Enphase polling (a read pauses the main loop for a few seconds).
 

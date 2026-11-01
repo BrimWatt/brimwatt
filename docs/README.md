@@ -8,7 +8,7 @@
 | **Tesla car control** (decisions, research, what works on a real car, the dashboard UI) | [tesla-car-control.md](tesla-car-control.md) |
 | **Tesla test plan** (checklist to run at the car, with expected results and a result column) | [tesla-test-plan.md](tesla-test-plan.md) |
 | Notes for working on the project (layout, commands, rules, git) | [../CLAUDE.md](../CLAUDE.md) |
-| **User guide** for the car owner (dashboard, modes, goal, history, miles, settings), PDF | [user-guide.pdf](user-guide.pdf) |
+| **User guide** for the car owner (dashboard, modes incl. Cheapest hours, goal, Your impact, history, miles, settings and plans), PDF | [user-guide.pdf](user-guide.pdf) |
 | **Demo video** of the dashboard on sample data (MP4, and a GIF of the same) | [demo/wattsync-demo.mp4](demo/wattsync-demo.mp4), [GIF](demo/wattsync-demo.gif) |
 | **Pitch to a Tesla owner**: a 46 s video and the message that goes with it (asks them to volunteer as a tester) | [demo/wattsync-tesla-pitch.mp4](demo/wattsync-tesla-pitch.mp4), [demo/neighbor-message.md](demo/neighbor-message.md) |
 | Running the Pi app on the Raspberry Pi (service, token, logs, state) | [deploy-to-raspberry-pi.pdf](deploy-to-raspberry-pi.pdf) |

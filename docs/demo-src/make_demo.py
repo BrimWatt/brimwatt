@@ -29,13 +29,14 @@ SHIM = r"""<script>
   const dayStart = Math.floor(Date.now() / 1000 / 86400) * 86400, H = h => dayStart + h * 3600;
   const nowT = H(11.5);
   const tele = {
-    currentMode: C.mode, paused: C.paused, gridAllowanceWatts: 600, chargerConnected: true, enphaseOk: true, rateCents: 30,
-    peakRateCents: 0, peakStartHour: 16, peakEndHour: 21, fastModeAmps: C.fastAmps || 24, maxAmps: 32, notifyTo: '',
+    currentMode: C.mode, paused: C.paused, gridAllowanceWatts: 600, chargerConnected: true, enphaseOk: true, meterLinked: C.meterLinked !== false, rateCents: 25,
+    peakRateCents: C.peakCents || 0, peakStartHour: 16, peakEndHour: 21, peakWeekends: true, fastModeAmps: C.fastAmps || 24, maxAmps: 32, notifyTo: '',
     daylight: { enabled: true, open: C.daylightOpen, startMinutes: 30, endMinutes: 60, window: '07:00 to 17:00' },
     power: { voltage: 240, solarWatts: C.solar, gridWatts: C.grid, chargerWatts: C.chargerW, homeWatts: C.home },
     charger: { status: C.status, amps: C.amps, limitAmps: C.amps, drawMeasured: true },
     goal: { kwh: C.goalKwh, byMinutes: 420, doneKwh: C.goalDone, forcing: false, forcedAmps: 0 },
-    controller: { hasReading: true, reason: C.reason || 'no change', gridAllowanceWatts: 600, failSafe: false, readingAgeSeconds: 8, pollSeconds: 60 }
+    controller: { hasReading: true, reason: C.reason || 'no change', gridAllowanceWatts: 600, failSafe: false, readingAgeSeconds: 8, pollSeconds: 60,
+                  expensiveNow: !!C.expensive, secondsToPriceChange: C.secsToChange === undefined ? -1 : C.secsToChange }
   };
   const samples = [];
   for (let m = 6 * 60 + 30; m <= 11 * 60 + 30; m += 5) {
@@ -46,10 +47,17 @@ SHIM = r"""<script>
   const hist = { today: Math.floor(dayStart / 86400), dayStart, now: nowT, daysAgo: 0, daylight: { start: H(7), end: H(17) }, samples,
     totals: { carKwh: C.carToday, carSolarKwh: C.carSolarToday, savedDollars: C.carSolarToday * 0.3, solarKwh: 31.2, importKwh: 1.1, exportKwh: 6.4 } };
   const days = []; const car = [22, 14, 31, 0, 18, 26, 9, 35, 20, 12, 28, 16, 24, 0, 30];
-  for (let k = 0; k < 30; k++) { const c = car[k % car.length]; days.push([hist.today - k, 0, c, Math.round(c * 0.8 * 10) / 10, 0, 0, Math.round(c * 0.8 * 0.3 * 100) / 100]); }
+  for (let k = 0; k < 30; k++) { const c = car[k % car.length], sol = C.noSolarHistory ? 0 : 30; days.push([hist.today - k, sol, c, Math.round(c * 0.8 * (sol ? 1 : 0) * 10) / 10, 0, 0, Math.round(c * 0.8 * 0.3 * 100) / 100 * (sol ? 1 : 0), c > 0 ? (k % 7 === 3 ? 2 : 1) : 0]); }
   const sessions = { total: 3, open: C.charging ? { start: H(8), end: nowT, kwh: C.carToday, sunKwh: C.carSolarToday, sunPct: 82, avgAmps: 28.5, saved: C.carSolarToday * 0.3, mode: 'ECO' } : null,
     sessions: [{ start: H(-14), end: H(-9.5), kwh: 24.8, sunKwh: 9.1, sunPct: 37, avgAmps: 16, saved: 2.73, mode: 'FAST', reason: 'EVDisconnected' },
                { start: H(-32), end: H(-27), kwh: 21.7, sunKwh: 18.4, sunPct: 85, avgAmps: 28, saved: 5.52, mode: 'ECO', reason: 'Remote' }] };
+  if (C.manySessions) {   // three weeks of charges, so the Impact card has something to count
+    const list = [];
+    for (let k = 1; k <= 21; k++) { const c = days[k][2]; if (!c) continue; const peak = k % 6 === 2, h0 = C.noSolarHistory ? (peak ? 17 : 22) : (peak ? 17 : 9);
+      list.push({ start: H(h0) - k * 86400, end: H(h0 + (peak ? 2 : 3)) - k * 86400, kwh: c, sunKwh: C.noSolarHistory ? 0 : c * 0.8, sunPct: C.noSolarHistory ? 0 : 80, avgAmps: 24, saved: 1, reason: 'Remote',
+                  mode: C.mode === 'CHEAPEST' ? 'CHEAPEST' : 'ECO', modeMixed: false, plugged: H(h0 - 3) - k * 86400 }); }
+    sessions.sessions = list; sessions.total = list.length;
+  }
   const events = { total: 4, events: [
     { t: H(11.2), text: 'Charging at 30 A (' + '7.2 kW), 82% from the sun' }, { t: H(10.1), text: 'Limit raised to 30 A' },
     { t: H(8.0), text: 'Charging started at 7 A' }, { t: H(7.9), text: 'Car plugged in' } ] };
@@ -66,8 +74,11 @@ AFTER = r"""<script>
 setTimeout(() => {
   const C = __CONFIG__;
   if (C.range && C.range !== 'day') setRange(C.range);
-  if (C.settings) { openSettings(); document.querySelectorAll('details.opt').forEach(d => { const n = d.querySelector('summary').firstChild.textContent.trim(); d.open = (C.open || []).includes(n); }); }
+  if (C.settings) { openSettings(); document.querySelector('#settingsbox .card').style.animation = 'none';   // no slide-in caught half way in the picture
+    document.querySelectorAll('details.opt').forEach(d => { const n = d.querySelector('summary').firstChild.textContent.trim(); d.open = (C.open || []).includes(n); }); }
   if (C.diag) { document.getElementById('diag').open = true; }
+  if (C.impact || C.shareCard) { openImpact(); document.getElementById('impact').style.animation = 'none'; }   // no slide-in in the picture
+  if (C.shareCard) shareImpact();
   if (C.scrollTo) { let t = document.querySelector(C.scrollTo); t = t && (t.closest('section') || t); if (t) window.scrollTo(0, t.getBoundingClientRect().top + scrollY - 8); }
   if (C.scrollY) window.scrollTo(0, C.scrollY);
 }, 1800);
@@ -124,121 +135,13 @@ SCENES = {
     "settings-goal": dict(settings=True, open=["Charge by morning", "Units"], goalKwh=20, goalDone=9.6),
     "settings-miles": dict(settings=True, open=["Charge by morning", "Units"], miles=True, goalKwh=20, goalDone=9.6),
     "settings-diag": dict(settings=True, open=[], diag=True),
-}
-
-
-def build(scene, extra=None):
-    cfg = dict(BASE, **SCENES[scene], **(extra or {}))
-    html = PAGE.replace("<script>\nconst el", SHIM.replace("__CONFIG__", json.dumps(cfg)) + "<script>\nconst el", 1)
-    html = html.replace("</body>", AFTER.replace("__CONFIG__", json.dumps(cfg)) + MARKS.replace("__CONFIG__", json.dumps(cfg)) + "</body>")
-    return html
-
-
-def shoot(scene, path, height, scale, extra=None):
-    """Headless Chrome will not make a window narrower than about 500 px, so the page goes in a 402 px wide frame and the
-    picture is cut to the frame."""
-    with tempfile.TemporaryDirectory() as tmp:
-        (Path(tmp) / "page.html").write_text(build(scene, extra))
-        outer = Path(tmp) / "outer.html"
-        outer.write_text(f'<!doctype html><body style="margin:0;background:#fff"><iframe src="page.html" width="{WIDTH}" height="{height}" style="border:0;display:block"></iframe></body>')
-        raw = Path(tmp) / "raw.png"
-        cmd = [CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars", f"--window-size=600,{height}",
-               f"--force-device-scale-factor={scale}", "--virtual-time-budget=6000", f"--screenshot={raw}", outer.as_uri()]
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=90)
-        Image.open(raw).crop((0, 0, WIDTH * scale, height * scale)).save(path)
-
-
-def font(size, bold=False):
-    for p in ("/System/Library/Fonts/Helvetica.ttc", "/Library/Fonts/Arial.ttf", "/System/Library/Fonts/SFNS.ttf"):
-        if Path(p).exists():
-            try:
-                return ImageFont.truetype(p, size, index=1 if bold and p.endswith(".ttc") else 0)
-            except Exception:
-                pass
-    return ImageFont.load_default()
-
-
-def trim(img):
-    """Cuts empty page background off the bottom of a tall capture."""
-    px = img.convert("RGB")
-    bg = px.getpixel((2, px.height - 2))
-    y = px.height - 1
-    while y > 0 and all(px.getpixel((x, y)) == bg for x in range(0, px.width, 7)):
-        y -= 1
-    return img.crop((0, 0, img.width, min(img.height, y + 24)))
-
-
-# Callouts. name -> [(element, short label shown in the video, longer explanation printed in the PDF)].
-# "#id@.cls" marks the nearest ancestor with that class. The number is the position in the list.
-NOTES = {
-    "top": [
-        ("#hero", "What is happening now", "The headline says what the charger is doing right now, and why when it is not charging."),
-        ("#flowgrid", "Where the power goes", "Solar is what the panels make, Home what the house uses, Car what the charger draws, Grid what is bought or sent out."),
-        ("#value", "What the charging gave you", "Energy or miles added and money saved, for Today, Week, Month or Year, with the share that came from your solar and a bar for each day."),
-        ("#conn", "Live", "Turns amber ('Meter 12m old') when the solar readings are getting stale."),
-        ("#gear", "Settings", "Opens Settings: solar hours, goal, prices, limits, units and messages."),
-    ],
-    "top-goal": [
-        ("#hero", "Goal progress", "With a goal set, the headline shows progress, for example 'Goal: 12 of 20 kWh by 7:00 am'."),
-        ("#pause-btn", "Pause", "A kill switch that stops the charge and blocks any start until you tap Resume."),
-    ],
-    "top-miles": [
-        ("#charger-power", "Miles per hour", "In miles mode the Car box shows miles of range added per hour instead of kW."),
-        ("#vunit", "Miles or kWh", "Tap to switch the card between estimated miles of range and kWh."),
-    ],
-    "top-paused": [
-        ("#hero", "Paused by you", "Nothing will start while paused, whatever the mode or the sun."),
-        ("#pause-btn", "Resume", "Tap Resume to hand control back to the mode you had."),
-    ],
-    "top-unplugged": [("#hero", "No car plugged in", "Charging starts by itself once a car is plugged in.")],
-    "top-night": [
-        ("#hero", "Outside solar hours", "Eco and Max solar run only in the daylight window. Custom still works."),
-        ("#solar-power@.ft", "Resting until sunrise", "At night the solar box says it is resting."),
-    ],
-    "modes-eco": [
-        ("#seg", "Pick a mode", "Eco, Max solar or Custom. Tap one."),
-        ("#allowance-panel", "Grid allowance", "How much grid power the car may add to the sun. Zero means sun only."),
-    ],
-    "modes-max": [
-        ("#seg", "Max solar", "Uses everything the panels make and ignores the house."),
-        ("#allowance-panel", "Top-up only", "The allowance only tops the car up to the next whole amp."),
-    ],
-    "modes-custom": [
-        ("#seg", "Custom", "A fixed charging current, sun or no sun."),
-        ("#fast-panel", "Set the current", "Slide to pick 6 to 40 amps. It can use grid power day or night."),
-    ],
-    "graph-day": [
-        ("#tabs", "Day, week, month, year", "Switch the time range."),
-        ("#chart", "Touch to read it", "Solar (yellow), car (blue), home (grey) and grid (red). Touch the graph for exact numbers."),
-    ],
-    "graph-7": [
-        ("#tabs", "7 days", "One bar per day. Yellow came from the sun, red from the grid."),
-        ("#range-summary", "The total", "Energy the car took, and what the sun saved you."),
-    ],
-    "graph-30": [
-        ("#tabs", "30 days", "A month of days at a glance."),
-        ("#range-summary", "The total", "Energy the car took, and what the sun saved you."),
-    ],
-    "activity": [
-        ("#feedcard", "Activity", "A short list of what the controller did and when."),
-        ("#sessions", "Charging sessions", "Each charge: when, how much, how much from the sun, and what you saved."),
-    ],
-    "settings": [
-        ("#daylight-panel", "Solar hours", "Keeps Eco and Max solar to daylight. Set the start and stop margins."),
-        ("#diag", "Diagnostics", "A short health list: uptime, restarts, memory and Wi-Fi signal."),
-    ],
-    "settings-goal": [
-        ("#goal-kwh@.field", "How much", "The energy you want by then. Turn the switch off to stop."),
-        ("#goal-time@.field", "By when", "The time you need the car ready."),
-        ("#unit-select@.field", "Units", "Show energy as kWh or as estimated miles."),
-    ],
-    "settings-miles": [
-        ("#goal-kwh@.field", "Goal in miles", "Type the goal in miles."),
-        ("#goal-hint-row", "What is sent", "The whole kWh actually sent to the charger."),
-        ("#unit-select@.field", "Show as miles", "Switches the whole dashboard to estimated miles."),
-        ("#mpk-input@.field", "Your miles per kWh", "Your car's real figure from the wall (1 to 6, starts at 3)."),
-    ],
-    "settings-diag": dict(settings=True, open=[], diag=True),
+    "settings-money": dict(settings=True, open=[], peakCents=45, mode="CHEAPEST"),
+    "cheapest":      dict(mode="CHEAPEST", peakCents=45, status="CHARGING", amps=32, chargerW=7680, solar=2200, grid=5900, home=420, carSolarToday=2.0, expensive=False, secsToChange=18000, manySessions=True),
+    "cheapest-wait": dict(mode="CHEAPEST", peakCents=45, status="PREPARING", amps=0, chargerW=0, solar=1500, grid=450, home=450, charging=False, carToday=0, carSolarToday=0, expensive=True, secsToChange=4 * 3600, manySessions=True),
+    "no-solar":      dict(mode="CHEAPEST", peakCents=45, meterLinked=False, noSolarHistory=True, status="CHARGING", amps=32, chargerW=7680, solar=0, grid=7680, home=0, carToday=14.0, carSolarToday=0, expensive=False, secsToChange=18000, manySessions=True),
+    "impact":        dict(impact=True, peakCents=45, manySessions=True),
+    "impact-nosolar": dict(impact=True, mode="CHEAPEST", peakCents=45, meterLinked=False, noSolarHistory=True, status="CHARGING", amps=32, chargerW=7680, solar=0, grid=7680, home=0, carToday=14.0, carSolarToday=0, expensive=False, secsToChange=18000, manySessions=True),
+    "share-card":    dict(shareCard=True, peakCents=45, manySessions=True),
 }
 
 
@@ -358,6 +261,32 @@ NOTES = {
 }
 
 
+NOTES.update({
+    "cheapest": [
+        ("#cheap-panel", "Cheapest hours", "Price now, when it changes, and the hours it will not charge. Change hours opens Settings > Money."),
+        ("#seg", "The four modes", "Eco, Max solar, Custom and Cheapest hours. Cheapest hours needs no solar."),
+    ],
+    "cheapest-wait": [("#hero", "Waiting for cheaper hours", "During the expensive hours it does not charge. The headline says when charging starts.")],
+    "no-solar": [
+        ("#nosolar", "Price tiles", "With no solar meter there is no power picture. Price now, the next change and the car take its place."),
+        ("#hero", "Waiting or charging", "The headline still says what is happening and why."),
+    ],
+    "impact": [
+        ("#imp-score", "Your score", "Out of 100, with a letter. Solar share, charging outside the expensive hours and Ready by goals each count."),
+        ("#imp-parts", "What it is made of", "Each part with its share and its points. A part that does not apply is left out."),
+        ("#imp-streak", "Your streak", "Days in a row that went well. Days with no charging, or too little sun, are skipped, never counted against you."),
+        ("#imp-share", "Share image", "Makes a picture of your numbers on your phone."),
+    ],
+    "impact-nosolar": [
+        ("#imp-score", "Charge Score", "Without solar the score counts charging outside the expensive hours and Ready by goals."),
+        ("#imp-nums", "Money and miles", "Miles, how much cheaper than gas, and what Cheapest hours saved (an estimate)."),
+    ],
+    "settings-money": [("#peak-plan", "Your plan", "Pick PG&E E-TOU-C or SCE TOU-D-4-9PM and the peak hours fill in. The prices are yours to enter.")],
+})
+
+NOTES["top"].append(("#imp-chip", "Your score", "Tap it to open Your impact: a score, a streak and badges from your own charging."))
+
+
 def marks_for(name, only=None):
     """Callout list for the page script. With `only` (0-based) just that one is drawn, keeping its number."""
     return [[sel, i + 1, ""] for i, (sel, _short, _long) in enumerate(NOTES.get(name, [])) if only is None or only == i]
@@ -382,6 +311,13 @@ GUIDE = [
     ("settings-goal",  "settings-goal", {}, 1180),
     ("settings-miles", "settings-miles", {}, 1180),
     ("settings-diag",  "settings-diag", {}, 1180),
+    ("settings-money", "settings-money", {}, 1180),
+    ("cheapest",       "cheapest",      dict(scrollTo="#modes"), 640),
+    ("cheapest-wait",  "cheapest-wait", {}, 420),
+    ("no-solar",       "no-solar",      {}, 520),
+    ("impact",         "impact",        {}, 840),
+    ("impact-nosolar", "impact-nosolar", {}, 840),
+    ("share-card",     "share-card",    {}, 900),
 ]
 
 
@@ -450,6 +386,14 @@ FRAMES = [
      "Stops the charge and blocks any start, whatever the mode, until you tap Resume."),
     ("night", {}, 4.0, "top-night", "At night it rests",
      "Eco and Max solar sleep until sunrise. Custom still works."),
+    ("cheapest", dict(scrollTo="#modes"), 4.5, "cheapest", "On a time-of-use plan? Cheapest hours",
+     "Charges at your maximum current whenever power is cheap and stops in the expensive hours. No solar needed."),
+    ("no-solar", {}, 4.5, "no-solar", "No solar? You still get the picture",
+     "Without a solar meter the page shows price tiles instead of the power flow."),
+    ("impact", {}, 5.0, "impact", "Your impact",
+     "A score, a streak and badges from your own charging records. Days with no charging or too little sun never count against you."),
+    ("settings-money", {}, 4.5, "settings-money", "Pick your plan",
+     "Choose your utility plan and the expensive hours fill in. Enter your own prices."),
 ]
 
 
