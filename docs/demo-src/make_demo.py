@@ -272,13 +272,13 @@ NOTES.update({
         ("#hero", "Waiting or charging", "The headline still says what is happening and why."),
     ],
     "impact": [
-        ("#imp-score", "Your score", "Out of 100, with a letter. Solar share, charging outside the expensive hours and Ready by goals each count."),
+        ("#imp-ring", "Your score", "A ring filled to your score out of 100, with the grade in the middle. Solar share, charging outside the expensive hours and Ready by goals each count."),
         ("#imp-parts", "What it is made of", "Each part with its share and its points. A part that does not apply is left out."),
         ("#imp-streak", "Your streak", "Days in a row that went well. Days with no charging, or too little sun, are skipped, never counted against you."),
         ("#imp-share", "Share image", "Makes a picture of your numbers on your phone."),
     ],
     "impact-nosolar": [
-        ("#imp-score", "Charge Score", "Without solar the score counts charging outside the expensive hours and Ready by goals."),
+        ("#imp-ring", "Charge Score", "Without solar the ring is the Charge Score: charging outside the expensive hours and Ready by goals."),
         ("#imp-nums", "Money and miles", "Miles, how much cheaper than gas, and what Cheapest hours saved (an estimate)."),
     ],
     "settings-money": [("#peak-plan", "Your plan", "Pick PG&E E-TOU-C or SCE TOU-D-4-9PM and the peak hours fill in. The prices are yours to enter.")],
