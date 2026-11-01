@@ -818,8 +818,22 @@ test('a period with no charging is empty and has no score', () => {
 });
 
 test('the Impact tile and its buttons exist and have help text', () => {
-    ['impact', 'imp-tab-week', 'imp-tab-month', 'imp-body', 'imp-empty', 'imp-score', 'imp-grade', 'imp-name', 'imp-parts', 'imp-nums', 'imp-streak', 'imp-streak-n', 'imp-streak-l', 'imp-badges', 'imp-share']
+    ['impact', 'imp-tab-week', 'imp-tab-month', 'imp-body', 'imp-empty', 'imp-score', 'imp-grade', 'imp-name', 'imp-parts', 'imp-nums', 'imp-streak', 'imp-streak-n', 'imp-streak-l', 'imp-badges', 'imp-share', 'imp-chip', 'imp-title', 'imp-done', 'impact-back']
         .forEach(id => assert.ok(html.includes('id="' + id + '"'), id));
     assert.ok(read('typeof TIPS.impact') === 'object');
     assert.ok(html.includes('onclick="shareImpact()"') && html.includes("onclick=\"setImpactPeriod('month')\""));
+});
+
+test('the chip under the headline says the score and the kind, and is empty without a score', () => {
+    const solar = page.impactView(impCtx({ days: impDays([[19999, 20, 10, 8, 0, 0, 1]]) }));
+    assert.match(page.impactChipText(solar), /^Solar Score \d+ [A-D] ›$/);
+    const none = page.impactView(impCtx({ days: impDays([[19999, 0, 10, 0, 10, 0, 0]]), sessions: [impSession(-1, 22, 23, 10)] }));
+    assert.match(page.impactChipText(none), /^Charge Score \d+ [A-D] ›$/);
+    assert.equal(page.impactChipText(page.impactView(impCtx({ days: impDays([]) }))), '');
+    assert.equal(page.impactChipText(null), '');
+});
+
+test('the Impact sheet opens from the chip, closes with Done, Escape or the backdrop', () => {
+    assert.ok(html.includes('onclick="openImpact()"') && html.includes('onclick="closeImpact()"'));
+    assert.ok(html.includes("e.target === el('impact-back')") && html.includes("el('impact').classList.contains('open')) closeImpact()"));
 });
