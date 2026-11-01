@@ -190,6 +190,7 @@
             .hint.ok::before { animation: boltpop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1); }
             #feed li.fresh, .sess.fresh { animation: rowin 0.45s ease-out; }
             #settingsbox:not([hidden]) .card { animation: sheetup 0.3s ease-out; }
+            #impact.open { animation: sheetup 0.3s ease-out; }
             #tipbox:not([hidden]) .card { animation: tipin 0.2s ease-out; }
             .sessdone:not([hidden]) { animation: rowin 0.45s ease-out; }
         }
@@ -373,7 +374,16 @@
         .stack { display: contents; }
         #hero { order: 1; } #sesscard { order: 2; } #flow, #nosolar { order: 3; } #chartcard { order: 4; } #modes { order: 5; } #carcard { order: 6; }
         #feedcard { order: 7; } #sessions { order: 8; }
-        #impact { order: 9; }
+        #impact { order: 9; } #impact[hidden] { display: none; }
+        .impchip { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; min-height: 30px; padding: 0 12px; border-radius: 999px; background: var(--tint); color: var(--green); border: 1px solid var(--line); font-size: 0.82rem; font-weight: 600; }
+        #impact-back { position: fixed; inset: 0; z-index: 18; background: rgba(15, 23, 42, 0.4); } #impact-back[hidden] { display: none; }
+        #impact #imp-title:focus { outline: none; } #impact #imp-share { margin-top: 12px; }
+        #impact .gotit { width: 100%; margin-top: 10px; background: var(--blue); color: #fff; }
+        @media (max-width: 899px) {
+            #impact:not(.open) { display: none; }
+            #impact.open { position: fixed; left: 0; right: 0; bottom: 0; z-index: 19; max-height: 88vh; overflow-y: auto; overscroll-behavior: contain; margin: 0; border-radius: 16px 16px 0 0; padding-bottom: max(16px, env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.25); }
+        }
+        @media (min-width: 900px) { .impchip, #imp-done, #impact-back { display: none; } }
         #impact .imp-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
         #impact .imp-score { display: flex; align-items: baseline; gap: 10px; margin: 12px 0 2px; }
         #impact .imp-score b { font-size: 2.6rem; line-height: 1; } #impact .imp-grade { font-size: 1.5rem; font-weight: 700; color: var(--green); }
@@ -437,7 +447,7 @@
         <div class="stack stack-a">
         <section class="tile hero" id="hero" aria-live="polite">
             <div class="badge" id="hero-icon">⚡</div>
-            <div class="txt"><div class="title" id="hero-title">Connecting…</div><div class="sub" id="hero-sub">&nbsp;</div></div>
+            <div class="txt"><div class="title" id="hero-title">Connecting…</div><div class="sub" id="hero-sub">&nbsp;</div><button type="button" class="impchip" id="imp-chip" hidden onclick="openImpact()" aria-haspopup="dialog">Your impact ›</button></div>
             <button id="pause-btn" onclick="togglePause()"><svg class="ic" id="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><span id="pause-label">Pause</span></button>
         </section>
         <section class="tile sessdone" id="sesscard" role="status" aria-live="polite" hidden>
@@ -507,7 +517,7 @@
         </div>
         <section class="tile" id="impact" hidden>
             <div class="imp-top">
-                <h2>Your impact<button type="button" class="info" data-tip="impact" aria-label="How is this worked out?">i</button></h2>
+                <h2><span id="imp-title" tabindex="-1">Your impact</span><button type="button" class="info" data-tip="impact" aria-label="How is this worked out?">i</button></h2>
                 <div class="vper" role="tablist" aria-label="Period">
                     <button type="button" role="tab" id="imp-tab-week" class="active" aria-selected="true" onclick="setImpactPeriod('week')">Week</button>
                     <button type="button" role="tab" id="imp-tab-month" aria-selected="false" onclick="setImpactPeriod('month')">Month</button>
@@ -527,6 +537,7 @@
                 </div>
             </div>
             <button type="button" id="imp-share" onclick="shareImpact()">Share image</button>
+            <button type="button" class="gotit" id="imp-done" onclick="closeImpact()">Done</button>
         </section>
         <section class="tile gclosed" id="chartcard">
             <div class="vcard" id="value">
@@ -577,6 +588,7 @@
 <div id="ptr" aria-hidden="true"><svg viewBox="0 0 64 64"><defs><linearGradient id="wgp" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#0d9488"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#wgp)"/><g class="arrows"><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M14.15 25.5A19 19 0 0 1 46.55 19.79"/><path d="M49.85 38.5A19 19 0 0 1 17.45 44.2"/></g><g fill="#fff"><path d="M49.8 23.6L50 16.9L43.1 22.7Z"/><path d="M14.2 40.4L20.9 41.3L14 47.1Z"/></g></g><path class="bolt" d="M36 18L25 34H32L29 47L40 30H33Z" fill="#fde047"/></svg></div>
 <div id="toasts" aria-live="polite"></div>
 <div id="tipbox" role="dialog" aria-modal="true" aria-labelledby="tip-title" hidden><div class="card"><h3 id="tip-title"></h3><div id="tip-text"></div><button type="button" class="gotit" id="tip-close">Got it</button></div></div>
+<div id="impact-back" hidden></div>
 <div id="settingsbox" class="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden><div class="card">
 <div class="sethead"><div class="settop"><h3 id="settings-title" tabindex="-1">Settings</h3><button type="button" class="xbtn" id="settings-x" aria-label="Close settings" title="Close">✕</button></div>
 <nav id="set-nav" aria-label="Settings sections"><button type="button" class="setchip on" data-go="sec-charging">Charging</button><button type="button" class="setchip" data-go="sec-money">Money</button><button type="button" class="setchip" data-go="sec-messages">Messages</button><button type="button" class="setchip" data-go="sec-tesla">Tesla</button><button type="button" class="setchip" data-go="sec-more">More</button></nav></div>
@@ -751,12 +763,13 @@ document.addEventListener('click', e => {
     const btn = e.target.closest('.info');
     if (btn) { e.preventDefault(); e.stopPropagation(); openTip(btn.dataset.tip); return; }
     if (e.target === el('tipbox') || e.target === el('tip-close')) closeTip();
+    if (e.target === el('impact-back')) closeImpact();
     if (e.target === el('settingsbox') || e.target === el('settings-close') || (e.target.closest && e.target.closest('#settings-x'))) closeSettings();
 }, true);
 // Keep Tab inside whichever card is open, so a keyboard or screen-reader user cannot wander into the page behind it.
 document.addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
-    const open = !el('tipbox').hidden ? el('tipbox') : !el('settingsbox').hidden ? el('settingsbox') : null;
+    const open = !el('tipbox').hidden ? el('tipbox') : !el('settingsbox').hidden ? el('settingsbox') : el('impact').classList.contains('open') ? el('impact') : null;
     if (!open) return;
     const items = [...open.querySelectorAll('button, input, summary, [href]')].filter(x => !x.disabled && x.offsetParent !== null);
     if (!items.length) return;
@@ -768,6 +781,7 @@ document.addEventListener('keydown', e => {
 document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (!el('tipbox').hidden) closeTip();
+    else if (el('impact').classList.contains('open')) closeImpact();
     else if (!el('settingsbox').hidden && !(e.target && e.target.tagName === 'INPUT' && e.target.type === 'number')) closeSettings();   // Esc in a box only puts its saved value back
 });
 
@@ -1920,12 +1934,29 @@ function impactContext() {
              meterLinked: d.meterLinked };
 }
 let lastImpact = null;
+/** The text on the small button under the headline, for example "Solar Score 74 C ›"; empty when there is no score yet. */
+function impactChipText(view) { return view && view.score ? (view.noSolar ? 'Charge Score ' : 'Solar Score ') + view.score.score + ' ' + view.score.grade + ' ›' : ''; }
+function openImpact() {
+    const t = el('impact');
+    if (t.hidden) return;
+    t.classList.add('open'); t.setAttribute('role', 'dialog'); t.setAttribute('aria-modal', 'true'); t.setAttribute('aria-labelledby', 'imp-title');
+    el('impact-back').hidden = false; t.scrollTop = 0;
+    el('imp-title').focus({ preventScroll: true });
+}
+function closeImpact() {
+    const t = el('impact');
+    t.classList.remove('open'); ['role', 'aria-modal', 'aria-labelledby'].forEach(a => t.removeAttribute(a));
+    el('impact-back').hidden = true;
+    if (!el('imp-chip').hidden) el('imp-chip').focus();
+}
 function renderImpact() {
-    const tile = el('impact');
-    if (!hist || !hist.totals || !valueDays[30] || impactSessions === null) { tile.hidden = true; return; }
+    const tile = el('impact'), chip = el('imp-chip');
+    if (!hist || !hist.totals || !valueDays[30] || impactSessions === null) { tile.hidden = true; chip.hidden = true; if (tile.classList.contains('open')) closeImpact(); return; }
     const v = lastImpact = impactView(impactContext());
     tile.hidden = false;
     ['week', 'month'].forEach(p => { const b = el('imp-tab-' + p); b.classList.toggle('active', impactPeriod === p); b.setAttribute('aria-selected', impactPeriod === p); });
+    const chipText = impactChipText(v);
+    chip.hidden = !chipText; if (chipText && chip.textContent !== chipText) chip.textContent = chipText;
     el('imp-body').hidden = v.empty; el('imp-empty').hidden = !v.empty;
     el('imp-share').hidden = v.empty;
     if (v.empty) return;
