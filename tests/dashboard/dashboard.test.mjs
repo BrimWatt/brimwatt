@@ -826,9 +826,9 @@ test('the Impact tile and its buttons exist and have help text', () => {
 
 test('the chip under the headline says the score and the kind, and is empty without a score', () => {
     const solar = page.impactView(impCtx({ days: impDays([[19999, 20, 10, 8, 0, 0, 1]]) }));
-    assert.match(page.impactChipText(solar), /^Solar Score \d+ [A-D] ›$/);
+    assert.match(page.impactChipText(solar), /^Solar Score \d+ ›$/);   // the grade is the letter in the ring, not said twice
     const none = page.impactView(impCtx({ days: impDays([[19999, 0, 10, 0, 10, 0, 0]]), sessions: [impSession(-1, 22, 23, 10)] }));
-    assert.match(page.impactChipText(none), /^Charge Score \d+ [A-D] ›$/);
+    assert.match(page.impactChipText(none), /^Charge Score \d+ ›$/);
     assert.equal(page.impactChipText(page.impactView(impCtx({ days: impDays([]) }))), '');
     assert.equal(page.impactChipText(null), '');
 });
