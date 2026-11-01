@@ -36,6 +36,7 @@ constexpr uint64_t kEnphaseErrorLogIntervalMillis = 60000;
 // Daylight window (Lathrop, CA); ECO and MAX_SOLAR only run from sunrise + margin to sunset - margin.
 constexpr double kSiteLatitude = 37.8412;
 constexpr double kSiteLongitude = -121.2691;
+constexpr const char* kSiteTimezone = "America/Los_Angeles";   // used until the owner saves their own location
 constexpr int kDaylightStartAfterSunriseSeconds = 1800;   // the array faces south-east: mornings are strong
 constexpr int kDaylightEndBeforeSunsetSeconds = 3600;
 constexpr int kMaxDaylightMarginMinutes = 180;   // the margins are adjustable from 0 to this many minutes

@@ -84,6 +84,25 @@ class StatePersistenceTest {
     }
 
     @Test
+    void theSavedLocationSurvivesARestartAndOlderFilesHaveNone() throws IOException {
+        assertFalse(state.siteSet());
+        state.setSite(34.09, -118.41, "America/Los_Angeles", "Beverly Hills, California");
+        persistence.save(false);
+        SystemState fresh = new SystemState();
+        restart(fresh);
+        assertTrue(fresh.siteSet());
+        assertEquals(34.09, fresh.siteLatitude(), 1e-9);
+        assertEquals(-118.41, fresh.siteLongitude(), 1e-9);
+        assertEquals("America/Los_Angeles", fresh.siteTimezone());
+        assertEquals("Beverly Hills, California", fresh.siteName());
+
+        Files.writeString(file, "{\"mode\":\"ECO\",\"fastModeAmps\":24,\"chargers\":{}}");   // a file from before the location existed
+        SystemState old = new SystemState();
+        restart(old);
+        assertFalse(old.siteSet());
+    }
+
+    @Test
     void stateFilesFromOlderVersionsAreNotPaused() throws IOException {
         Files.writeString(file, "{\"mode\":\"ECO\",\"fastModeAmps\":20,\"chargers\":{}}");
         SystemState fresh = new SystemState();

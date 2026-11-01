@@ -75,6 +75,9 @@ public class StatePersistence {
                 state.setPeakRate(peak, peakFrom, peakTo);
             }
             if (saved.peakWeekends() != null) state.setPeakWeekends(saved.peakWeekends());   // missing in older files: every day
+            if (saved.siteLat() != null && saved.siteLon() != null && saved.siteTz() != null) {   // missing in older files: the built-in default
+                state.setSite(saved.siteLat(), saved.siteLon(), saved.siteTz(), saved.siteName());
+            }
             Integer goalKwh = saved.goalKwh(), goalMinutes = saved.goalMinutes();   // missing in older files
             if (goalKwh != null && goalMinutes != null && goalKwh >= 0 && goalKwh <= AppConfig.MAX_GOAL_KWH && goalMinutes >= 0 && goalMinutes <= 1439) {
                 state.setGoal(goalKwh, goalMinutes);
@@ -140,7 +143,8 @@ public class StatePersistence {
             String json = store.toJson(new PersistedState(state.mode(), state.fastModeAmps(), new TreeMap<>(known),
                     state.gridAllowanceWatts(), state.daylightWindowEnabled(), state.paused(),
                     state.rateCents(), state.daylightStartMinutes(), state.daylightEndMinutes(), state.maxAmps(),
-                    state.peakRateCents(), state.peakStartHour(), state.peakEndHour(), state.goalKwh(), state.goalMinutes(), state.notifyUrl(), state.peakWeekends()));
+                    state.peakRateCents(), state.peakStartHour(), state.peakEndHour(), state.goalKwh(), state.goalMinutes(), state.notifyUrl(), state.peakWeekends(),
+                    state.siteLatitude(), state.siteLongitude(), state.siteTimezone(), state.siteName()));
             if (!json.equals(lastWritten)) {
                 store.write(json);
                 lastWritten = json;

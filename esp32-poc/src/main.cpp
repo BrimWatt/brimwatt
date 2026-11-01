@@ -37,6 +37,8 @@
 #include "net/TeslaMode.h"
 #include "notify/Notifier.h"
 #include "net/TimeSync.h"
+#include "platform/SiteSettings.h"
+#include "site/Site.h"
 #include "net/WifiConnection.h"
 #include "ocpp/CoreHandlers.h"
 #include "ocpp/OcppRouter.h"
@@ -88,6 +90,8 @@ static SolarController controller(platform, state, chargeRouter, daylight, setti
 static device::EspDiagnostics diagnostics(__DATE__ " " __TIME__);
 static device::WifiConnection wifi(device::kHostname);
 static device::TimeSync timeSync;
+static device::SiteSettings siteSettings;   // where the panels are; read first thing in setup()
+static std::string siteClockRule = device::kTimezone;   // the clock rule for that site
 static device::EnphaseClient envoy;   // told its token and address in setup(), once they are known
 static device::MeterPoller meterPoller(envoy);
 static device::SerialConsole console(controller, wallbox, meterPoller);
@@ -130,6 +134,7 @@ static void serviceWhileOffline() {
     webServer.loop();
     portal.loop();
     teslaMode.loop();
+    siteSettings.loop();
     console.poll();
     teslaScan.loop();   // Tesla jobs must also work with no Wi-Fi (the car is reached over Bluetooth)
     carService.loop();
@@ -248,16 +253,22 @@ void setup() {
     teslaMode.setBeforeRestart([] {
         if (history.dirty() || history.longPending()) historyStore.save(history);
     });
+    siteSettings.setBeforeRestart([] {
+        if (history.dirty() || history.longPending()) historyStore.save(history);
+    });
     console.setSetup(&portal, &credentialStore);
     console.setTesla(&teslaScan, &teslaCar);
     console.setTeslaMode(&teslaMode);
+    siteSettings.begin();   // where the panels are: the daylight window and the clock start from it (restart after a change)
+    daylight.setLocation(siteSettings.current().latitude, siteSettings.current().longitude);
+    if (auto rule = solar::timezones::posixFor(siteSettings.current().timezone)) siteClockRule = *rule;
     teslaMode.begin();   // off unless the owner turned it on: Bluetooth stays off, and the board's own Wi-Fi opens only when it is on
     webServer.begin();
     bringUpNetwork();
     envoy.configure(credentials.enphaseToken, credentials.envoyIp);
     api.setMeterLinked(credentials.hasMeter());   // "paired" for the dashboard's notices
 
-    timeSync.begin(WiFi.gatewayIP().toString().c_str());   // in the background: the dashboard must not wait for the internet
+    timeSync.begin(WiFi.gatewayIP().toString().c_str(), siteClockRule.c_str());   // in the background: the dashboard must not wait for the internet
     device::Mdns::start(device::kHostname, config::kOcppPort);
     if (credentials.otaPassword.empty()) {
         LOG_WARN("OTA: no update password is set, so updating over Wi-Fi is off. Set one on the setup page.");
@@ -286,6 +297,7 @@ void setup() {
     api.setCar(&carService);
     api.setRouter(&chargeRouter);
     api.setTeslaMode(&teslaMode);
+    api.setSite(&siteSettings);
     ocppServer.setHistory(&history);
     controller.restoreSettings();
     chargeRouter.setSettings(&teslaStore);
@@ -322,6 +334,7 @@ void loop() {
     webServer.loop();
     portal.loop();   // the BOOT button, and the setup network when it is open
     teslaMode.loop();
+    siteSettings.loop();
     console.poll();
     teslaScan.loop();
     carService.loop();

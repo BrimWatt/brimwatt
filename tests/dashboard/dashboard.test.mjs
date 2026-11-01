@@ -1004,6 +1004,8 @@ test('the forecast is only asked for with solar, a known area, and when it is sw
     assert.equal(page.forecastWanted(data, false), false);
     assert.equal(page.forecastWanted(Object.assign({}, data, { meterLinked: false }), true), false);   // no solar meter: nothing to forecast
     assert.equal(page.forecastWanted({ meterLinked: true }, true), false);                             // no area from the controller
+    assert.equal(page.forecastWanted({ meterLinked: true, site: { lat: 37.8, lon: -121.3, set: false } }, true), false);   // the owner has not set a location yet
+    assert.equal(page.forecastWanted({ meterLinked: true, site: { lat: 37.8, lon: -121.3, set: true } }, true), true);
     assert.equal(page.forecastWanted(null, true), false);
 });
 
@@ -1017,4 +1019,57 @@ test('the forecast sheet, its button, its switch and its help text exist', () =>
 
 test('hours in the forecast text are plain: 10 am, noon is 12 pm, midnight is 12 am', () => {
     assert.deepEqual([0, 9, 12, 13, 17].map(h => page.hourWords(h)), ['12 am', '9 am', '12 pm', '1 pm', '5 pm']);
+});
+
+// ---- Where the panels are: onboarding with a zip code or a town ----
+test('the place lookup asks open-meteo for the typed text, five matches at most', () => {
+    const url = page.siteLookupUrl(' 90210 ');
+    assert.ok(url.startsWith('https://geocoding-api.open-meteo.com/v1/search?name=90210&'));
+    assert.ok(url.includes('count=5'));
+    assert.ok(page.siteLookupUrl('Los Gatos, CA').includes('name=Los%20Gatos%2C%20CA'));
+    assert.equal(page.siteQueryOk('9'), false);
+    assert.equal(page.siteQueryOk('90210'), true);
+    assert.equal(page.siteQueryOk('   '), false);
+    assert.equal(page.siteQueryOk('x'.repeat(61)), false);
+});
+
+test('place matches keep the words, coordinates and zone, and leave out anything incomplete', () => {
+    const reply = { results: [
+        { name: 'Beverly Hills', latitude: 34.07, longitude: -118.4, timezone: 'America/Los_Angeles', admin1: 'California', country_code: 'US' },
+        { name: 'Paris', latitude: 48.85, longitude: 2.35, timezone: 'Europe/Paris', admin1: 'Île-de-France', country_code: 'FR' },
+        { name: 'No zone', latitude: 1, longitude: 2 },
+        { name: 'No coordinates', timezone: 'America/Denver' },
+        null,
+    ] };
+    const c = page.siteChoices(reply);
+    assert.equal(c.length, 2);
+    assert.equal(c[0].label, 'Beverly Hills, California');
+    assert.equal(c[0].tz, 'America/Los_Angeles');
+    assert.equal(c[1].label, 'Paris, Île-de-France, FR');
+    assert.equal(page.siteChoices({}).length, 0);
+    assert.equal(page.siteChoices(null).length, 0);
+    assert.equal(page.siteChoices({ results: Array.from({ length: 9 }, (_, i) => ({ name: 'T' + i, latitude: 1, longitude: 2, timezone: 'America/Denver' })) }).length, 5);
+});
+
+test('the Settings line and the headline button follow what the controller says about the location', () => {
+    assert.equal(page.siteSummary({ site: { set: false } }), 'Not set yet. A built-in default is used until you set one.');
+    assert.equal(page.siteSummary({ site: { set: true, name: 'Beverly Hills, California', timezone: 'America/Los_Angeles' } }), 'Saved: Beverly Hills, California · America/Los_Angeles');
+    assert.equal(page.siteSummary({}), 'Not set yet. A built-in default is used until you set one.');
+    assert.equal(page.siteChipWanted({ site: { set: false } }), true);
+    assert.equal(page.siteChipWanted({ site: { set: true } }), false);
+    assert.equal(page.siteChipWanted({}), false);            // an older controller that does not say: left alone
+    assert.equal(page.siteChipWanted(null), false);
+});
+
+test('the location block, its button and its help text exist, and the location goes in the body', () => {
+    ['site-chip', 'site-box', 'site-q', 'site-find', 'site-pick', 'site-use', 'site-status', 'site-current'].forEach(id => assert.ok(html.includes('id="' + id + '"'), id));
+    assert.ok(html.includes('onclick="findSite()"') && html.includes('onclick="useSite()"') && html.includes('onclick="openSiteSettings()"'));
+    assert.ok(html.includes("postForm('/api/site'"), 'sent in the body, not the address');
+    assert.ok(!/post\('\/api\/site\?/.test(html));
+    assert.ok(read('typeof TIPS.site') === 'object');
+});
+
+test('a hidden headline button really is hidden (its style sets display, so it needs its own hidden rule)', () => {
+    assert.ok(/\.impchip\[hidden\]\s*\{\s*display:\s*none/.test(html));
+    assert.ok(/#site-box select\[hidden\]/.test(html), 'the place list too');
 });

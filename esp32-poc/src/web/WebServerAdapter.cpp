@@ -36,6 +36,7 @@ void WebServerAdapter::begin() {
     server_.on("/api/car/mode", HTTP_POST, [this] { serveApi(); });
     server_.on("/api/car/hotspot", HTTP_GET, [this] { serveApi(); });
     server_.on("/api/clock", HTTP_POST, [this] { serveApi(); });
+    server_.on("/api/site", HTTP_POST, [this] { serveApi(); });
     server_.on("/api/car/pair", HTTP_POST, [this] { serveApi(); });
     server_.on("/api/car/refresh", HTTP_POST, [this] { serveApi(); });
     server_.on("/api/car/watch", HTTP_POST, [this] { serveApi(); });

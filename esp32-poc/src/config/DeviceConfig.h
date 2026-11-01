@@ -23,7 +23,7 @@ constexpr uint32_t kSetupWindowMillis = 15UL * 60 * 1000;   // closes after this
 constexpr uint32_t kSetupRetryMillis = 60000;            // while it is open, try the Wi-Fi again this often (never while a phone is on it)
 constexpr uint32_t kBootHoldMillis = 5000;               // hold the BOOT button this long to open it by hand
 constexpr uint8_t kBootButtonPin = 0;                    // the BOOT button on the ESP32-S3 DevKit
-constexpr const char* kTimezone = "PST8PDT,M3.2.0,M11.1.0";   // America/Los_Angeles, for the log only
+constexpr const char* kTimezone = "PST8PDT,M3.2.0,M11.1.0";   // America/Los_Angeles: the clock rule until the owner saves their own site
 
 constexpr const char* kEnvoyHost = "envoy";             // resolved as envoy.local
 

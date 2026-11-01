@@ -80,6 +80,7 @@ HttpResponse ApiHandler::handle(const std::string& method, const std::string& pa
     if (path == "/api/export.csv" && method == "GET") return exportCsv();
     if (path == "/api/car/hotspot" && method == "GET") return hotspot();
     if (path == "/api/clock" && method == "POST") return setClock(query);
+    if (path == "/api/site" && method == "POST") return updateSite(query);
     if (path.rfind("/api/car/", 0) == 0 && method == "POST") return car(path, query);
     return text(404, "Not found");
 }
@@ -448,6 +449,21 @@ HttpResponse ApiHandler::diagnostics(const Params& query) {
     return response;
 }
 
+HttpResponse ApiHandler::updateSite(const Params& query) {
+    if (!site_) return text(404, "Not available");
+    if (site_->restartPending()) return text(409, "The board is already restarting.");
+    const std::string* lat = find(query, "lat");
+    const std::string* lon = find(query, "lon");
+    const std::string* tz = find(query, "tz");
+    if (!lat || !lon || !tz) return text(400, "Missing lat, lon or tz.");
+    const std::string* name = find(query, "name");
+    std::string error;
+    auto site = parseSite(*lat, *lon, *tz, name ? *name : "", error);
+    if (!site) return text(400, error);
+    site_->save(*site);
+    return text(200, "Location saved. The board is restarting to use it.");
+}
+
 HttpResponse ApiHandler::exportCsv() {
     HttpResponse response;
     response.contentType = "text/csv";
@@ -726,9 +742,14 @@ HttpResponse ApiHandler::telemetry() {
     daylight["endMinutes"] = state.daylightEndMinutes();
 
     // Where the site is, rounded to a tenth of a degree (about 11 km): enough for a weather forecast, not a street address.
+    // `set` is false until the owner has saved a location; then the built-in default is what the board is using.
+    const Site here = site_ ? site_->current() : Site();
     JsonObject site = doc["site"].to<JsonObject>();
-    site["lat"] = std::round(config::kSiteLatitude * 10) / 10;
-    site["lon"] = std::round(config::kSiteLongitude * 10) / 10;
+    site["lat"] = std::round(here.latitude * 10) / 10;
+    site["lon"] = std::round(here.longitude * 10) / 10;
+    site["set"] = site_ ? site_->isSet() : false;
+    site["timezone"] = here.timezone;
+    site["name"] = here.name;
 
     JsonObject power = doc["power"].to<JsonObject>();
     power["voltage"] = volts;

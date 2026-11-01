@@ -381,6 +381,14 @@
         #sharebox img { display: block; width: 100%; max-width: 360px; margin: 8px auto; border-radius: 12px; border: 1px solid var(--line); -webkit-touch-callout: default; user-select: auto; }
         #sharebox .hint-share { color: var(--muted); font-size: 0.88rem; margin: 6px 0; } #sharebox #share-save { width: 100%; margin-top: 6px; }
         #sharebox #share-title:focus, #fcbox #fc-title:focus { outline: none; }
+        .impchip[hidden] { display: none; }   /* the chip style sets display, which would otherwise win over the hidden attribute */
+        .impchip.warn { background: var(--warn-bg); color: var(--warn-tx); border-color: transparent; }
+        #site-box { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+        #site-box .siterow { display: flex; gap: 8px; align-items: stretch; margin: 6px 0; }
+        #site-box .siterow input { flex: 1; min-width: 0; min-height: 44px; padding: 6px 10px; border: 1px solid var(--bd2); border-radius: 8px; background: var(--field); color: var(--ink); font: inherit; font-size: 16px; }
+        #site-box select { display: block; width: 100%; min-height: 44px; margin: 6px 0; padding: 6px 8px; border: 1px solid var(--bd2); border-radius: 8px; background: var(--field); color: var(--ink); font: inherit; font-size: 16px; font-weight: 600; text-overflow: ellipsis; }
+        #site-box select[hidden], #site-box button[hidden] { display: none; }
+        #site-box #site-use { width: 100%; margin: 4px 0; background: var(--blue); color: #fff; } #site-box .help { margin: 4px 0; }
         #fcbox { z-index: 21; } #fcbox p { margin: 8px 0; } #fcbox .hint-share { color: var(--muted); font-size: 0.88rem; }
         #fcbox .fcbars { display: flex; align-items: flex-end; gap: 3px; height: 80px; margin: 10px 0 2px; padding: 0 2px; border-bottom: 1px solid var(--line); }
         #fcbox .fcbars i { flex: 1; min-width: 0; border-radius: 3px 3px 0 0; background: var(--solar); }
@@ -455,7 +463,7 @@
         <div class="stack stack-a">
         <section class="tile hero" id="hero" aria-live="polite">
             <div class="badge" id="hero-icon">⚡</div>
-            <div class="txt"><div class="title" id="hero-title">Connecting…</div><div class="sub" id="hero-sub">&nbsp;</div><button type="button" class="impchip" id="imp-chip" hidden onclick="openImpact()" aria-haspopup="dialog">Your impact ›</button><button type="button" class="impchip" id="fc-chip" hidden onclick="openForecast()" aria-haspopup="dialog">Tomorrow ›</button></div>
+            <div class="txt"><div class="title" id="hero-title">Connecting…</div><div class="sub" id="hero-sub">&nbsp;</div><button type="button" class="impchip" id="imp-chip" hidden onclick="openImpact()" aria-haspopup="dialog">Your impact ›</button><button type="button" class="impchip" id="fc-chip" hidden onclick="openForecast()" aria-haspopup="dialog">Tomorrow ›</button><button type="button" class="impchip warn" id="site-chip" hidden onclick="openSiteSettings()">Set your location ›</button></div>
             <button id="pause-btn" onclick="togglePause()"><svg class="ic" id="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><span id="pause-label">Pause</span></button>
         </section>
         <section class="tile sessdone" id="sesscard" role="status" aria-live="polite" hidden>
@@ -625,6 +633,14 @@
             </label>
             <div class="field"><label for="dl-start">Start (minutes after sunrise)</label><span class="edit"><input type="number" id="dl-start" inputmode="numeric" min="0" max="180" step="5" value="30"><button id="dl-save-start" class="savebtn" hidden aria-label="Save solar hours" title="Save" onclick="sendMargins()">✓</button></span></div>
             <div class="field"><label for="dl-end">Stop (minutes before sunset)</label><span class="edit"><input type="number" id="dl-end" inputmode="numeric" min="0" max="180" step="5" value="60"><button id="dl-save-end" class="savebtn" hidden aria-label="Save solar hours" title="Save" onclick="sendMargins()">✓</button></span></div>
+<div class="locbox" id="site-box">
+            <div class="field"><span><label for="site-q">Location</label><button type="button" class="info" data-tip="site" aria-label="Why is the location needed?">i</button></span></div>
+            <p class="help" id="site-current">Not set yet.</p>
+            <div class="siterow"><input type="text" id="site-q" inputmode="text" autocomplete="postal-code" placeholder="Zip code or town" maxlength="60" aria-label="Zip code or town"><button type="button" id="site-find" onclick="findSite()">Find</button></div>
+            <select id="site-pick" hidden aria-label="Matching places"></select>
+            <button type="button" id="site-use" hidden onclick="useSite()">Use this place</button>
+            <p class="help" id="site-status" role="status"></p>
+            </div>
 </section>
 <section class="sc" id="sec-ready"><h4>Ready by</h4>
             <label class="check"><input type="checkbox" id="goal-toggle" onchange="goalSwitch(this)"><span>Have the car ready at a set time<button type="button" class="info" data-tip="goal" aria-label="What does ready by do?">i</button></span></label>
@@ -719,6 +735,7 @@ const TIPS = {
     bars: ['Sun and grid bars', ['Each bar is the energy that charged the car that day.', 'Yellow (sun) is the part that came from your solar panels. Red (grid) is the part that came from the electric grid.']],
     saved: ['Saved', ['The money you saved by charging the car from the sun instead of the grid, for the period you picked (Today, Week, Month or the last 12 months).', 'It uses the electricity price in Settings (the gear icon at the top).']],
     gas: ['Compared with gas', ['A gas car would burn fuel for the same miles. This shows what that fuel would cost, what charging would cost with no solar, and what you actually paid.', 'The miles are an estimate: the energy the car took times your Miles per kWh. The gas price and the gas car\'s miles per gallon are yours to set in Settings (they stay on this phone); the first numbers are only a starting guess.', '"Your charging" is the grid part of the charging at your electricity price. "From charging with solar" is the Saved amount above.']],
+    site: ['Your location', ['Sunrise and sunset, the clock and the forecast depend on where your panels are. Type a zip code or a town.', 'Your phone looks it up on open-meteo.com (it sends what you typed and your phone\'s address), then tells WattSync the town\'s coordinates and time zone.', 'WattSync keeps the coordinates to about 1 km, the town\'s name and the time zone. It never keeps the zip code. The forecast only uses the area to about 11 km.', 'Saving restarts the board (about a minute) so its clock and solar hours start from the new place. On the Pi you are asked to restart the app.', 'The board knows the United States and Canadian time zones so far.']],
     forecast: ['Tomorrow\'s forecast', ['Your phone asks open-meteo.com, a free weather service, for the sunshine forecast, at most every 3 hours. It sends your approximate area (to about 11 km) and your phone\'s address, like any web page. Nothing about your charging leaves your phone.', 'The kWh figure compares your own solar over the last days with those days\' weather, so it is a rough guess. It only informs: it does not change how charging works.', 'Turn the switch off and nothing is requested.']],
     impact: ['Your impact', ['The score is out of 100. With solar: 50 points for the share of the car\'s energy that came from your panels, 30 for charging outside your expensive hours and 20 for Ready by goals met, scaled to 100.', 'Without solar, with no peak price set, or with no Ready by goal, only the parts that apply count.', 'Grades: A is 90 or more, B 75, C 60, D below that.', 'A sunny-day streak counts days the car got at least half its energy from solar. Days with no charging, or too little sun to cover the car, are skipped, not counted against you.', 'A peak-free streak counts charging days with no energy in the expensive hours. Off-peak numbers assume each charge drew evenly from start to stop.', 'Saved by Cheapest hours compares each charge with charging at full current from the moment the car was plugged in. It needs a peak price above your normal price.', 'Gas and CO2 use your miles per kWh, gas price and mpg from Settings (the first numbers are guesses), about 8.9 kg of CO2 a gallon and a rough 0.23 kg per kWh for the grid. All of it is an estimate.']],
     share: ['From your solar', ['How much of the car\'s energy, in the period you picked, came from your solar panels instead of the grid. 100% means all of it.']],
@@ -1859,6 +1876,68 @@ function ensureValueDays() {
     if (valueDays[n] === null || Date.now() - valueDaysAt[n] > 300000) loadValueDays(n);
 }
 
+// ---- Where the panels are: set once with a zip code or a town, looked up by the phone (open-meteo.com), saved on the controller ----
+// The controller keeps the coordinates (to about 1 km), the time zone and the town's name; never the zip code. Saving restarts the board.
+function siteLookupUrl(q) { return 'https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(String(q).trim()) + '&count=5&language=en&format=json'; }
+function siteQueryOk(q) { const t = String(q || '').trim(); return t.length >= 2 && t.length <= 60; }
+/** Up to five places from the lookup reply, each with the words to show, the coordinates and the time zone; entries missing any of them are left out. */
+function siteChoices(reply) {
+    const out = [];
+    ((reply && reply.results) || []).forEach(r => {
+        if (!r || !Number.isFinite(r.latitude) || !Number.isFinite(r.longitude) || !r.timezone || !r.name) return;
+        const parts = [r.name]; if (r.admin1 && r.admin1 !== r.name) parts.push(r.admin1); if (r.country_code && r.country_code !== 'US') parts.push(r.country_code);
+        const label = parts.join(', ').slice(0, 60);
+        out.push({ label, lat: r.latitude, lon: r.longitude, tz: r.timezone });
+    });
+    return out.slice(0, 5);
+}
+/** The line in Settings about the saved location. Pure and tested. */
+function siteSummary(data) {
+    const s = data && data.site;
+    if (!s || s.set === false) return 'Not set yet. A built-in default is used until you set one.';
+    return 'Saved: ' + (s.name ? s.name + ' · ' : '') + (s.timezone || '');
+}
+/** Show "Set your location" under the headline until the controller has one. An older controller that does not say is left alone. */
+function siteChipWanted(data) { return !!data && !!data.site && data.site.set === false; }
+let siteMatches = [];
+async function findSite() {
+    const q = el('site-q').value;
+    if (!siteQueryOk(q)) { setText('site-status', 'Type a zip code or a town.'); return; }
+    setText('site-status', 'Looking…'); el('site-pick').hidden = true; el('site-use').hidden = true;
+    try {
+        const res = await fetchWithTimeout(siteLookupUrl(q), undefined, 10000);
+        if (!res.ok) throw new Error('lookup');
+        siteMatches = siteChoices(await res.json());
+    } catch (e) { setText('site-status', "Couldn't look that up. Check your phone's connection and try again."); return; }
+    if (!siteMatches.length) { setText('site-status', 'Nothing found. Try the nearest town.'); return; }
+    const pick = el('site-pick'); pick.textContent = '';
+    siteMatches.forEach((m, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = m.label + ' (' + m.tz + ')'; pick.appendChild(o); });
+    pick.hidden = siteMatches.length < 2; el('site-use').hidden = false;
+    setText('site-status', siteMatches.length === 1 ? 'Found: ' + siteMatches[0].label + '. Is that right?' : 'Pick the right place, then use it.');
+}
+async function useSite() {
+    const m = siteMatches[Number(el('site-pick').value || 0)];
+    if (!m) return;
+    el('site-use').disabled = true; setText('site-status', 'Saving…');
+    const result = await postForm('/api/site', { lat: String(m.lat), lon: String(m.lon), tz: m.tz, name: m.label });   // in the body, not the address
+    el('site-use').disabled = false;
+    if (result.ok) {
+        if (lastData) lastData.site = Object.assign({}, lastData.site, { set: true, name: m.label, timezone: m.tz });
+        el('site-use').hidden = true; el('site-pick').hidden = true; el('site-q').value = '';
+        setText('site-status', result.text); toast('Location saved', 'ok', result.text);
+        renderSite(lastData);
+    } else setText('site-status', result.text);
+}
+function renderSite(data) {
+    setText('site-current', siteSummary(data));
+    const chip = el('site-chip'); chip.hidden = !siteChipWanted(data);
+}
+function openSiteSettings() {
+    openSettings();
+    setTimeout(() => { el('site-box').scrollIntoView({ block: 'center' }); el('site-q').focus({ preventScroll: true }); }, 350);
+}
+el('site-q').addEventListener('keydown', e => { if (e.key === 'Enter') findSite(); });
+
 // ---- Tomorrow: a forecast of the sun, asked for by the phone from open-meteo.com (never by the board) ----
 // Text only: it says what tomorrow looks like and roughly how much solar to expect. It changes nothing about how charging works.
 const FORECAST_EVERY_MS = 3 * 3600 * 1000, FORECAST_RETRY_MS = 15 * 60 * 1000;
@@ -1934,7 +2013,7 @@ function forecastLines(v) {
     return lines;
 }
 /** Show the forecast only for a home with solar (a meter) and when the owner has not turned it off. */
-function forecastWanted(data, enabled) { return enabled !== false && !!data && data.meterLinked !== false && !!data.site && Number.isFinite(data.site.lat) && Number.isFinite(data.site.lon); }
+function forecastWanted(data, enabled) { return enabled !== false && !!data && data.meterLinked !== false && !!data.site && data.site.set !== false && Number.isFinite(data.site.lat) && Number.isFinite(data.site.lon); }
 function forecastEnabled() { try { return localStorage.getItem('forecast') !== '0'; } catch (e) { return true; } }
 let forecastData = null, forecastAt = 0, forecastTriedAt = 0, forecastLoading = false;
 async function loadForecast() {
@@ -2679,6 +2758,7 @@ async function refresh() {
         if (!busy) { if (data.currentMode !== 'FAST' && ampsTimer !== null) cancelPending(); updateUI(data.currentMode); renderCheapPanel(data); }
         renderNoSolar(data);
         el('peak-weekends').checked = data.peakWeekends !== false;
+        renderSite(data);
         if (!peakEdited) el('peak-plan').value = planFor(data.peakStartHour, data.peakEndHour, data.peakWeekends) || (el('peak-plan').value === 'other' ? 'other' : '');
         if (!ampsEdited) { el('fast-amps-input').value = data.fastModeAmps; el('fast-amps-value').textContent = data.fastModeAmps + ' A'; }
         if (!allowanceEdited) { el('allowance-slider').value = data.gridAllowanceWatts; el('allowance-value').textContent = data.gridAllowanceWatts + ' W'; }

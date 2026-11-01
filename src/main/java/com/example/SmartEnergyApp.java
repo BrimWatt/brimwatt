@@ -35,6 +35,7 @@ public class SmartEnergyApp {
             WallboxSessionRegistry sessions = new WallboxSessionRegistry();
             StatePersistence persistence = new StatePersistence(new StateStore(AppConfig.stateFile()), state, sessions);
             persistence.restore();
+            if (state.siteSet()) AppConfig.useSite(state.siteLatitude(), state.siteLongitude(), state.siteTimezone());   // before anything reads the zone
             HistoryService history = new HistoryService(AppConfig.siteZone());
             history.setPriceProvider(t -> com.example.state.RateSchedule.centsAt(state.rateCents(), state.peakRateCents(),
                     state.peakStartHour(), state.peakEndHour(), java.time.Instant.ofEpochSecond(t).atZone(history.zone()).getHour()));

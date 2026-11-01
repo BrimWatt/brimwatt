@@ -27,6 +27,9 @@ public:
     /** Empty if the window never opens on this date (polar night, or a day too short for the margins). */
     std::optional<Span> spanFor(int64_t epochDay) const;
 
+    /** Where the sun is measured from. Set once at start-up, from the saved site. */
+    void setLocation(double latitude, double longitude) { latitude_ = latitude; longitude_ = longitude; }
+
     void setMargins(int startAfterSunriseSeconds, int endBeforeSunsetSeconds) override {
         startAfterSunrise_ = startAfterSunriseSeconds;
         endBeforeSunset_ = endBeforeSunsetSeconds;

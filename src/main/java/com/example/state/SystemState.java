@@ -25,6 +25,8 @@ public class SystemState {
     private volatile int peakRateCents = 0;
     private volatile int peakStartHour = 16;
     private volatile int peakEndHour = 21;
+    private volatile Double siteLatitude, siteLongitude;   // where the owner said the panels are; null until saved
+    private volatile String siteTimezone, siteName = "";
     private volatile boolean peakWeekends = true;   // false: the expensive hours only apply Monday to Friday
 
     /** Result of the latest control decision, shown on the dashboard. */
@@ -81,6 +83,14 @@ public class SystemState {
     }
 
     /** Whether the expensive hours also apply on Saturday and Sunday. */
+    public boolean siteSet() { return siteTimezone != null && siteLatitude != null && siteLongitude != null; }
+    public Double siteLatitude() { return siteLatitude; }
+    public Double siteLongitude() { return siteLongitude; }
+    public String siteTimezone() { return siteTimezone; }
+    public String siteName() { return siteName; }
+    public void setSite(double latitude, double longitude, String timezone, String name) {
+        this.siteLatitude = latitude; this.siteLongitude = longitude; this.siteTimezone = timezone; this.siteName = name == null ? "" : name;
+    }
     public boolean peakWeekends() { return peakWeekends; }
     public void setPeakWeekends(boolean weekends) { this.peakWeekends = weekends; }
 

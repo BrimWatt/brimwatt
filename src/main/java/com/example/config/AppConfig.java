@@ -123,15 +123,37 @@ public final class AppConfig {
         return java.nio.file.Path.of(value == null || value.isBlank() ? DEFAULT_HISTORY_FILE : value.trim());
     }
 
+    // Where the owner said the panels are (saved from the dashboard); wins over the environment variables and the built-in default.
+    private static volatile Double savedLatitude, savedLongitude;
+    private static volatile String savedZone;
+
+    /** Called once at start-up with the saved site (the zone is ignored if Java does not know it). */
+    public static void useSite(Double latitude, Double longitude, String zone) {
+        savedLatitude = latitude;
+        savedLongitude = longitude;
+        try {
+            if (zone != null) java.time.ZoneId.of(zone);
+            savedZone = zone;
+        } catch (java.time.DateTimeException e) {
+            savedZone = null;
+        }
+    }
+
     public static double siteLatitude() {
+        Double saved = savedLatitude;
+        if (saved != null) return saved;
         return envNumber(SITE_LATITUDE_ENV, DEFAULT_SITE_LATITUDE, -90, 90);
     }
 
     public static double siteLongitude() {
+        Double saved = savedLongitude;
+        if (saved != null) return saved;
         return envNumber(SITE_LONGITUDE_ENV, DEFAULT_SITE_LONGITUDE, -180, 180);
     }
 
     public static java.time.ZoneId siteZone() {
+        String saved = savedZone;
+        if (saved != null) return java.time.ZoneId.of(saved);
         String value = System.getenv(SITE_TIMEZONE_ENV);
         String name = value == null || value.isBlank() ? DEFAULT_SITE_TIMEZONE : value.trim();
         try {

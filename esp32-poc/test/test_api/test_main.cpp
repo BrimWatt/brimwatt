@@ -112,6 +112,85 @@ void test_telemetry_before_any_reading_or_charger() {
     testing::check("07:12 to 17:55", t["daylight"]["window"] | "");
 }
 
+class FakeSiteControl : public SiteControl {
+public:
+    Site site;
+    bool set = false;
+    bool restarting = false;
+    int saves = 0;
+    Site current() const override { return site; }
+    bool isSet() const override { return set; }
+    bool restartPending() const override { return restarting; }
+    void save(const Site& s) override { site = s; set = true; saves++; restarting = true; }
+};
+
+void test_the_site_can_be_set_with_a_place_a_zone_and_a_name_and_the_board_restarts() {
+    Rig r;
+    FakeSiteControl fake;
+    r.api.setSite(&fake);
+    JsonDocument before = r.telemetry();
+    TEST_ASSERT_FALSE(before["site"]["set"].as<bool>());
+
+    HttpResponse ok = r.api.handle("POST", "/api/site", {{"lat", "34.0901"}, {"lon", "-118.4065"}, {"tz", "America/Los_Angeles"}, {"name", "Beverly Hills, California"}});
+    TEST_ASSERT_EQUAL(200, ok.status);
+    TEST_ASSERT_TRUE(testing::contains(ok.body, "restarting"));
+    TEST_ASSERT_EQUAL(1, fake.saves);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001, 34.09, fake.site.latitude);        // kept to two decimals
+    TEST_ASSERT_FLOAT_WITHIN(0.0001, -118.41, fake.site.longitude);
+    testing::check("Beverly Hills, California", fake.site.name);
+
+    HttpResponse again = r.api.handle("POST", "/api/site", {{"lat", "40"}, {"lon", "-100"}, {"tz", "America/Chicago"}});
+    TEST_ASSERT_EQUAL(409, again.status);                                // already restarting
+    TEST_ASSERT_EQUAL(1, fake.saves);
+}
+
+void test_telemetry_shows_the_saved_site_rounded_and_the_name_and_zone() {
+    Rig r;
+    FakeSiteControl fake;
+    fake.site.latitude = 34.09; fake.site.longitude = -118.41; fake.site.timezone = "America/Los_Angeles"; fake.site.name = "Beverly Hills, California"; fake.set = true;
+    r.api.setSite(&fake);
+    JsonDocument t = r.telemetry();
+    TEST_ASSERT_TRUE(t["site"]["set"].as<bool>());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 34.1, t["site"]["lat"].as<double>());   // to a tenth of a degree, never the saved two decimals
+    TEST_ASSERT_FLOAT_WITHIN(0.001, -118.4, t["site"]["lon"].as<double>());
+    testing::check("America/Los_Angeles", t["site"]["timezone"] | "");
+    testing::check("Beverly Hills, California", t["site"]["name"] | "");
+    std::string body = r.api.handle("GET", "/api/telemetry", {}).body;
+    TEST_ASSERT_TRUE(body.find("34.09") == std::string::npos);
+    TEST_ASSERT_TRUE(body.find("118.41") == std::string::npos);
+}
+
+void test_a_bad_site_changes_nothing_and_says_why() {
+    Rig r;
+    FakeSiteControl fake;
+    r.api.setSite(&fake);
+    struct Case { ApiHandler::Params q; const char* part; };
+    const Case cases[] = {
+        {{{"lat", "91"}, {"lon", "0"}, {"tz", "America/Denver"}}, "Latitude"},
+        {{{"lat", "abc"}, {"lon", "0"}, {"tz", "America/Denver"}}, "Latitude"},
+        {{{"lat", "10"}, {"lon", "181"}, {"tz", "America/Denver"}}, "Longitude"},
+        {{{"lat", "10"}, {"lon", "20"}, {"tz", "Europe/Paris"}}, "time zone"},
+        {{{"lat", "10"}, {"lon", "20"}}, "Missing"},
+        {{{"lat", "10"}, {"lon", "20"}, {"tz", "America/Denver"}, {"name", std::string(61, 'x')}}, "60 characters"},
+        {{{"lat", "10"}, {"lon", "20"}, {"tz", "America/Denver"}, {"name", "bad\nname"}}, "character"},
+    };
+    for (const auto& c : cases) {
+        HttpResponse bad = r.api.handle("POST", "/api/site", c.q);
+        TEST_ASSERT_EQUAL(400, bad.status);
+        TEST_ASSERT_TRUE(testing::contains(bad.body, c.part));
+    }
+    TEST_ASSERT_EQUAL(0, fake.saves);
+    TEST_ASSERT_EQUAL(403, r.api.handle("POST", "/api/site", {{"lat", "10"}, {"lon", "20"}, {"tz", "America/Denver"}}, false).status);   // needs the safe header
+}
+
+void test_without_a_site_store_the_route_is_not_available_and_telemetry_uses_the_default() {
+    Rig r;
+    TEST_ASSERT_EQUAL(404, r.api.handle("POST", "/api/site", {{"lat", "10"}, {"lon", "20"}, {"tz", "America/Denver"}}).status);
+    JsonDocument t = r.telemetry();
+    TEST_ASSERT_FALSE(t["site"]["set"].as<bool>());
+    testing::check("America/Los_Angeles", t["site"]["timezone"] | "");
+}
+
 void test_telemetry_gives_the_site_only_to_a_tenth_of_a_degree() {
     Rig r;
     JsonDocument t = r.telemetry();
@@ -1124,6 +1203,10 @@ int main() {
     RUN_TEST(test_the_test_commands_need_a_paired_car_and_check_their_values);
     RUN_TEST(test_watch_cancel_and_forget_work_and_car_posts_need_the_safe_header);
     RUN_TEST(test_telemetry_before_any_reading_or_charger);
+    RUN_TEST(test_the_site_can_be_set_with_a_place_a_zone_and_a_name_and_the_board_restarts);
+    RUN_TEST(test_telemetry_shows_the_saved_site_rounded_and_the_name_and_zone);
+    RUN_TEST(test_a_bad_site_changes_nothing_and_says_why);
+    RUN_TEST(test_without_a_site_store_the_route_is_not_available_and_telemetry_uses_the_default);
     RUN_TEST(test_telemetry_gives_the_site_only_to_a_tenth_of_a_degree);
     RUN_TEST(test_telemetry_shows_a_charging_car_and_the_latest_decision);
     RUN_TEST(test_status_names_follow_the_dashboard_convention);

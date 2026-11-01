@@ -253,6 +253,8 @@ S += section("L. Your impact, goals, plug-in time and the share picture (not yet
      "<font face='Courier'>memory.lowest</font> says where the free memory was lowest, and <font face='Courier'>memorySamples</font> holds up to 288 five-minute samples. Free memory should stay flat; a steady downward slope would be a leak.", False),
     (78, "Tomorrow's forecast", "Open the dashboard on a phone on the home Wi-Fi in the afternoon. Tap the <i>Tomorrow</i> button under the headline.",
      "A card with an hourly sunshine chart, <i>Best solar from about 10 am to 5 pm</i>, and a kWh figure compared with your recent days (after about three days of solar history). Turn <i>Settings > Display > Show tomorrow's forecast</i> off and the button disappears and nothing is requested.", False),
+    (79, "Setting the location with a zip code", "On a phone on the home Wi-Fi tap <i>Set your location</i> under the headline (or Settings > Solar hours > Location), type your zip code, <i>Find</i>, pick the right place, <i>Use this place</i>.",
+     "<i>Location saved</i> and the board restarts (about a minute). Afterwards Settings shows <i>Saved: your town · your time zone</i>, the headline button is gone, the solar hours window matches your sunrise and sunset, clock times on the page are your local time, and the <i>Tomorrow</i> forecast appears. Try a zip in another US time zone to check the clock follows it.", True),
     (77, "Rejoining Wi-Fi after the router was off", "Switch the router off for 3 minutes, then on again.",
      "The board comes back by itself within about two minutes of the router returning (watch the dashboard reconnect). The router must be off long enough for the board to notice; it never restarts itself.", False)])
 
