@@ -112,6 +112,16 @@ void test_telemetry_before_any_reading_or_charger() {
     testing::check("07:12 to 17:55", t["daylight"]["window"] | "");
 }
 
+void test_telemetry_gives_the_site_only_to_a_tenth_of_a_degree() {
+    Rig r;
+    JsonDocument t = r.telemetry();
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 37.8, t["site"]["lat"].as<double>());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, -121.3, t["site"]["lon"].as<double>());
+    std::string body = r.api.handle("GET", "/api/telemetry", {}).body;
+    TEST_ASSERT_TRUE(body.find("37.84") == std::string::npos);     // the exact coordinates never leave the board
+    TEST_ASSERT_TRUE(body.find("121.26") == std::string::npos);
+}
+
 void test_telemetry_shows_a_charging_car_and_the_latest_decision() {
     Rig r;
     r.connectCharger(ChargerStatus::Charging);
@@ -1114,6 +1124,7 @@ int main() {
     RUN_TEST(test_the_test_commands_need_a_paired_car_and_check_their_values);
     RUN_TEST(test_watch_cancel_and_forget_work_and_car_posts_need_the_safe_header);
     RUN_TEST(test_telemetry_before_any_reading_or_charger);
+    RUN_TEST(test_telemetry_gives_the_site_only_to_a_tenth_of_a_degree);
     RUN_TEST(test_telemetry_shows_a_charging_car_and_the_latest_decision);
     RUN_TEST(test_status_names_follow_the_dashboard_convention);
     RUN_TEST(test_the_allowance_shown_by_the_controller_applies_to_eco_and_balanced_but_not_fast);

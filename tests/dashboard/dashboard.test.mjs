@@ -924,3 +924,97 @@ test('plans fill in the hours, and the box shows the plan the saved hours match'
     assert.ok(html.includes('onchange="applyPlan(this)"'));
     assert.ok(read('typeof applyPlan') === 'function' && read('typeof fillPlans') === 'function');
 });
+
+// ---- Tomorrow: the forecast ----
+// Builds a reply like Open-Meteo's: nine days of hourly sunshine (7 past, today, tomorrow) in local time, given per-day peak radiation and cloud cover.
+function fcReply(todayNum, peaks, cloud) {
+    const time = [], rad = [], cc = [];
+    for (let i = 0; i < peaks.length; i++) {
+        const day = todayNum - 7 + i, date = new Date(day * 86400000).toISOString().slice(0, 10);
+        for (let h = 0; h < 24; h++) {
+            time.push(date + 'T' + String(h).padStart(2, '0') + ':00');
+            rad.push(h < 7 || h > 17 ? 0 : Math.round(peaks[i] * Math.sin((h - 7) / 10 * Math.PI)));
+            cc.push(cloud[i]);
+        }
+    }
+    return { hourly: { time, shortwave_radiation: rad, cloud_cover: cc } };
+}
+const FC_TODAY = 20000;
+const fcDays = (solar) => ({ today: FC_TODAY, days: solar.map((s, k) => [FC_TODAY - solar.length + k, s, 20, 15, 0, 0, 1, 0]) });
+
+test('the forecast address carries only the area, to a tenth of a degree', () => {
+    const url = page.forecastUrl(37.8412, -121.2691);
+    assert.ok(url.includes('latitude=37.8&longitude=-121.3'));
+    assert.ok(!url.includes('37.84') && !url.includes('121.26'));
+    assert.ok(url.startsWith('https://api.open-meteo.com/v1/forecast?'));
+});
+
+test('day numbers from local dates match the numbering of the daily rows', () => {
+    assert.equal(page.forecastDayNumber('2026-11-01T09:00'), Math.round(Date.UTC(2026, 10, 1) / 86400000));
+    assert.ok(Number.isNaN(page.forecastDayNumber('garbage')));
+});
+
+test('tomorrow is described in words, with the best hours and a kWh figure learned from the last days', () => {
+    // last 7 days: 700 W/m2 peaks and 30 kWh of solar each; tomorrow a little stronger
+    const f = fcReply(FC_TODAY, [700, 700, 700, 700, 700, 700, 700, 700, 900], [10, 10, 10, 10, 10, 10, 10, 10, 10]);
+    const v = page.forecastView(f, fcDays([30, 30, 30, 30, 30, 30, 30]), FC_TODAY, 'ECO');
+    assert.equal(v.label, 'Mostly sunny');
+    assert.ok(v.window.from >= 9 && v.window.to <= 16 && v.window.from < v.window.to);
+    assert.ok(v.kwh > 34 && v.kwh < 44, 'a stronger day than the last ones: ' + v.kwh);
+    assert.equal(v.typicalKwh, 30);
+    assert.equal(v.comparison, 'more than lately');
+    assert.equal(v.chip, 'Tomorrow: mostly sunny ›');
+    const lines = page.forecastLines(v);
+    assert.ok(lines[0].startsWith('Solar: about ' + v.kwh + ' kWh, more than lately'));
+    assert.ok(lines[1].startsWith('Best solar from about '));
+    assert.equal(lines[2], 'Eco charges with what is left after the house takes its share.');
+    assert.ok(v.bars.length > 0 && v.bars.every(b => b.pct >= 0 && b.pct <= 100) && v.bars.some(b => b.pct === 100));
+});
+
+test('cloud cover sets the words, and a dull day gives a lower number than lately', () => {
+    const peaks = [700, 700, 700, 700, 700, 700, 700, 700, 250];
+    const f = fcReply(FC_TODAY, peaks, [10, 10, 10, 10, 10, 10, 10, 10, 85]);
+    const v = page.forecastView(f, fcDays([30, 30, 30, 30, 30, 30, 30]), FC_TODAY, 'MAX_SOLAR');
+    assert.equal(v.label, 'Cloudy');
+    assert.equal(v.comparison, 'less than lately');
+    assert.equal(page.forecastLines(v)[2], 'Max solar follows what the panels make.');
+    assert.equal(page.forecastView(fcReply(FC_TODAY, [700, 700, 700, 700, 700, 700, 700, 700, 700], [40, 40, 40, 40, 40, 40, 40, 40, 40]), fcDays([30, 30, 30, 30, 30, 30, 30]), FC_TODAY, 'FAST').label, 'Partly cloudy');
+    assert.equal(page.forecastLines(v.mode ? Object.assign({}, v, { mode: 'CHEAPEST' }) : v)[2], 'Your mode does not need the sun.');
+});
+
+test('with fewer than three usable recent days only the words are given', () => {
+    const f = fcReply(FC_TODAY, [700, 700, 700, 700, 700, 700, 700, 700, 700], [10, 10, 10, 10, 10, 10, 10, 10, 10]);
+    const v = page.forecastView(f, fcDays([0, 0, 0, 0, 0, 30, 30]), FC_TODAY, 'ECO');
+    assert.equal(v.kwh, null);
+    assert.ok(page.forecastLines(v)[0].startsWith('Solar: not enough recent days'));
+    const none = page.forecastView(f, null, FC_TODAY, 'ECO');
+    assert.equal(none.kwh, null);
+});
+
+test('no forecast for tomorrow, or a night-dark reply, gives nothing to show', () => {
+    assert.equal(page.forecastView(null, null, FC_TODAY, 'ECO'), null);
+    assert.equal(page.forecastView({ hourly: { time: [], shortwave_radiation: [], cloud_cover: [] } }, null, FC_TODAY, 'ECO'), null);
+    const f = fcReply(FC_TODAY, [700, 700, 700, 700, 700, 700, 700, 700], [10, 10, 10, 10, 10, 10, 10, 10]);   // stops at today
+    assert.equal(page.forecastView(f, fcDays([30, 30, 30]), FC_TODAY, 'ECO'), null);
+});
+
+test('the forecast is only asked for with solar, a known area, and when it is switched on', () => {
+    const data = { meterLinked: true, site: { lat: 37.8, lon: -121.3 } };
+    assert.equal(page.forecastWanted(data, true), true);
+    assert.equal(page.forecastWanted(data, false), false);
+    assert.equal(page.forecastWanted(Object.assign({}, data, { meterLinked: false }), true), false);   // no solar meter: nothing to forecast
+    assert.equal(page.forecastWanted({ meterLinked: true }, true), false);                             // no area from the controller
+    assert.equal(page.forecastWanted(null, true), false);
+});
+
+test('the forecast sheet, its button, its switch and its help text exist', () => {
+    ['fc-chip', 'fcbox', 'fc-title', 'fc-line1', 'fc-line2', 'fc-line3', 'fc-bars', 'fc-close', 'forecast-toggle'].forEach(id => assert.ok(html.includes('id="' + id + '"'), id));
+    assert.ok(html.includes('onclick="openForecast()"') && html.includes('onclick="closeForecast()"') && html.includes('onchange="forecastSwitch(this)"'));
+    assert.ok(html.includes("el('forecast-toggle').checked = forecastEnabled();"));
+    assert.ok(html.includes('open-meteo.com/'), 'credit for the weather data');
+    assert.ok(read('typeof TIPS.forecast') === 'object');
+});
+
+test('hours in the forecast text are plain: 10 am, noon is 12 pm, midnight is 12 am', () => {
+    assert.deepEqual([0, 9, 12, 13, 17].map(h => page.hourWords(h)), ['12 am', '9 am', '12 pm', '1 pm', '5 pm']);
+});
