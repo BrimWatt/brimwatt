@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <string>
 
+#include "common/MemoryWatch.h"
+
 namespace solar {
 
 /** How the device is doing, for the dashboard's diagnostics section. Fields a platform cannot supply stay at their defaults and are left out of the reply. */
@@ -18,6 +20,9 @@ struct Diagnostics {
     int freeHeapKb = -1;
     int minFreeHeapKb = -1;               // the lowest it has been since the start
     int largestBlockKb = -1;
+    int freePsramKb = -1;                 // -1 if the board has none or cannot say
+    int minFreePsramKb = -1;
+    const MemoryWatch* memoryWatch = nullptr;   // samples and the lowest point; null if the platform does not watch
     bool hasWifi = false;
     int wifiRssi = 0;                     // dBm
     std::string firmwareBuilt;            // when this firmware was compiled
