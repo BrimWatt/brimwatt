@@ -191,6 +191,7 @@
             #feed li.fresh, .sess.fresh { animation: rowin 0.45s ease-out; }
             #settingsbox:not([hidden]) .card { animation: sheetup 0.3s ease-out; }
             #impact.open { animation: sheetup 0.3s ease-out; }
+            .ring { transition: --p 0.9s ease-out; }   /* the wheel fills in when the card opens */
             #tipbox:not([hidden]) .card { animation: tipin 0.2s ease-out; }
             .sessdone:not([hidden]) { animation: rowin 0.45s ease-out; }
         }
@@ -402,9 +403,18 @@
         #impact:not(.open) { display: none; }
         #impact.open { position: fixed; left: 0; right: 0; bottom: 0; z-index: 19; max-height: 88vh; overflow-y: auto; overscroll-behavior: contain; margin: 0; border-radius: 16px 16px 0 0; padding-bottom: max(16px, env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.25); }
         #impact .imp-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-        #impact .imp-score { display: flex; align-items: baseline; gap: 10px; margin: 12px 0 2px; }
-        #impact .imp-score b { font-size: 2.6rem; line-height: 1; } #impact .imp-grade { font-size: 1.5rem; font-weight: 700; color: var(--green); }
-        #impact .imp-name { color: var(--muted); font-size: 0.85rem; }
+        /* the score wheel: a ring in the same gold-to-green as the From your solar bar, filled to the score; the grade sits in the middle */
+        @property --p { syntax: '<number>'; inherits: false; initial-value: 0; }
+        .ring { border-radius: 50%; background: conic-gradient(var(--solar) 0deg, var(--green) calc(var(--p) * 3.6deg), var(--soft) calc(var(--p) * 3.6deg) 360deg);
+                -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--t)), #000 calc(100% - var(--t) + 1px)); mask: radial-gradient(farthest-side, transparent calc(100% - var(--t)), #000 calc(100% - var(--t) + 1px)); }
+        #impact .imp-wheel { display: flex; flex-direction: column; align-items: center; margin: 10px 0 12px; }
+        #impact .wheelbox { position: relative; width: 170px; height: 170px; } #impact .wheelbox .ring { width: 100%; height: 100%; --t: 16px; }
+        #impact .wmid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+        #impact .wmid b { font-size: 3rem; font-weight: 700; color: var(--green); } #impact .wmid small { font-size: 0.82rem; color: var(--muted); margin-top: 6px; }
+        #impact .imp-name { margin-top: 8px; font-size: 0.9rem; font-weight: 600; } #impact .imp-delta { color: var(--muted); font-size: 0.8rem; }
+        .impchip.wheeled { padding-left: 4px; gap: 6px; }
+        .chipwheel { position: relative; width: 26px; height: 26px; flex: none; } .chipwheel .ring { display: block; width: 100%; height: 100%; --t: 4px; }
+        .chipwheel b { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 700; color: var(--green); }
         #impact .imp-part .row { display: flex; justify-content: space-between; gap: 8px; font-size: 0.88rem; margin-top: 8px; } #impact .imp-part .muted { color: var(--muted); }
         #impact .imp-bar { height: 6px; border-radius: 3px; background: var(--soft); overflow: hidden; margin-top: 4px; } #impact .imp-bar i { display: block; height: 100%; background: var(--green); }
         #impact .imp-nums { display: grid; gap: 6px; margin-top: 14px; font-size: 0.9rem; } #impact .imp-nums div { display: flex; justify-content: space-between; gap: 8px; }
@@ -464,7 +474,7 @@
         <div class="stack stack-a">
         <section class="tile hero" id="hero" aria-live="polite">
             <div class="badge" id="hero-icon">⚡</div>
-            <div class="txt"><div class="title" id="hero-title">Connecting…</div><div class="sub" id="hero-sub">&nbsp;</div><button type="button" class="impchip" id="imp-chip" hidden onclick="openImpact()" aria-haspopup="dialog">Your impact ›</button><button type="button" class="impchip" id="fc-chip" hidden onclick="openForecast()" aria-haspopup="dialog">Tomorrow ›</button><button type="button" class="impchip warn" id="site-chip" hidden onclick="openSiteSettings()">Set your location ›</button></div>
+            <div class="txt"><div class="title" id="hero-title">Connecting…</div><div class="sub" id="hero-sub">&nbsp;</div><button type="button" class="impchip wheeled" id="imp-chip" hidden onclick="openImpact()" aria-haspopup="dialog"><span class="chipwheel" aria-hidden="true"><span class="ring" id="imp-chip-ring" style="--p: 0"></span><b id="imp-chip-letter"></b></span><span id="imp-chip-text">Your impact ›</span></button><button type="button" class="impchip" id="fc-chip" hidden onclick="openForecast()" aria-haspopup="dialog">Tomorrow ›</button><button type="button" class="impchip warn" id="site-chip" hidden onclick="openSiteSettings()">Set your location ›</button></div>
             <button id="pause-btn" onclick="togglePause()"><svg class="ic" id="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><span id="pause-label">Pause</span></button>
         </section>
         <section class="tile sessdone" id="sesscard" role="status" aria-live="polite" hidden>
@@ -543,7 +553,10 @@
             <div id="imp-empty" hidden><p class="imp-note">No charging in this period yet. Your score appears after the car charges.</p></div>
             <div id="imp-body">
                 <div class="imp-l">
-                    <div class="imp-score"><b id="imp-score">–</b><span class="imp-grade" id="imp-grade"></span><span class="imp-name" id="imp-name">Solar Score</span></div>
+                    <div class="imp-wheel" id="imp-wheel" role="img" aria-label="Score">
+                        <div class="wheelbox"><div class="ring" id="imp-ring" style="--p: 0"></div><div class="wmid"><b id="imp-grade">–</b><small id="imp-score">–</small></div></div>
+                        <div class="imp-name" id="imp-name">Solar Score</div>
+                    </div>
                     <div id="imp-parts"></div>
                     <div class="imp-nums" id="imp-nums"></div>
                 </div>
@@ -2248,12 +2261,19 @@ function impactContext() {
 }
 let lastImpact = null;
 /** The text on the small button under the headline, for example "Solar Score 74 C ›"; empty when there is no score yet. */
+/** The colour of the grade letter: where the gold-to-green gradient of the wheel has reached at that score. Pure and tested. */
+function gradeColor(score) { const p = Math.max(0, Math.min(100, Math.round(score))); return 'color-mix(in srgb, var(--green) ' + p + '%, var(--solar))'; }
+/** The words for screen readers on the wheel. */
+function wheelLabel(view) { return view && view.score ? (view.noSolar ? 'Charge Score ' : 'Solar Score ') + view.score.score + ' out of 100, grade ' + view.score.grade : 'No score yet'; }
 function impactChipText(view) { return view && view.score ? (view.noSolar ? 'Charge Score ' : 'Solar Score ') + view.score.score + ' ' + view.score.grade + ' ›' : ''; }
 function openImpact() {
     const t = el('impact');
     if (t.hidden) return;
     t.classList.add('open'); t.setAttribute('role', 'dialog'); t.setAttribute('aria-modal', 'true'); t.setAttribute('aria-labelledby', 'imp-title');
     el('impact-back').hidden = false; t.scrollTop = 0;
+    const ring = el('imp-ring'), target = lastImpact && lastImpact.score ? lastImpact.score.score : 0;
+    if (motionOk()) { ring.style.setProperty('--p', '0'); requestAnimationFrame(() => requestAnimationFrame(() => ring.style.setProperty('--p', String(target)))); }
+    else ring.style.setProperty('--p', String(target));
     el('imp-title').focus({ preventScroll: true });
 }
 function closeImpact() {
@@ -2269,11 +2289,19 @@ function renderImpact() {
     tile.hidden = false;
     ['week', 'month'].forEach(p => { const b = el('imp-tab-' + p); b.classList.toggle('active', impactPeriod === p); b.setAttribute('aria-selected', impactPeriod === p); });
     const chipText = impactChipText(v);
-    chip.hidden = !chipText; if (chipText && chip.textContent !== chipText) chip.textContent = chipText;
+    chip.hidden = !chipText;
+    if (chipText) {
+        if (el('imp-chip-text').textContent !== chipText) el('imp-chip-text').textContent = chipText;
+        el('imp-chip-ring').style.setProperty('--p', String(v.score.score));
+        el('imp-chip-letter').textContent = v.score.grade; el('imp-chip-letter').style.color = gradeColor(v.score.score);
+    }
     el('imp-body').hidden = v.empty; el('imp-empty').hidden = !v.empty;
     el('imp-share').hidden = v.empty;
     if (v.empty) return;
-    setText('imp-score', v.score ? String(v.score.score) : '–'); setText('imp-grade', v.score ? v.score.grade : '');
+    setText('imp-score', v.score ? v.score.score + ' of 100' : '–'); setText('imp-grade', v.score ? v.score.grade : '–');
+    el('imp-grade').style.color = v.score ? gradeColor(v.score.score) : '';
+    el('imp-wheel').setAttribute('aria-label', wheelLabel(v));
+    el('imp-ring').style.setProperty('--p', String(v.score ? v.score.score : 0));   // opening the card restarts it from empty so it fills in
     setText('imp-name', v.noSolar ? 'Charge Score' : 'Solar Score');
     const parts = el('imp-parts'); parts.textContent = '';
     if (v.score) v.score.parts.forEach(p => {

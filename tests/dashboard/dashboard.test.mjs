@@ -1106,3 +1106,25 @@ test('a change of unit redraws the forecast button and card, and the card has a 
     assert.ok(html.includes('id="fc-line4"'));
     assert.ok(read('typeof fillForecastSheet') === 'function');
 });
+
+test('the score wheel: a ring in the solar-to-green gradient with the grade in the middle', () => {
+    ['imp-wheel', 'imp-ring', 'imp-grade', 'imp-score', 'imp-chip-ring', 'imp-chip-letter', 'imp-chip-text'].forEach(id => assert.ok(html.includes('id="' + id + '"'), id));
+    assert.ok(html.includes("@property --p"), 'the fill is a number that can animate');
+    assert.ok(/conic-gradient\(var\(--solar\) 0deg, var\(--green\) calc\(var\(--p\) \* 3\.6deg\)/.test(html), 'same two colours as the From your solar bar');
+    assert.ok(html.includes('.vbar i { display: block; height: 100%; width: 0; border-radius: 4px; background: linear-gradient(90deg, var(--solar), var(--green))'), 'the bar it matches is unchanged');
+    const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>'));
+    const block = css.match(/@media \(prefers-reduced-motion: no-preference\) \{\s*\n\s*\.hero \.title\.swap[\s\S]*?\n        \}\n/)[0];
+    assert.ok(!/\.ring \{ transition/.test(css.replace(block, '')), 'the fill-in only runs when motion is allowed');
+});
+
+test('the grade letter takes the colour the gradient has reached, and the wheel has words for screen readers', () => {
+    assert.equal(page.gradeColor(81), 'color-mix(in srgb, var(--green) 81%, var(--solar))');
+    assert.equal(page.gradeColor(0), 'color-mix(in srgb, var(--green) 0%, var(--solar))');
+    assert.equal(page.gradeColor(150), 'color-mix(in srgb, var(--green) 100%, var(--solar))');
+    assert.equal(page.gradeColor(-5), 'color-mix(in srgb, var(--green) 0%, var(--solar))');
+    const v = page.impactView(impCtx({ days: impDays([[19999, 20, 10, 8, 0, 0, 1]]) }));
+    assert.equal(page.wheelLabel(v), 'Solar Score ' + v.score.score + ' out of 100, grade ' + v.score.grade);
+    const none = page.impactView(impCtx({ days: impDays([[19999, 0, 10, 0, 10, 0, 0]]), sessions: [impSession(-1, 22, 23, 10)] }));
+    assert.ok(page.wheelLabel(none).startsWith('Charge Score '));
+    assert.equal(page.wheelLabel(null), 'No score yet');
+});
