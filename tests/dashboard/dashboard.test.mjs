@@ -859,3 +859,68 @@ test('when the share sheet is not available the card is shown to press and hold 
     assert.ok(read('typeof showShareCard') === 'function' && read('typeof saveShareCard') === 'function' && read('typeof closeShareCard') === 'function');
     assert.ok(!/showShareCard\(blob\);[\s\S]{0,40}a\.download/.test(html.slice(html.indexOf('async function shareImpact'), html.indexOf('let shareBlob'))), 'no immediate download in shareImpact');
 });
+
+test('the score can include Ready by goals, and drops them when none was judged', () => {
+    const all = page.impactScore(0.72, 0.9, 0.8);
+    assert.equal(all.parts.length, 3);
+    assert.equal(all.score, 79);              // 36 + 27 + 16
+    assert.equal(page.impactScore(0.72, 0.9, null).parts.length, 2);
+    assert.equal(page.impactScore(null, null, 1).score, 100);
+    assert.equal(page.impactScore(null, 0.9, 0.5).parts.map(p => p.key).join(), 'offpeak,goals');
+});
+
+test('Ready by goals feed the score and give a ready streak badge', () => {
+    // rows: day, solar, car, carSolar, import, export, saved, goal outcome (0 none, 1 met, 2 missed)
+    const rows = [[19999, 20, 10, 8, 0, 0, 1, 1], [19998, 20, 10, 8, 0, 0, 1, 1], [19997, 20, 10, 8, 0, 0, 1, 0], [19996, 20, 10, 8, 0, 0, 1, 1], [19995, 20, 10, 8, 0, 0, 1, 2], [19994, 20, 10, 8, 0, 0, 1, 1]];
+    const v = page.impactView(impCtx({ days: impDays(rows) }));
+    assert.equal(v.goalsJudged, 5);
+    assert.equal(v.goalsMet, 4);
+    assert.ok(Math.abs(v.goalShare - 0.8) < 1e-9);
+    assert.ok(v.score.parts.some(p => p.key === 'goals'));
+    const ready = v.badges.find(b => b.key === 'ready');
+    assert.equal(ready.label, 'Ready on time');
+    assert.equal(ready.sub, '3 days in a row');   // 19999, 19998, 19996 met; 19995 missed ends it
+    assert.equal(v.readyStreak, 3);
+    const none = page.impactView(impCtx({ days: impDays([[19999, 20, 10, 8, 0, 0, 1, 0]]) }));
+    assert.equal(none.goalShare, null);
+    assert.equal(none.badges.some(b => b.key === 'ready'), false);
+    const old = page.impactView(impCtx({ days: impDays([[19999, 20, 10, 8, 0, 0, 1]]) }));   // an older controller sends rows with no goal column
+    assert.equal(old.goalShare, null);
+});
+
+test('Cheapest hours savings: charging that waited out the peak is compared with charging on arrival', () => {
+    const o = { startHour: 16, endHour: 21, weekends: true, rateCents: 25, peakCents: 45, maxAmps: 32, volts: 240, firstSec: 0 };
+    // plugged in at 5 pm, charged 9 pm to 11:30 pm: 20 kWh would have taken 2.6 h at 7.68 kW, all of it inside 4 to 9 pm
+    const sess = { start: IMP_START + 21 * 3600, end: IMP_START + 23.5 * 3600, kwh: 20, plugged: IMP_START + 17 * 3600, mode: 'CHEAPEST', modeMixed: false };
+    const r = page.cheapSavings([sess], impSite, o);
+    assert.equal(r.sessions, 1);
+    assert.ok(Math.abs(r.movedKwh - 20) < 1e-6);
+    assert.ok(Math.abs(r.dollars - 4) < 1e-6);     // 20 kWh x (45 - 25) cents
+    assert.equal(page.cheapSavings([Object.assign({}, sess, { plugged: 0 })], impSite, o).sessions, 0);          // no plug-in time known
+    assert.equal(page.cheapSavings([Object.assign({}, sess, { mode: 'ECO' })], impSite, o).sessions, 0);          // not a Cheapest hours charge
+    assert.equal(page.cheapSavings([Object.assign({}, sess, { modeMixed: true })], impSite, o).sessions, 0);
+    assert.equal(page.cheapSavings([sess], impSite, Object.assign({}, o, { peakCents: 25 })).dollars, 0);          // no price difference
+    assert.equal(page.cheapSavings([Object.assign({}, sess, { plugged: sess.start })], impSite, o).sessions, 0);   // it did not wait
+    // plugged in at 11 am: full speed would have finished before 4 pm, so nothing was moved
+    const early = Object.assign({}, sess, { plugged: IMP_START + 11 * 3600 });
+    assert.equal(page.cheapSavings([early], impSite, o).dollars, 0);
+});
+
+test('Saved by Cheapest hours shows in the Impact numbers only when there is something to say', () => {
+    const days = impDays([[19999, 0, 20, 0, 20, 0, 0, 0]]);
+    const sess = { start: IMP_START - 86400 + 21 * 3600, end: IMP_START - 86400 + 23.5 * 3600, kwh: 20, plugged: IMP_START - 86400 + 17 * 3600, mode: 'CHEAPEST', modeMixed: false };
+    const v = page.impactView(impCtx({ days, sessions: [sess], peakCents: 45, rateCents: 25, maxAmps: 32, volts: 240 }));
+    assert.ok(v.cheap.dollars > 3.9 && v.cheap.dollars < 4.1);
+    assert.ok(html.includes("'Saved by Cheapest hours'"));
+});
+
+test('plans fill in the hours, and the box shows the plan the saved hours match', () => {
+    assert.equal(read('PLANS').length, 2);
+    assert.equal(page.planFor(16, 21, true), 'pge-etouc');
+    assert.equal(page.planFor(16, 21, undefined), 'pge-etouc');      // weekends default on
+    assert.equal(page.planFor(16, 21, false), '');
+    assert.equal(page.planFor(17, 20, true), '');
+    ['peak-plan', 'peak-plan-note'].forEach(id => assert.ok(html.includes('id="' + id + '"'), id));
+    assert.ok(html.includes('onchange="applyPlan(this)"'));
+    assert.ok(read('typeof applyPlan') === 'function' && read('typeof fillPlans') === 'function');
+});
