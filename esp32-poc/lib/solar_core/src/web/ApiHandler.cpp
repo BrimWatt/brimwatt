@@ -76,7 +76,7 @@ HttpResponse ApiHandler::handle(const std::string& method, const std::string& pa
     if (path == "/api/days" && method == "GET") return days(query);
     if (path == "/api/sessions" && method == "GET") return sessions(query);
     if (path == "/api/events" && method == "GET") return events(query);
-    if (path == "/api/diagnostics" && method == "GET") return diagnostics();
+    if (path == "/api/diagnostics" && method == "GET") return diagnostics(query);
     if (path == "/api/export.csv" && method == "GET") return exportCsv();
     if (path == "/api/car/hotspot" && method == "GET") return hotspot();
     if (path == "/api/clock" && method == "POST") return setClock(query);
@@ -385,7 +385,7 @@ HttpResponse ApiHandler::events(const Params& query) {
     return response;
 }
 
-HttpResponse ApiHandler::diagnostics() {
+HttpResponse ApiHandler::diagnostics(const Params& query) {
     if (!diagnostics_) return text(404, "Not available");
     const Diagnostics d = diagnostics_->read();
     JsonDocument doc;
@@ -404,6 +404,20 @@ HttpResponse ApiHandler::diagnostics() {
         doc["memory"]["freeKb"] = d.freeHeapKb;
         doc["memory"]["minFreeKb"] = d.minFreeHeapKb;
         doc["memory"]["largestBlockKb"] = d.largestBlockKb;
+        if (d.freePsramKb >= 0) {
+            doc["memory"]["psramFreeKb"] = d.freePsramKb;
+            doc["memory"]["psramMinFreeKb"] = d.minFreePsramKb;
+        }
+        if (d.memoryWatch && d.memoryWatch->lowest().known) {
+            const LowestMemory& low = d.memoryWatch->lowest();
+            JsonObject o = doc["memory"]["lowest"].to<JsonObject>();
+            o["minFreeKb"] = low.minFreeKb;
+            o["atUptimeSeconds"] = low.atUptimeSeconds;
+            o["atStartUp"] = low.beforeFirstCheck;   // already that low when watching began, so the time is only an upper bound
+            if (low.atEpoch > 0) o["at"] = low.atEpoch;
+            o["freeKb"] = low.freeKb;
+            o["largestKb"] = low.largestKb;
+        }
     }
     if (d.hasWifi) doc["wifiRssi"] = d.wifiRssi;
     if (!d.firmwareBuilt.empty()) doc["firmwareBuilt"] = d.firmwareBuilt;
@@ -411,6 +425,23 @@ HttpResponse ApiHandler::diagnostics() {
     HttpResponse response;
     response.contentType = "application/json";
     serializeJson(doc, response.body);
+    // ?memory=1 adds the last 24 hours of memory samples (one every 5 minutes), written straight into the text: a JSON document of
+    // 900 numbers would need far more memory than the text does, and memory is what this is about.
+    const std::string* withSamples = find(query, "memory");
+    if (withSamples && *withSamples == "1" && d.memoryWatch && d.memoryWatch->size() > 0) {
+        const MemoryWatch& w = *d.memoryWatch;
+        std::string free, largest, psram;
+        free.reserve(w.size() * 4); largest.reserve(w.size() * 4); psram.reserve(w.size() * 5);
+        for (size_t i = 0; i < w.size(); i++) {
+            const char* comma = i ? "," : "";
+            free += comma + std::to_string(w.sample(i).freeKb);
+            largest += comma + std::to_string(w.sample(i).largestKb);
+            psram += comma + std::to_string(w.sample(i).psramKb);
+        }
+        response.body.pop_back();   // the document ends with "}": the samples go in before it
+        response.body += ",\"memorySamples\":{\"everySeconds\":" + std::to_string(MemoryWatch::kEverySeconds) + ",\"newestAtUptimeSeconds\":" +
+                         std::to_string(w.newestAtUptimeSeconds()) + ",\"freeKb\":[" + free + "],\"largestKb\":[" + largest + "],\"psramKb\":[" + psram + "]}}";
+    }
     return response;
 }
 

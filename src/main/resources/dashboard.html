@@ -178,7 +178,7 @@
         @media (prefers-reduced-motion: no-preference) {
             .hero .title.swap { animation: titlein 0.35s ease-out; }
             .hero.good .badge { animation: breathe 2.4s ease-in-out infinite; }
-            .hero.wait:not(.ring) .badge::before { opacity: 1; background: conic-gradient(from var(--a), transparent 0, var(--blue) 30%, transparent 30%); animation: wspin 1.8s linear infinite; }
+            .hero.wait:not(.ring):not(.rest) .badge::before { opacity: 1; background: conic-gradient(from var(--a), transparent 0, var(--blue) 30%, transparent 30%); animation: wspin 1.8s linear infinite; }
             .hero .badge.pop { animation: boltpop 0.5s cubic-bezier(0.3, 1.6, 0.5, 1); }
             .hero .badge.pop::after { animation: ringout 0.8s ease-out; }
             .flow.live .hub { animation: hubglow 2.6s ease-in-out infinite; }
@@ -736,6 +736,8 @@ async function loadDiagnostics() {
         if (d.restarts !== undefined) rows.push(['Restarts counted', d.restarts + (d.crashes ? ', ' + d.crashes + ' of them crashes' : ', no crashes'), d.crashes ? 'warn' : '']);
         if (d.restarts !== undefined) rows.push(['Last crash', d.lastCrash ? d.lastCrash.reason + ' · ' + ago(d.lastCrash.at) : 'none recorded', d.lastCrash ? 'bad' : 'ok']);
         if (d.memory) rows.push(['Free memory', d.memory.freeKb + ' KB' + (d.memory.minFreeKb !== undefined ? ' (lowest ' + d.memory.minFreeKb + ' KB)' : ''), '']);
+        if (d.memory && d.memory.psramFreeKb !== undefined) rows.push(['Free PSRAM', (d.memory.psramFreeKb / 1024).toFixed(1) + ' MB', '']);
+        if (d.memory && d.memory.lowest) rows.push(['Lowest memory', lowestMemoryText(d.memory.lowest, d.uptimeSeconds), '']);
         if (d.wifiRssi !== undefined) rows.push(['Wi-Fi signal', d.wifiRssi + ' dBm (' + (d.wifiRssi >= -60 ? 'good' : d.wifiRssi >= -70 ? 'fair' : 'weak') + ')', d.wifiRssi < -70 ? 'warn' : '']);
         if (d.firmwareBuilt) rows.push(['Firmware built', d.firmwareBuilt, '']);
         box.innerHTML = '';
@@ -872,6 +874,11 @@ function fmtAge(s) {
     return '~' + days + 'd ago';
 }
 /** At night the app deliberately stops reading the meter, so an old reading is expected, not a problem. */
+/** Diagnostics: where the lowest free memory was reached, in plain words ("96 KB, 3h ago", or "at start-up" when it was already that low when watching began). Pure and tested. */
+function lowestMemoryText(low, uptimeSeconds) {
+    const when = low.atStartUp ? 'during start-up' : fmtAge(Math.max(0, uptimeSeconds - low.atUptimeSeconds));
+    return low.minFreeKb + ' KB, ' + when + (low.largestKb ? ' (largest block ' + low.largestKb + ' KB)' : '');
+}
 function isResting(data) { return data.currentMode !== 'FAST' && data.currentMode !== 'CHEAPEST' && !data.daylight.open; }
 const RESTING = 'Resting until sunrise';
 function fmtClock(hhmm) { const [h, m] = hhmm.split(':').map(Number); return ((h + 11) % 12 + 1) + ':' + String(m).padStart(2, '0') + ' ' + (h >= 12 ? 'pm' : 'am'); }
@@ -941,7 +948,7 @@ function waitView(data) {
         // The price period decides, not the sun: say when charging will start. A car that is charging gets the usual headline.
         if (data.paused || !k || !k.expensiveNow || ['NONE', 'FAULTED', 'AVAILABLE', 'FINISHING'].includes(c.status) || (c.status === 'CHARGING' && c.amps > 0)) return null;
         const pv = priceView(data);
-        return { cls: 'wait', icon: '🌙', title: 'Waiting for cheaper hours', sub: 'Charging starts at ' + fmtHour(data.peakEndHour) + '.' + (pv.nextSub.startsWith('in ') ? ' (' + pv.nextSub + ')' : '') };
+        return { cls: 'wait', rest: true, icon: '🌙', title: 'Waiting for cheaper hours', sub: 'Charging starts at ' + fmtHour(data.peakEndHour) + '.' + (pv.nextSub.startsWith('in ') ? ' (' + pv.nextSub + ')' : '') };
     }
     if (data.paused || data.currentMode === 'FAST' || !k || k.failSafe || !k.hasReading) return null;
     if (['NONE', 'FAULTED', 'AVAILABLE', 'SUSPENDED_EV', 'SUSPENDED_EVSE', 'FINISHING'].includes(c.status)) return null;
@@ -954,7 +961,7 @@ function waitView(data) {
         return { cls: 'warn', icon: '🔋', title: 'Low solar, charging at ' + Math.round(c.limitAmps || c.amps) + ' A',
                  sub: homeLine + (wait ? ' Stops in ' + wait + ' if it stays low.' : ' Stops soon if it stays low.') };
     }
-    if (!data.daylight.open) return { cls: 'wait', icon: '🌙', title: 'Waiting for sunrise', sub: 'Solar charging starts after sunrise.' };
+    if (!data.daylight.open) return { cls: 'wait', rest: true, icon: '🌙', title: 'Waiting for sunrise', sub: 'Solar charging starts after sunrise.' };
     const reason = String(k.reason);
     const startW = (eco ? 7 : 6) * volts, minW = 6 * volts, needW = Math.max(0, startW - allow);
     if (reason.startsWith('surplus present'))
@@ -1560,7 +1567,7 @@ function renderHeadline(data) {
     }
     const hero = el('hero'), badge = el('hero-icon'), title = el('hero-title');
     const wasGood = hero.classList.contains('good'), titleChanged = title.textContent !== h.title;
-    hero.className = 'tile hero ' + h.cls;
+    hero.className = 'tile hero ' + h.cls + (h.rest ? ' rest' : '');   // rest: a long wait (night, expensive hours), so no spinning arc
     badge.textContent = h.icon;
     title.textContent = h.title;
     el('hero-sub').textContent = h.sub;

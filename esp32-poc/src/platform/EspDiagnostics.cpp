@@ -50,6 +50,11 @@ void EspDiagnostics::recordBoot(int64_t nowEpoch) {
     prefs.end();
 }
 
+void EspDiagnostics::service(int64_t nowEpoch) {
+    watch_.update(static_cast<uint32_t>(millis() / 1000), nowEpoch > 1700000000 ? nowEpoch : 0, static_cast<int>(ESP.getFreeHeap() / 1024),
+                  static_cast<int>(ESP.getMinFreeHeap() / 1024), static_cast<int>(ESP.getMaxAllocHeap() / 1024), static_cast<int>(ESP.getFreePsram() / 1024));
+}
+
 solar::Diagnostics EspDiagnostics::read() const {
     solar::Diagnostics d;
     d.platform = "ESP32-S3";
@@ -64,6 +69,11 @@ solar::Diagnostics EspDiagnostics::read() const {
     d.freeHeapKb = static_cast<int>(ESP.getFreeHeap() / 1024);
     d.minFreeHeapKb = static_cast<int>(ESP.getMinFreeHeap() / 1024);
     d.largestBlockKb = static_cast<int>(ESP.getMaxAllocHeap() / 1024);
+    if (ESP.getPsramSize() > 0) {
+        d.freePsramKb = static_cast<int>(ESP.getFreePsram() / 1024);
+        d.minFreePsramKb = static_cast<int>(ESP.getMinFreePsram() / 1024);
+    }
+    d.memoryWatch = &watch_;
     d.hasWifi = WiFi.isConnected();
     d.wifiRssi = d.hasWifi ? WiFi.RSSI() : 0;
     d.firmwareBuilt = built_;

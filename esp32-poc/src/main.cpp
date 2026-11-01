@@ -364,6 +364,11 @@ void loop() {
         lastCycle = millis();
         if (controller.tick()) meterPoller.request();
     }
+    static uint32_t lastMemoryWatch = 0;
+    if (millis() - lastMemoryWatch >= 5000) {   // memory samples and the lowest point, for Diagnostics
+        lastMemoryWatch = millis();
+        diagnostics.service(platform.epochSeconds());
+    }
     if (millis() - lastJournalSave >= 60UL * 1000) {   // every minute: a small journal of what is new
         lastJournalSave = millis();
         historyStore.saveJournal(history);

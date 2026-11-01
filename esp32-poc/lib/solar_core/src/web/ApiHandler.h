@@ -97,7 +97,7 @@ private:
     HttpResponse days(const Params& query);
     HttpResponse sessions(const Params& query);
     HttpResponse events(const Params& query);
-    HttpResponse diagnostics();
+    HttpResponse diagnostics(const Params& query);
     HttpResponse exportCsv();
     HttpResponse car(const std::string& path, const Params& query);
     HttpResponse teslaMode(const Params& query);

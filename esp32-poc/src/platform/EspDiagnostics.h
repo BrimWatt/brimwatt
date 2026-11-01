@@ -23,12 +23,16 @@ public:
 
     solar::Diagnostics read() const override;
 
+    /** Call every few seconds from the main loop: keeps the memory samples and notices a new lowest free heap. */
+    void service(int64_t nowEpoch);
+
 private:
     const char* built_;
     int restarts_ = -1;
     int crashes_ = -1;
     std::string lastCrash_;
     int64_t lastCrashAt_ = 0;
+    solar::MemoryWatch watch_;
 };
 
 }  // namespace device
