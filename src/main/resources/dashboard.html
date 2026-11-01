@@ -2038,6 +2038,8 @@ function forecastLines(v, miles, mpk) {
 }
 /** Show the forecast only for a home with solar (a meter) and when the owner has not turned it off. */
 function forecastWanted(data, enabled) { return enabled !== false && !!data && data.meterLinked !== false && !!data.site && data.site.set !== false && Number.isFinite(data.site.lat) && Number.isFinite(data.site.lon); }
+/** Does the forecast reply include tomorrow (the site's day after today)? After midnight an answer fetched the evening before no longer does, however recent it is. */
+function forecastCovers(f, todayNum) { return forecastByDay(f).has(todayNum + 1); }
 function forecastEnabled() { try { return localStorage.getItem('forecast') !== '0'; } catch (e) { return true; } }
 let forecastData = null, forecastAt = 0, forecastTriedAt = 0, forecastLoading = false;
 async function loadForecast() {
@@ -2045,7 +2047,7 @@ async function loadForecast() {
     const lat = lastData.site.lat, lon = lastData.site.lon;
     try {   // the last answer is kept on this phone, so a reload does not ask again
         const c = JSON.parse(localStorage.getItem('fcache') || 'null');
-        if (c && c.lat === lat && c.lon === lon && Date.now() - c.at < FORECAST_EVERY_MS) { forecastData = c.data; forecastAt = c.at; renderForecast(); return; }
+        if (c && c.lat === lat && c.lon === lon && Date.now() - c.at < FORECAST_EVERY_MS && hist && forecastCovers(c.data, hist.today)) { forecastData = c.data; forecastAt = c.at; renderForecast(); return; }
     } catch (e) { /* no cache */ }
     if (Date.now() - forecastTriedAt < FORECAST_RETRY_MS) return;
     forecastLoading = true; forecastTriedAt = Date.now();
@@ -2059,7 +2061,11 @@ async function loadForecast() {
     } catch (e) { /* no forecast: the button simply stays away */ }
     forecastLoading = false;
 }
-function ensureForecast() { if (forecastWanted(lastData, forecastEnabled()) && Date.now() - forecastAt > FORECAST_EVERY_MS) loadForecast(); }
+function ensureForecast() {
+    if (!forecastWanted(lastData, forecastEnabled())) return;
+    const dayRolled = !!forecastData && !!hist && !forecastCovers(forecastData, hist.today);   // midnight passed: the old answer has no new tomorrow
+    if (dayRolled || Date.now() - forecastAt > FORECAST_EVERY_MS) loadForecast();
+}
 let lastForecast = null;
 function renderForecast() {
     const chip = el('fc-chip');
