@@ -1134,3 +1134,13 @@ test('the headline buttons sit in one row that centres them, so a taller one (wi
     const row = html.slice(html.indexOf('<div class="chips">'), html.indexOf('</div>', html.indexOf('<div class="chips">')));
     ['imp-chip', 'fc-chip', 'site-chip'].forEach(id => assert.ok(row.includes('id="' + id + '"'), id + ' is inside the row'));
 });
+
+test('a saved forecast is only reused while it still includes tomorrow (after midnight an evening answer does not)', () => {
+    const evening = fcReply(FC_TODAY, [700, 700, 700, 700, 700, 700, 700, 700, 700], [10, 10, 10, 10, 10, 10, 10, 10, 10]);   // today and tomorrow
+    assert.equal(page.forecastCovers(evening, FC_TODAY), true);
+    assert.equal(page.forecastCovers(evening, FC_TODAY + 1), false);   // the next day: tomorrow is not in it
+    assert.equal(page.forecastCovers(null, FC_TODAY), false);
+    assert.equal(page.forecastView(evening, fcDays([30, 30, 30, 30, 30, 30, 30]), FC_TODAY + 1, 'ECO'), null);   // why the button vanished
+    assert.ok(html.includes('forecastCovers(c.data, hist.today)'), 'the saved answer is checked before it is reused');
+    assert.ok(html.includes('const dayRolled'), 'a new day asks again even inside the 3 hours');
+});
