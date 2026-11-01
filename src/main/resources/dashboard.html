@@ -381,6 +381,8 @@
         #sharebox img { display: block; width: 100%; max-width: 360px; margin: 8px auto; border-radius: 12px; border: 1px solid var(--line); -webkit-touch-callout: default; user-select: auto; }
         #sharebox .hint-share { color: var(--muted); font-size: 0.88rem; margin: 6px 0; } #sharebox #share-save { width: 100%; margin-top: 6px; }
         #sharebox #share-title:focus { outline: none; }
+        #peak-fields .planfield { margin: 4px 0; } #peak-fields .planfield label { display: block; margin-bottom: 6px; }
+        #peak-fields .planfield select { display: block; width: 100%; max-width: 100%; min-height: 44px; padding: 6px 8px; border: 1px solid var(--bd2); border-radius: 8px; background: var(--field); font: inherit; font-size: 16px; font-weight: 600; text-overflow: ellipsis; }
         #impact #imp-title:focus { outline: none; } #impact #imp-share { margin-top: 12px; }
         #impact .gotit { width: 100%; margin-top: 10px; background: var(--blue); color: #fff; }
         #impact:not(.open) { display: none; }
@@ -625,6 +627,8 @@
             <div class="field"><span><label for="rate-input">Price per kWh (cents)</label><button type="button" class="info" data-tip="price" aria-label="What is the electricity price for?">i</button></span><span class="edit"><input type="number" id="rate-input" inputmode="numeric" min="0" max="200" step="1" value="30"><button id="rate-save" class="savebtn" hidden aria-label="Save price" title="Save" onclick="sendRate()">✓</button></span></div>
             <label class="check"><input type="checkbox" id="peak-toggle" onchange="peakSwitch(this)"><span>Higher price at certain hours<button type="button" class="info" data-tip="peak" aria-label="What is the peak price?">i</button></span></label>
             <div class="subbox" id="peak-fields" hidden>
+            <div class="planfield"><label for="peak-plan">Your plan</label><select id="peak-plan" onchange="applyPlan(this)" aria-describedby="peak-plan-note"></select></div>
+            <p class="help" id="peak-plan-note">Fills in the hours as the utility published them (checked October 2026). Check your bill.</p>
             <div class="field"><span><label for="peak-cents">Peak price (cents)</label></span><span class="edit"><input type="number" id="peak-cents" inputmode="numeric" min="0" max="200" step="1" value="0"><button id="peak-save-cents" class="savebtn" hidden aria-label="Save peak price" title="Save" onclick="sendPeak()">✓</button></span></div>
             <div class="field peakhours"><label for="peak-start">Peak hours (24 h clock)</label><span class="edit"><input type="number" id="peak-start" inputmode="numeric" min="0" max="23" step="1" value="16" aria-label="Peak starts at hour"><button id="peak-save-start" class="savebtn" hidden aria-label="Save peak hours" title="Save" onclick="sendPeak()">✓</button></span><span class="edit"><input type="number" id="peak-end" inputmode="numeric" min="1" max="24" step="1" value="21" aria-label="Peak ends at hour"><button id="peak-save-end" class="savebtn" hidden aria-label="Save peak hours" title="Save" onclick="sendPeak()">✓</button></span></div>
             <label class="check"><input type="checkbox" id="peak-weekends" checked onchange="sendWeekends(this)"><span>Also on weekends<button type="button" class="info" data-tip="weekends" aria-label="What does this change?">i</button></span></label>
@@ -699,7 +703,7 @@ const TIPS = {
     bars: ['Sun and grid bars', ['Each bar is the energy that charged the car that day.', 'Yellow (sun) is the part that came from your solar panels. Red (grid) is the part that came from the electric grid.']],
     saved: ['Saved', ['The money you saved by charging the car from the sun instead of the grid, for the period you picked (Today, Week, Month or the last 12 months).', 'It uses the electricity price in Settings (the gear icon at the top).']],
     gas: ['Compared with gas', ['A gas car would burn fuel for the same miles. This shows what that fuel would cost, what charging would cost with no solar, and what you actually paid.', 'The miles are an estimate: the energy the car took times your Miles per kWh. The gas price and the gas car\'s miles per gallon are yours to set in Settings (they stay on this phone); the first numbers are only a starting guess.', '"Your charging" is the grid part of the charging at your electricity price. "From charging with solar" is the Saved amount above.']],
-    impact: ['Your impact', ['The score is out of 100. With solar: 50 points for the share of the car\'s energy that came from your panels, 30 for charging outside your expensive hours, scaled to 100.', 'Without solar, or with no peak price set, only the parts that apply count. Ready by goals are left out for now because they are not recorded yet.', 'Grades: A is 90 or more, B 75, C 60, D below that.', 'A sunny-day streak counts days the car got at least half its energy from solar. Days with no charging, or too little sun to cover the car, are skipped, not counted against you.', 'A peak-free streak counts charging days with no energy in the expensive hours. Off-peak numbers assume each charge drew evenly from start to stop.', 'Gas and CO2 use your miles per kWh, gas price and mpg from Settings (the first numbers are guesses), about 8.9 kg of CO2 a gallon and a rough 0.23 kg per kWh for the grid. All of it is an estimate.']],
+    impact: ['Your impact', ['The score is out of 100. With solar: 50 points for the share of the car\'s energy that came from your panels, 30 for charging outside your expensive hours and 20 for Ready by goals met, scaled to 100.', 'Without solar, with no peak price set, or with no Ready by goal, only the parts that apply count.', 'Grades: A is 90 or more, B 75, C 60, D below that.', 'A sunny-day streak counts days the car got at least half its energy from solar. Days with no charging, or too little sun to cover the car, are skipped, not counted against you.', 'A peak-free streak counts charging days with no energy in the expensive hours. Off-peak numbers assume each charge drew evenly from start to stop.', 'Saved by Cheapest hours compares each charge with charging at full current from the moment the car was plugged in. It needs a peak price above your normal price.', 'Gas and CO2 use your miles per kWh, gas price and mpg from Settings (the first numbers are guesses), about 8.9 kg of CO2 a gallon and a rough 0.23 kg per kWh for the grid. All of it is an estimate.']],
     share: ['From your solar', ['How much of the car\'s energy, in the period you picked, came from your solar panels instead of the grid. 100% means all of it.']],
     hours: ['Solar hours', ['Eco and Max solar only work during the day: from a little after sunrise until a little before sunset. Outside these hours they do nothing.', 'You can change how many minutes after sunrise it starts, and before sunset it stops, in the two boxes below.', 'Custom works at any time.']],
     car: ['Tesla', ['WattSync reads your Tesla over Bluetooth: the battery, the charge limit and the charging current. It only reads. The buttons under For testing in Settings are the only things that change the car, and only when you press them.', 'The controller must be near the car. If the car cannot be reached the numbers stay as they were, with their age.']],
@@ -1519,6 +1523,30 @@ function changeCheapHours() {
     if (!el('peak-toggle').checked) { el('peak-toggle').checked = true; peakSwitch(el('peak-toggle')); }
     setTimeout(() => { const t = el('sec-money'); if (t && t.scrollIntoView) t.scrollIntoView({ block: 'start' }); }, 50);
 }
+/** Plans whose peak window is the same all year (checked October 2026). The prices change, so only hours and weekends are filled in. */
+const PLANS = [
+    { id: 'pge-etouc', label: 'PG&E E-TOU-C, 4 to 9 pm every day', start: 16, end: 21, weekends: true },
+    { id: 'sce-toud49', label: 'SCE TOU-D-4-9PM, 4 to 9 pm every day', start: 16, end: 21, weekends: true },
+];
+/** Which listed plan the saved hours match, or '' (so the box can show it). Pure and tested. */
+function planFor(start, end, weekends) {
+    const p = PLANS.find(x => x.start === start && x.end === end && x.weekends === (weekends !== false));
+    return p ? p.id : '';
+}
+function fillPlans() {
+    const box = el('peak-plan'); box.textContent = '';
+    const first = document.createElement('option'); first.value = ''; first.textContent = 'Choose your plan'; box.appendChild(first);
+    PLANS.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.label; box.appendChild(o); });
+    const other = document.createElement('option'); other.value = 'other'; other.textContent = 'Something else: type the hours'; box.appendChild(other);
+}
+function applyPlan(sel) {
+    const plan = PLANS.find(x => x.id === sel.value);
+    if (!plan) return;
+    el('peak-start').value = plan.start; el('peak-end').value = plan.end;
+    el('peak-start').dispatchEvent(new Event('input'));   // shows the check mark that saves the hours
+    if (lastData && (lastData.peakWeekends !== false) !== plan.weekends) { el('peak-weekends').checked = plan.weekends; sendWeekends(el('peak-weekends')); }
+    toast('Hours filled in', 'ok', 'Tap the check mark to save them.');
+}
 async function sendWeekends(cb) {
     const result = await post('/api/rate?peakWeekends=' + (cb.checked ? 'true' : 'false'));
     if (result.ok) toast(cb.checked ? 'Expensive hours: every day' : 'Expensive hours: weekdays only', 'ok');
@@ -1848,11 +1876,12 @@ function streakOf(items, judge) {
     return { count, open: true };   // open: nothing broke it as far back as the records go, so it may be longer
 }
 function gradeOf(score) { return score >= 90 ? 'A' : score >= 75 ? 'B' : score >= 60 ? 'C' : 'D'; }
-/** 50 points for the solar share and 30 for charging outside the expensive hours; a part that does not apply is dropped and the rest share the 100. */
-function impactScore(solarShare, offShare) {
+/** 50 points for the solar share, 30 for charging outside the expensive hours and 20 for Ready by goals met; a part that does not apply is dropped and the rest share the 100. */
+function impactScore(solarShare, offShare, goalShare) {
     const parts = [];
-    if (solarShare !== null) parts.push({ key: 'solar', label: 'Solar share', weight: 50, share: solarShare });
-    if (offShare !== null) parts.push({ key: 'offpeak', label: 'Off-peak charging', weight: 30, share: offShare });
+    if (solarShare != null) parts.push({ key: 'solar', label: 'Solar share', weight: 50, share: solarShare });
+    if (offShare != null) parts.push({ key: 'offpeak', label: 'Off-peak charging', weight: 30, share: offShare });
+    if (goalShare != null) parts.push({ key: 'goals', label: 'Ready-by goals met', weight: 20, share: goalShare });
     const total = parts.reduce((a, p) => a + p.weight, 0);
     if (!total) return null;
     parts.forEach(p => { p.of = Math.round(p.weight / total * 100); p.points = Math.round(p.share * p.of); });
@@ -1868,6 +1897,25 @@ function ladderStep(value) {
     let earned = 0, next = IMPACT_LADDER[IMPACT_LADDER.length - 1];
     for (const m of IMPACT_LADDER) { if (value >= m) earned = m; else { next = m; break; } }
     return { earned, next, pct: Math.min(100, Math.round(value / next * 100)) };
+}
+/**
+ * What Cheapest hours saved, as an estimate: for each Cheapest-hours session where the plug-in time is known, the charge is compared with
+ * charging at the maximum current from the moment the car was plugged in. The energy that would have fallen in the expensive hours and did
+ * not, times the price difference. Needs a peak price above the normal price; sessions with no plug-in time, or none waiting, count for nothing.
+ * o: startHour, endHour, weekends, rateCents, peakCents, maxAmps, volts, firstSec.
+ */
+function cheapSavings(sessions, site, o) {
+    const out = { dollars: 0, movedKwh: 0, sessions: 0 };
+    if (!(o.peakCents > o.rateCents)) return out;
+    const share = (from, minutes) => { let n = 0; for (let i = 0; i < minutes; i++) if (isExpensiveHour(siteMoment(from + i * 60 + 30, site), o.startHour, o.endHour, o.weekends)) n++; return n / minutes; };
+    (sessions || []).forEach(x => {
+        if (x.mode !== 'CHEAPEST' || x.modeMixed || !(x.kwh > 0) || !(x.end > x.start) || !(x.plugged > 0) || x.plugged >= x.start || x.start < o.firstSec) return;
+        const baseMinutes = Math.max(1, Math.round(x.kwh / (o.maxAmps * o.volts / 1000) * 60));
+        const actualMinutes = Math.max(1, Math.round((x.end - x.start) / 60));
+        const moved = Math.max(0, x.kwh * share(x.plugged, baseMinutes) - x.kwh * share(x.start, actualMinutes));
+        out.movedKwh += moved; out.dollars += moved * (o.peakCents - o.rateCents) / 100; out.sessions++;
+    });
+    return out;
 }
 function impactRows(days, totals, today) {
     const rows = new Map();
@@ -1891,8 +1939,11 @@ function impactView(ctx) {
     const sessKwh = inWindow.reduce((a, d) => a + d.kwh, 0), peakKwh = inWindow.reduce((a, d) => a + d.peakKwh, 0);
     const offShare = ctx.offpeakApplies && sessKwh >= 0.05 ? 1 - peakKwh / sessKwh : null;
     const solarShare = noSolar || car < 0.05 ? null : sun / car;
+    const goalRows = ctx.days ? ctx.days.days.filter(r => r[7] === 1 || r[7] === 2) : [];
+    const goalsInWindow = goalRows.filter(r => r[0] >= first && r[0] <= today), goalsMet = goalsInWindow.filter(r => r[7] === 1).length;
+    const goalShare = goalsInWindow.length ? goalsMet / goalsInWindow.length : null;
     const view = { period: ctx.period, noSolar, empty: car < 0.05, car, sun, solarShare, offShare, outsidePeakKwh: Math.max(0, sessKwh - peakKwh), peakKwh,
-                   score: car < 0.05 ? null : impactScore(solarShare, offShare), numbers: impactNumbers(car, sun, ctx.rateCents, ctx.mpk, ctx.mpg, ctx.price), badges: [] };
+                   goalShare, goalsMet, goalsJudged: goalsInWindow.length, score: car < 0.05 ? null : impactScore(solarShare, offShare, goalShare), numbers: impactNumbers(car, sun, ctx.rateCents, ctx.mpk, ctx.mpg, ctx.price), badges: [] };
     const ordered = [...rows.entries()].filter(e => e[0] <= today).sort((a, b) => b[0] - a[0]).slice(0, 30);
     let streak = null;
     if (!noSolar) {
@@ -1914,6 +1965,13 @@ function impactView(ctx) {
     }
     const miles = noSolar ? view.numbers.miles : view.numbers.sunMiles, step = ladderStep(miles);
     view.badges.push({ key: 'miles', label: noSolar ? 'Miles driven' : 'Solar miles', sub: Math.round(miles) + ' of ' + step.next, pct: step.pct, earned: step.earned > 0, earnedAt: step.earned });
+    if (goalRows.length) {
+        const run = streakOf([...goalRows].sort((a, b) => b[0] - a[0]), r => r[7] === 1 ? 'pass' : 'fail');
+        view.badges.push({ key: 'ready', label: 'Ready on time', sub: run.count + (run.open && run.count >= 7 ? '+' : '') + (run.count === 1 ? ' day' : ' days') + ' in a row', pct: Math.round(Math.min(run.count, 7) / 7 * 100), earned: run.count >= 7 });
+        view.readyStreak = run.count;
+    }
+    view.cheap = cheapSavings(ctx.sessions, ctx.site, { startHour: ctx.peakStart, endHour: ctx.peakEnd, weekends: ctx.weekends, rateCents: ctx.rateCents, peakCents: ctx.peakCents || 0,
+                                                           maxAmps: ctx.maxAmps || 32, volts: ctx.volts || 240, firstSec: ctx.site.dayStart - (n - 1) * 86400 });
     view.card = shareCardLines(view, ctx.period);
     return view;
 }
@@ -1948,7 +2006,7 @@ function impactContext() {
     return { period: impactPeriod, days: valueDays[30], totals: hist ? hist.totals : null, sessions: impactSessions,
              site: { dayStart: hist.dayStart, today: hist.today }, rateCents: d.rateCents || 30, peakStart: d.peakStartHour, peakEnd: d.peakEndHour,
              weekends: d.peakWeekends !== false, offpeakApplies: (d.peakRateCents > 0) || d.currentMode === 'CHEAPEST', mpk: milesPerKwh, mpg: gasMpg, price: gasPrice,
-             meterLinked: d.meterLinked };
+             meterLinked: d.meterLinked, peakCents: d.peakRateCents || 0, maxAmps: d.maxAmps || 32, volts: (d.power && d.power.voltage) || 240 };
 }
 let lastImpact = null;
 /** The text on the small button under the headline, for example "Solar Score 74 C ›"; empty when there is no score yet. */
@@ -1992,6 +2050,7 @@ function renderImpact() {
     const nm = v.numbers, rows = [];
     rows.push([v.noSolar ? 'Miles driven' : 'Miles on solar', '~' + Math.round(v.noSolar ? nm.miles : nm.sunMiles).toLocaleString()]);
     rows.push(['Cheaper than gas by', '$' + Math.max(0, Math.round(nm.cheaperBy)).toLocaleString()]);
+    if (v.cheap && v.cheap.sessions && v.cheap.dollars >= 0.5) rows.push(['Saved by Cheapest hours', '~$' + Math.round(v.cheap.dollars).toLocaleString()]);
     if (!v.noSolar) rows.push(['CO2 avoided vs gas', Math.max(0, Math.round(nm.co2Avoided)).toLocaleString() + ' kg']);
     else if (v.offShare !== null) rows.push(['Outside the peak', Math.round(v.outsidePeakKwh) + ' of ' + Math.round(v.outsidePeakKwh + v.peakKwh) + ' kWh']);
     const nums = el('imp-nums'); nums.textContent = '';
@@ -2477,6 +2536,7 @@ async function refresh() {
         if (!busy) { if (data.currentMode !== 'FAST' && ampsTimer !== null) cancelPending(); updateUI(data.currentMode); renderCheapPanel(data); }
         renderNoSolar(data);
         el('peak-weekends').checked = data.peakWeekends !== false;
+        if (!peakEdited) el('peak-plan').value = planFor(data.peakStartHour, data.peakEndHour, data.peakWeekends) || (el('peak-plan').value === 'other' ? 'other' : '');
         if (!ampsEdited) { el('fast-amps-input').value = data.fastModeAmps; el('fast-amps-value').textContent = data.fastModeAmps + ' A'; }
         if (!allowanceEdited) { el('allowance-slider').value = data.gridAllowanceWatts; el('allowance-value').textContent = data.gridAllowanceWatts + ' W'; }
         if (!rateEdited && document.activeElement !== el('rate-input')) el('rate-input').value = data.rateCents;
@@ -2731,6 +2791,7 @@ new ResizeObserver(() => drawFlow()).observe(el('flowgrid'));
     }, { passive: true });
     document.addEventListener('touchcancel', reset, { passive: true });
 })();
+fillPlans();
 refresh(); refreshHistory();
 let pollTick = 0;
 setInterval(() => { pollTick++; if (failedPolls < 3 || pollTick % 3 === 0) refresh(); }, 2500);   // every 2.5 s, and every ~7.5 s once it is clearly down
