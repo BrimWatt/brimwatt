@@ -420,4 +420,77 @@ class HistoryServiceTest {
         assertEquals(1, old.recentSessions(5).size());
         assertEquals(0, old.recentSessions(5).get(0).savedCents);
     }
+
+    @Test
+    void aSessionRemembersWhenTheCarWasPluggedIn() {
+        minute(2000, 0, 0);
+        history.notePluggedIn();
+        long pluggedAt = clock.get() / 1000;
+        for (int i = 0; i < 90; i++) minute(2000, 0, 0);
+        history.sessionStarted(0);
+        for (int i = 0; i < 10; i++) minute(3000, 0, 1000);
+        assertEquals(pluggedAt, history.openSession().pluggedAt);
+        history.sessionStopped(100, "Remote");
+        assertEquals(pluggedAt, history.recentSessions(1).get(0).pluggedAt);
+        List<String> lines = new ArrayList<>();
+        history.forEachLine(lines::add);
+        HistoryService fresh = new HistoryService(LA, clock::get);
+        lines.forEach(fresh::loadLine);
+        assertEquals(pluggedAt, fresh.recentSessions(1).get(0).pluggedAt);
+    }
+
+    @Test
+    void aSessionWithNoPlugInSeenOrAnUnpluggedCarHasNoPlugInTime() {
+        minute(2000, 0, 0);
+        history.sessionStarted(0);
+        assertEquals(0, history.openSession().pluggedAt);
+        history.sessionStopped(0, "Remote");
+        history.notePluggedIn();
+        history.notePluggedOut();
+        history.sessionStarted(0);
+        assertEquals(0, history.openSession().pluggedAt);
+    }
+
+    @Test
+    void aStalePlugInTimeIsIgnored() {
+        minute(2000, 0, 0);
+        history.notePluggedIn();
+        clock.addAndGet(4L * 86400 * 1000);
+        history.sessionStarted(0);
+        assertEquals(0, history.openSession().pluggedAt);
+    }
+
+    @Test
+    void aGoalResultIsKeptPerDaySurvivesSavingAndOldFilesStillLoad() {
+        minute(2000, 0, 0);
+        long deadline = clock.get() / 1000;
+        history.recordGoalResult(deadline, true, 20000, 21500);
+        assertEquals(1, history.goalOutcome(today()));
+        assertEquals(0, history.goalOutcome(today().minusDays(1)));
+        history.recordGoalResult(deadline - 86400, false, 20000, 9000);
+        assertEquals(2, history.goalOutcome(today().minusDays(1)));
+        assertTrue(history.recentEvents(5).stream().anyMatch(e -> e.text().startsWith("Departure goal met: 21.5 of 20.0 kWh")));
+        assertTrue(history.recentEvents(5).stream().anyMatch(e -> e.text().startsWith("Departure goal missed")));
+        List<String> lines = new ArrayList<>();
+        history.forEachLine(lines::add);
+        assertTrue(lines.stream().anyMatch(l -> l.startsWith("G\t")));
+        HistoryService fresh = new HistoryService(LA, clock::get);
+        lines.forEach(fresh::loadLine);
+        assertEquals(1, fresh.goalOutcome(today()));
+        assertEquals(2, fresh.goalOutcome(today().minusDays(1)));
+        HistoryService old = new HistoryService(LA, clock::get);
+        lines.stream().filter(l -> !l.startsWith("G\t")).forEach(old::loadLine);   // a file from before this existed
+        assertEquals(0, old.goalOutcome(today()));
+    }
+
+    @Test
+    void aJournalCarriesRecentGoalResults() {
+        minute(2000, 0, 0);
+        history.markClean();
+        minute(2000, 0, 0);
+        history.recordGoalResult(clock.get() / 1000, true, 20000, 22000);
+        List<String> lines = new ArrayList<>();
+        history.forEachJournalLine(lines::add);
+        assertTrue(lines.stream().anyMatch(l -> l.startsWith("G\t")));
+    }
 }

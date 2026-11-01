@@ -696,6 +696,54 @@ void test_the_departure_goal_needs_a_car_and_is_ignored_when_off_or_paused() {
     TEST_ASSERT_FALSE(r.state.goalForcing());                // turned off
 }
 
+// ---- recording whether the goal was reached ----
+
+void advance(Rig& r, int seconds) { r.platform.epoch += seconds; r.platform.now += seconds * 1000LL; }
+
+/** Sets a 1 kWh goal due in `minutes`, takes the baseline look, then feeds `watts` of car draw every minute until just after the deadline. */
+void run_goal_night(Rig& r, int minutes, double carWatts) {
+    r.schedule.open = false;
+    r.controller.setGoal(1, minutesFromNow(r, minutes));
+    r.controller.tick();                                     // the first look only sets the baseline
+    for (int i = 0; i < minutes; i++) { advance(r, 60); r.history.recordSample(0, 0, carWatts, ChargingMode::Eco, false); }
+    advance(r, 20);
+    r.controller.tick();                                     // the deadline has just passed
+}
+
+void test_a_goal_reached_by_the_deadline_is_recorded_as_met() {
+    Rig r;
+    r.waiting();
+    run_goal_night(r, 15, 6000);                             // 15 min at 6 kW is 1.5 kWh
+    TEST_ASSERT_EQUAL(1, r.history.goalOutcome(r.history.localDay(r.platform.epoch - 20)));
+    TEST_ASSERT_TRUE(r.logged("Departure goal met"));
+    r.controller.tick();                                     // not judged twice
+    int met = 0;
+    for (const auto& e : r.history.recentEvents(50)) if (e.text.find("Departure goal met") != std::string::npos) met++;
+    TEST_ASSERT_EQUAL(1, met);
+}
+
+void test_a_goal_not_reached_with_a_car_plugged_in_is_recorded_as_missed() {
+    Rig r;
+    r.waiting();
+    run_goal_night(r, 15, 300);
+    TEST_ASSERT_EQUAL(2, r.history.goalOutcome(r.history.localDay(r.platform.epoch - 20)));
+    TEST_ASSERT_TRUE(r.logged("Departure goal missed"));
+}
+
+void test_no_car_and_no_energy_means_there_was_nothing_to_judge() {
+    Rig r;                                                   // never plugged in
+    run_goal_night(r, 15, 0);
+    TEST_ASSERT_EQUAL(0, r.history.goalOutcome(r.history.localDay(r.platform.epoch - 20)));
+}
+
+void test_a_paused_system_never_judges_a_goal() {
+    Rig r;
+    r.waiting();
+    r.controller.setPaused(true);
+    run_goal_night(r, 15, 6000);
+    TEST_ASSERT_EQUAL(0, r.history.goalOutcome(r.history.localDay(r.platform.epoch - 20)));
+}
+
 void test_the_departure_goal_is_range_checked_saved_and_restored() {
     Rig r;
     TEST_ASSERT_FALSE(r.controller.setGoal(101, 420));
@@ -777,6 +825,10 @@ int main() {
     RUN_TEST(test_saved_daylight_margins_are_restored_and_given_to_the_window);
     RUN_TEST(test_the_departure_goal_waits_while_there_is_time_then_takes_over_even_at_night);
     RUN_TEST(test_the_departure_goal_needs_a_car_and_is_ignored_when_off_or_paused);
+    RUN_TEST(test_a_goal_reached_by_the_deadline_is_recorded_as_met);
+    RUN_TEST(test_a_goal_not_reached_with_a_car_plugged_in_is_recorded_as_missed);
+    RUN_TEST(test_no_car_and_no_energy_means_there_was_nothing_to_judge);
+    RUN_TEST(test_a_paused_system_never_judges_a_goal);
     RUN_TEST(test_the_departure_goal_is_range_checked_saved_and_restored);
     RUN_TEST(test_goal_arithmetic);
     RUN_TEST(test_cheapest_hours_charges_at_the_maximum_in_the_cheap_hours_without_the_sun);

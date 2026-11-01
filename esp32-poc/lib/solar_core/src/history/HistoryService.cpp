@@ -146,8 +146,30 @@ void HistoryService::sessionStarted(double meterStartWh) {
     HistorySession session;
     session.start = static_cast<uint32_t>(now);
     session.meterStartWh = meterStartWh;
+    session.pluggedAt = pluggedAt_ > 0 && pluggedAt_ <= now && now - pluggedAt_ < 3 * 86400 ? pluggedAt_ : 0;
     open_ = session;
     dirty_ = journalDirty_ = true;
+}
+
+void HistoryService::notePluggedIn() {
+    const int64_t now = platform_.epochSeconds();
+    pluggedAt_ = now < kMinValidEpoch ? 0 : static_cast<uint32_t>(now);
+}
+
+void HistoryService::recordGoalResult(int64_t deadlineEpoch, bool met, double targetWh, double doneWh) {
+    GoalResult r;
+    r.met = met; r.targetWh = targetWh; r.doneWh = doneWh;
+    goals_[localDay(deadlineEpoch)] = r;
+    while (goals_.size() > kMaxDays) goals_.erase(goals_.begin());
+    dirty_ = journalDirty_ = true;
+    char text[80];
+    std::snprintf(text, sizeof text, met ? "Departure goal met: %.1f of %.1f kWh" : "Departure goal missed: %.1f of %.1f kWh", doneWh / 1000, targetWh / 1000);
+    addEvent(text);
+}
+
+int HistoryService::goalOutcome(int64_t epochDay) const {
+    auto it = goals_.find(epochDay);
+    return it == goals_.end() ? 0 : it->second.met ? 1 : 2;
 }
 
 void HistoryService::sessionStopped(double meterStopWh, const std::string& reason) {
@@ -263,11 +285,15 @@ void HistoryService::forEachLine(const std::function<void(const std::string&)>& 
                       d.second.carWh, d.second.carSolarWh, d.second.importWh, d.second.exportWh, d.second.savedCents);
         write(buffer);
     }
+    for (const auto& g : goals_) {   // its own line type, so an older version reading the file just skips it
+        std::snprintf(buffer, sizeof buffer, "G\t%lld\t%d\t%.0f\t%.0f", (long long)g.first, g.second.met ? 1 : 2, g.second.targetWh, g.second.doneWh);
+        write(buffer);
+    }
     auto sessionLine = [&](char tag, const HistorySession& x) {
         std::snprintf(buffer, sizeof buffer, "%c\t%u\t%u\t%.1f\t%.1f\t%.1f\t%.1f\t", tag, (unsigned)x.start, (unsigned)x.end,
                       x.meterStartWh, x.meterWh, x.estimatedWh, x.sunWh);
-        char saved[40];
-        std::snprintf(saved, sizeof saved, "\t%.2f\t%d\t%d", x.savedCents, x.mode, x.mixed ? 1 : 0);   // after the reason, so older readers still find it
+        char saved[64];
+        std::snprintf(saved, sizeof saved, "\t%.2f\t%d\t%d\t%u", x.savedCents, x.mode, x.mixed ? 1 : 0, (unsigned)x.pluggedAt);   // after the reason, so older readers still find it
         write(std::string(buffer) + x.reason + saved);
     };
     for (const auto& x : sessions_) sessionLine('T', x);
@@ -296,11 +322,16 @@ void HistoryService::forEachJournalLine(const std::function<void(const std::stri
                       d.second.carWh, d.second.carSolarWh, d.second.importWh, d.second.exportWh, d.second.savedCents);
         write(buffer);
     }
+    for (const auto& g : goals_) {
+        if (g.first < localDay(mainSavedAt_) - 1) continue;   // its own line type, so an older version reading the file just skips it
+        std::snprintf(buffer, sizeof buffer, "G\t%lld\t%d\t%.0f\t%.0f", (long long)g.first, g.second.met ? 1 : 2, g.second.targetWh, g.second.doneWh);
+        write(buffer);
+    }
     auto sessionLine = [&](char tag, const HistorySession& x) {
         std::snprintf(buffer, sizeof buffer, "%c\t%u\t%u\t%.1f\t%.1f\t%.1f\t%.1f\t", tag, (unsigned)x.start, (unsigned)x.end,
                       x.meterStartWh, x.meterWh, x.estimatedWh, x.sunWh);
-        char saved[40];
-        std::snprintf(saved, sizeof saved, "\t%.2f\t%d\t%d", x.savedCents, x.mode, x.mixed ? 1 : 0);   // after the reason, so older readers still find it
+        char saved[64];
+        std::snprintf(saved, sizeof saved, "\t%.2f\t%d\t%d\t%u", x.savedCents, x.mode, x.mixed ? 1 : 0, (unsigned)x.pluggedAt);   // after the reason, so older readers still find it
         write(std::string(buffer) + x.reason + saved);
     };
     for (const auto& x : sessions_) if (since(x.end)) sessionLine('T', x);
@@ -375,6 +406,7 @@ void HistoryService::loadLine(const std::string& line) {
                 x.reason = p.size() > 7 ? p[7] : "";
                 x.savedCents = p.size() > 8 ? std::atof(p[8].c_str()) : 0;   // older files have no money column
                 if (p.size() > 10) { x.mode = std::atoi(p[9].c_str()); x.mixed = p[10] == "1"; }   // older files have no mode
+                if (p.size() > 11) x.pluggedAt = static_cast<uint32_t>(std::strtoul(p[11].c_str(), nullptr, 10));   // older files do not know when the car was plugged in
                 if (x.start == 0) return;
                 if (p[0][0] == 'T') {
                     for (const auto& known : sessions_) if (known.start == x.start) return;
@@ -393,6 +425,15 @@ void HistoryService::loadLine(const std::string& line) {
                 for (const auto& known : events_) if (known.t == at && known.text == p[2]) return;
                 events_.push_back({static_cast<uint32_t>(std::strtoul(p[1].c_str(), nullptr, 10)), p[2]});
                 while (events_.size() > kMaxEvents) events_.pop_front();
+            }
+            break;
+        case 'G':
+            if (p.size() == 5) {
+                GoalResult r;
+                r.met = p[2] == "1";
+                r.targetWh = std::atof(p[3].c_str());
+                r.doneWh = std::atof(p[4].c_str());
+                goals_[std::atoll(p[1].c_str())] = r;
             }
             break;
         case 'D':

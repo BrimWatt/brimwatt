@@ -34,6 +34,11 @@ inline int64_t nextDeadline(int64_t nowEpoch, int utcOffsetSeconds, int goalMinu
     return nowEpoch + delta;
 }
 
+/** The most recent deadline that has already passed (or is right now): the one before nextDeadline. */
+inline int64_t previousDeadline(int64_t nowEpoch, int utcOffsetSeconds, int goalMinutes) {
+    return nextDeadline(nowEpoch, utcOffsetSeconds, goalMinutes) - 86400;
+}
+
 inline Decision decide(double goalWh, double doneWh, int64_t secondsLeft, int minAmps, int maxAmps, double volts) {
     Decision d;
     d.remainingWh = std::max(0.0, goalWh - doneWh);

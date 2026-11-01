@@ -77,10 +77,15 @@ void registerCoreHandlers(OcppRouter& router, Platform& platform, std::function<
             ChargerStatus before = c.status();
             c.setStatus(status);
             if (history) {
-                if (status == ChargerStatus::Preparing && before == ChargerStatus::Available) history->addEvent("Car plugged in");
+                if (status == ChargerStatus::Preparing && before == ChargerStatus::Available) {
+                    history->addEvent("Car plugged in");
+                    history->notePluggedIn();
+                }
                 if (status == ChargerStatus::Available && before != ChargerStatus::Available &&
-                    before != ChargerStatus::Unknown)
+                    before != ChargerStatus::Unknown) {
                     history->addEvent("Car unplugged");
+                    history->notePluggedOut();
+                }
             }
             // No transaction exists in these states, so a restored one must be stale.
             if (wasRestored && (status == ChargerStatus::Available || status == ChargerStatus::Preparing ||

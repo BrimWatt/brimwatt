@@ -520,7 +520,7 @@ void test_the_days_endpoint_lists_daily_totals() {
     TEST_ASSERT_FALSE(deserializeJson(doc, response.body));
     TEST_ASSERT_TRUE(doc["days"].size() >= 2);
     JsonArray row = doc["days"][0];
-    TEST_ASSERT_EQUAL(7, row.size());                // day, solar, car, car from sun, import, export, saved
+    TEST_ASSERT_EQUAL(8, row.size());                // day, solar, car, car from sun, import, export, saved, goal outcome
     TEST_ASSERT_TRUE(row[6].as<double>() > 1);       // about 30 cents a kWh on the sun's share of 2 kW for a day
     TEST_ASSERT_TRUE(row[1].as<double>() > 10);      // solar kWh for a nearly full day of 3 kW
     TEST_ASSERT_EQUAL(400, r.api.handle("GET", "/api/days", {{"n", "0"}}).status);
@@ -673,6 +673,28 @@ void test_diagnostics_show_psram_the_lowest_memory_and_samples_only_on_request()
     TEST_ASSERT_TRUE(bare["memory"]["lowest"].isNull());
     TEST_ASSERT_TRUE(bare["memory"]["psramFreeKb"].isNull());
     TEST_ASSERT_TRUE(bare["memorySamples"].isNull());
+}
+
+void test_day_rows_end_with_the_goal_outcome_and_sessions_say_when_the_car_was_plugged_in() {
+    Rig r;
+    r.platform.epoch += 600;
+    r.history.notePluggedIn();
+    const uint32_t plugged = static_cast<uint32_t>(r.platform.epoch);
+    r.platform.epoch += 600;
+    r.history.sessionStarted(0);
+    for (int m = 0; m < 3; m++) { r.platform.epoch += 60; r.history.recordSample(3000, -500, 2400, ChargingMode::Eco, false); }
+    r.history.sessionStopped(100, "Remote");
+    r.history.recordGoalResult(r.platform.epoch, true, 20000, 21000);
+
+    JsonDocument days;
+    TEST_ASSERT_FALSE(deserializeJson(days, r.api.handle("GET", "/api/days", {{"n", "2"}}).body));
+    JsonArray row = days["days"][days["days"].size() - 1];
+    TEST_ASSERT_EQUAL(8, (int)row.size());
+    TEST_ASSERT_EQUAL(1, row[7].as<int>());
+
+    JsonDocument sessions;
+    TEST_ASSERT_FALSE(deserializeJson(sessions, r.api.handle("GET", "/api/sessions", {}).body));
+    TEST_ASSERT_EQUAL(plugged, sessions["sessions"][0]["plugged"].as<uint32_t>());
 }
 
 void test_sessions_can_be_paged_with_an_offset() {
@@ -1124,6 +1146,7 @@ int main() {
     RUN_TEST(test_changing_requests_without_the_safe_header_are_refused);
     RUN_TEST(test_events_come_one_page_at_a_time_newest_first_with_the_total);
     RUN_TEST(test_diagnostics_show_psram_the_lowest_memory_and_samples_only_on_request);
+    RUN_TEST(test_day_rows_end_with_the_goal_outcome_and_sessions_say_when_the_car_was_plugged_in);
     RUN_TEST(test_sessions_can_be_paged_with_an_offset);
     RUN_TEST(test_diagnostics_are_404_without_a_source_and_list_only_what_the_platform_knows);
     RUN_TEST(test_unknown_paths_and_wrong_methods_are_not_found);

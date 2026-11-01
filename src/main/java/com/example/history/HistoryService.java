@@ -57,6 +57,7 @@ public class HistoryService {
         public double savedCents;         // what the sun's share was worth at the prices of the hours it was charged
         public int mode = -1;             // mode code (0 Eco, 1 Max solar, 2 Custom, 3 Cheapest hours) at the first reading of the session, -1 if unknown
         public boolean mixed;             // the mode changed during the session
+        public long pluggedAt;            // when the car was plugged in before this session started, 0 if we did not see it
 
         public double energyWh() { return meterWh >= 0 ? meterWh : estimatedWh; }
 
@@ -64,9 +65,15 @@ public class HistoryService {
             Session c = new Session();
             c.start = start; c.end = end; c.meterStartWh = meterStartWh; c.meterWh = meterWh;
             c.estimatedWh = estimatedWh; c.sunWh = sunWh; c.reason = reason; c.savedCents = savedCents;
-            c.mode = mode; c.mixed = mixed;
+            c.mode = mode; c.mixed = mixed; c.pluggedAt = pluggedAt;
             return c;
         }
+    }
+
+    /** Whether a departure goal was reached by its deadline, for the local day the deadline fell on. */
+    public static class GoalResult {
+        public boolean met;
+        public double targetWh, doneWh;
     }
 
     /** Energy for one local day, in watt-hours. */
@@ -87,6 +94,8 @@ public class HistoryService {
     private final Deque<Session> sessions = new ArrayDeque<>();
     private Session open;
     private final TreeMap<LocalDate, DayTotals> days = new TreeMap<>();
+    private final TreeMap<LocalDate, GoalResult> goals = new TreeMap<>();   // one per day a goal deadline was judged
+    private long pluggedAt;   // when the car was last seen being plugged in (0 = not plugged, or not seen)
     private long lastSampleAt;
     private boolean dirty;
     private boolean journalDirty;
@@ -221,8 +230,32 @@ public class HistoryService {
         }
         open = new Session();
         open.start = now;
+        open.pluggedAt = pluggedAt > 0 && pluggedAt <= now && now - pluggedAt < 3 * 86400 ? pluggedAt : 0;
         open.meterStartWh = meterStartWh;
         dirty = journalDirty = true;
+    }
+
+    /** The car was just plugged in (the charger went from available to preparing). */
+    public synchronized void notePluggedIn() { pluggedAt = nowSeconds(); }
+
+    /** The car was unplugged. */
+    public synchronized void notePluggedOut() { pluggedAt = 0; }
+
+    /** Records whether the departure goal was reached at the deadline that has just passed. */
+    public synchronized void recordGoalResult(long deadlineEpochSeconds, boolean met, double targetWh, double doneWh) {
+        GoalResult r = new GoalResult();
+        r.met = met; r.targetWh = targetWh; r.doneWh = doneWh;
+        goals.put(localDay(deadlineEpochSeconds), r);
+        while (goals.size() > MAX_DAYS) goals.pollFirstEntry();
+        dirty = journalDirty = true;
+        addEvent(String.format(java.util.Locale.ROOT, met ? "Departure goal met: %.1f of %.1f kWh" : "Departure goal missed: %.1f of %.1f kWh",
+                doneWh / 1000, targetWh / 1000));
+    }
+
+    /** 0 if no goal was judged that day, 1 met, 2 missed. */
+    public synchronized int goalOutcome(LocalDate day) {
+        GoalResult r = goals.get(day);
+        return r == null ? 0 : r.met ? 1 : 2;
     }
 
     /** The wallbox ended the session. Ignored if we never saw it start (the app was not running). */
@@ -378,6 +411,7 @@ public class HistoryService {
             write.accept(String.format(java.util.Locale.ROOT, "D\t%d\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.2f",
                     d.getKey().toEpochDay(), t.solarWh, t.carWh, t.carSolarWh, t.importWh, t.exportWh, t.savedCents));
         }
+        for (var g : goals.entrySet()) write.accept(goalLine(g.getKey(), g.getValue()));
         for (Event e : events) write.accept("E\t" + e.t() + "\t" + e.text());
         for (Session x : sessions) write.accept(sessionLine('T', x));
         if (open != null) write.accept(sessionLine('O', open));
@@ -413,8 +447,13 @@ public class HistoryService {
     public synchronized int longRecordCount() { return fiveMin.size() + hourly.size(); }
 
     private static String sessionLine(char tag, Session x) {
-        return String.format(java.util.Locale.ROOT, "%c\t%d\t%d\t%.1f\t%.1f\t%.1f\t%.1f\t%s\t%.2f\t%d\t%d", tag, x.start, x.end,
-                x.meterStartWh, x.meterWh, x.estimatedWh, x.sunWh, x.reason, x.savedCents, x.mode, x.mixed ? 1 : 0);
+        return String.format(java.util.Locale.ROOT, "%c\t%d\t%d\t%.1f\t%.1f\t%.1f\t%.1f\t%s\t%.2f\t%d\t%d\t%d", tag, x.start, x.end,
+                x.meterStartWh, x.meterWh, x.estimatedWh, x.sunWh, x.reason, x.savedCents, x.mode, x.mixed ? 1 : 0, x.pluggedAt);
+    }
+
+    /** A goal result is its own line type, so an older version reading the file just skips it. */
+    private static String goalLine(LocalDate day, GoalResult r) {
+        return String.format(java.util.Locale.ROOT, "G\t%d\t%d\t%.0f\t%.0f", day.toEpochDay(), r.met ? 1 : 2, r.targetWh, r.doneWh);
     }
 
     /** Reads back one line written by {@link #forEachLine}. Unreadable lines are ignored. */
@@ -458,6 +497,7 @@ public class HistoryService {
                     x.reason = p.length > 7 ? p[7] : "";
                     x.savedCents = p.length > 8 ? Double.parseDouble(p[8]) : 0;   // older files have no money column
                     if (p.length > 10) { x.mode = Integer.parseInt(p[9]); x.mixed = "1".equals(p[10]); }   // older files have no mode
+                    if (p.length > 11) x.pluggedAt = Long.parseLong(p[11]);   // older files do not know when the car was plugged in
                     if (x.start <= 0) return;
                     if (p[0].charAt(0) == 'T') {
                         for (Session known : sessions) if (known.start == x.start) return;
@@ -474,6 +514,13 @@ public class HistoryService {
                     for (Event known : events) if (known.t() == at && known.text().equals(p[2])) return;
                     events.addLast(new Event(at, p[2]));
                     while (events.size() > MAX_EVENTS) events.pollFirst();
+                }
+                case 'G' -> {
+                    if (p.length != 5) return;
+                    GoalResult r = new GoalResult();
+                    r.met = "1".equals(p[2]);
+                    r.targetWh = Double.parseDouble(p[3]); r.doneWh = Double.parseDouble(p[4]);
+                    goals.put(LocalDate.ofEpochDay(Long.parseLong(p[1])), r);
                 }
                 case 'D' -> {
                     if (p.length != 7 && p.length != 8) return;
@@ -513,6 +560,7 @@ public class HistoryService {
             write.accept(String.format(java.util.Locale.ROOT, "D\t%d\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.2f",
                     d.getKey().toEpochDay(), t.solarWh, t.carWh, t.carSolarWh, t.importWh, t.exportWh, t.savedCents));
         }
+        for (var g : goals.entrySet()) if (!g.getKey().isBefore(firstDay.minusDays(1))) write.accept(goalLine(g.getKey(), g.getValue()));
         for (Session x : sessions) if (x.end >= from) write.accept(sessionLine('T', x));
         if (open != null) write.accept(sessionLine('O', open));
         for (Event e : events) if (e.t() >= from) write.accept("E\t" + e.t() + "\t" + e.text());

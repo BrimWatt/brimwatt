@@ -264,7 +264,20 @@ std::string SolarController::daylightText() const { return schedule_.describe(pl
 
 // ---------------------------------------------------------------- the poll cycle
 
+/** When a departure goal's deadline has just passed, records whether the goal was reached (once per deadline). */
+void SolarController::recordGoalOutcome() {
+    if (!history_) return;
+    const int kwh = state_.paused() || state_.mode() == ChargingMode::Fast ? 0 : state_.goalKwh();   // ignored in these, so nothing is judged
+    const int64_t now = platform_.epochSeconds();
+    const int64_t deadline = goalTracker_.due(now, platform_.utcOffsetSeconds(now), state_.goalMinutes(), kwh);
+    if (deadline < 0) return;
+    const double done = history_->carEnergyWhSince(deadline - goal::kWindowSeconds);
+    if (done < 50 && !carPluggedIn()) return;   // no car that night: nothing to judge
+    history_->recordGoalResult(deadline, done >= kwh * 1000.0, kwh * 1000.0, done);
+}
+
 bool SolarController::tick() {
+    recordGoalOutcome();
     ChargingMode mode = state_.mode();
     bool charger = wallbox_.hasConnectedChargers();
     if (mode == ChargingMode::Cheapest && !state_.paused() && charger) {

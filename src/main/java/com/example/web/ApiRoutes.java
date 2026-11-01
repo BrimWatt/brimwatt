@@ -467,6 +467,7 @@ public class ApiRoutes {
         out.put("sunKwh", kwh(Math.min(x.sunWh, x.estimatedWh)));
         out.put("avgAmps", Math.round(energyWh / hours / AppConfig.voltage() * 10) / 10.0);
         out.put("reason", x.reason);
+        out.put("plugged", x.pluggedAt);   // when the car was plugged in before this session, 0 if unknown
         out.put("saved", plausibleSaving(x.savedCents, x.sunWh) ? Math.round(x.savedCents) / 100.0 : -1);
         out.put("mode", x.mode == 0 ? "ECO" : x.mode == 1 ? "MAX_SOLAR" : x.mode == 2 ? "FAST" : x.mode == 3 ? "CHEAPEST" : "");
         out.put("modeMixed", x.mixed);
@@ -494,7 +495,7 @@ public class ApiRoutes {
             if (!e.getKey().isAfter(today.minusDays(n)) || e.getKey().isAfter(today)) continue;
             var t = e.getValue();
             rows.add(new double[] {e.getKey().toEpochDay(), kwh(t.solarWh), kwh(t.carWh), kwh(t.carSolarWh),
-                    kwh(t.importWh), kwh(t.exportWh), dollars(t)});
+                    kwh(t.importWh), kwh(t.exportWh), dollars(t), history.goalOutcome(e.getKey())});   // last: 0 no goal judged, 1 met, 2 missed
         }
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("today", today.toEpochDay());
