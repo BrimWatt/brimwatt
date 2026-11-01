@@ -712,3 +712,114 @@ test('Cheapest hours is a flat mode like Custom: no solar hours, no meter notice
     assert.equal(page.isResting(d), false);
     assert.equal(page.flatMode(base()), false);
 });
+
+// ---- Your impact: score, streaks, badges, share card ----
+const IMP_TODAY = 20000, IMP_START = IMP_TODAY * 86400;   // day 20000 is a Friday
+const impSite = { dayStart: IMP_START, today: IMP_TODAY };
+const impDays = rows => ({ today: IMP_TODAY, days: rows });
+const impCtx = extra => Object.assign({ period: 'week', days: null, totals: null, sessions: [], site: impSite, rateCents: 30, peakStart: 16, peakEnd: 21,
+    weekends: true, offpeakApplies: true, mpk: 3, mpg: 28, price: 4.6, meterLinked: true }, extra);
+const impSession = (dayOffset, fromHour, toHour, kwh) => ({ start: IMP_START + dayOffset * 86400 + fromHour * 3600, end: IMP_START + dayOffset * 86400 + toHour * 3600, kwh });
+
+test('site time: hour and weekday come from the day start, not from the phone', () => {
+    const m = page.siteMoment(IMP_START + 17 * 3600, impSite);
+    assert.deepEqual([m.day, m.hour, m.weekday], [IMP_TODAY, 17, 5]);
+    const b = page.siteMoment(IMP_START - 3600, impSite);
+    assert.deepEqual([b.day, b.hour, b.weekday], [IMP_TODAY - 1, 23, 4]);
+});
+
+test('expensive hours wrap past midnight and skip weekends when told to', () => {
+    const at = (hour, weekday) => ({ hour, weekday });
+    assert.equal(page.isExpensiveHour(at(23, 2), 21, 6, true), true);
+    assert.equal(page.isExpensiveHour(at(5, 2), 21, 6, true), true);
+    assert.equal(page.isExpensiveHour(at(6, 2), 21, 6, true), false);
+    assert.equal(page.isExpensiveHour(at(17, 2), 16, 21, true), true);
+    assert.equal(page.isExpensiveHour(at(21, 2), 16, 21, true), false);
+    assert.equal(page.isExpensiveHour(at(17, 6), 16, 21, false), false);   // Saturday, weekends off
+    assert.equal(page.isExpensiveHour(at(17, 6), 16, 21, true), true);
+});
+
+test('a charge is split by the hour: 15 to 18 with a 16 to 21 peak has two thirds in the peak', () => {
+    const d = page.perDayPeak([impSession(0, 15, 18, 6)], impSite, 16, 21, true, 0);
+    assert.equal(d.length, 1);
+    assert.equal(Math.round(d[0].kwh * 100) / 100, 6);
+    assert.equal(Math.round(d[0].peakKwh * 100) / 100, 4);
+});
+
+test('the score drops a part that does not apply and rescales the rest', () => {
+    const both = page.impactScore(0.72, 0.9);
+    assert.equal(both.score, 79); assert.equal(both.grade, 'B'); assert.equal(both.parts.length, 2);
+    assert.equal(page.impactScore(0.72, null).score, 72);
+    assert.equal(page.impactScore(null, 0.96).score, 96);
+    assert.equal(page.impactScore(null, null), null);
+    assert.deepEqual([90, 89, 75, 74, 60, 59].map(n => page.gradeOf(n)), ['A', 'B', 'B', 'C', 'C', 'D']);
+});
+
+test('planet and wallet numbers match the worked week: 78 kWh, 56 from the sun', () => {
+    const n = page.impactNumbers(78, 56, 30, 3, 28, 4.6);
+    assert.equal(Math.round(n.miles), 234);
+    assert.equal(Math.round(n.co2Avoided), 69);
+    assert.equal(Math.round(n.paid * 100) / 100, 6.6);
+    assert.equal(Math.round(n.cheaperBy), 32);
+});
+
+test('milestones: next target, last one earned, never past the top', () => {
+    assert.deepEqual(JSON.parse(JSON.stringify(page.ladderStep(0))), { earned: 0, next: 50, pct: 0 });
+    assert.deepEqual(JSON.parse(JSON.stringify(page.ladderStep(168))), { earned: 100, next: 250, pct: 67 });
+    assert.equal(page.ladderStep(6000).pct, 100);
+});
+
+test('sunny-day streak: skips days with no charge and days the sun could not cover, breaks on a grid day, ignores an unfinished today', () => {
+    const days = impDays([[19999, 20, 10, 8, 0, 0, 1], [19998, 20, 0, 0, 0, 0, 0], [19997, 5, 10, 2, 0, 0, 0], [19996, 20, 10, 9, 0, 0, 1], [19995, 20, 10, 2, 0, 0, 0]]);
+    const v = page.impactView(impCtx({ days, totals: { solarKwh: 3, carKwh: 10, carSolarKwh: 1, savedDollars: 0 } }));
+    assert.equal(v.streak.label, 'Sunny-day streak');
+    assert.equal(v.streak.count, 2);
+});
+
+test('impact view with solar: score from the sun and the off-peak share, CO2 on the card', () => {
+    const days = impDays([[19999, 20, 10, 8, 0, 0, 1], [19998, 20, 10, 9, 0, 0, 1]]);
+    const sessions = [impSession(-1, 9, 12, 10), impSession(-2, 9, 12, 10)];
+    const v = page.impactView(impCtx({ days, sessions }));
+    assert.equal(v.noSolar, false);
+    assert.ok(Math.abs(v.solarShare - 0.85) < 1e-9);
+    assert.equal(v.offShare, 1);
+    assert.equal(v.score.parts.length, 2);
+    assert.equal(v.card.gradeLabel, 'Solar Score');
+    assert.equal(v.card.b.label, 'CO2 avoided vs gas');
+});
+
+test('impact view with no solar: Charge Score, peak-free streak, money and miles on the card, no CO2', () => {
+    const days = impDays([[19999, 0, 10, 0, 10, 0, 0], [19998, 0, 10, 0, 10, 0, 0], [19997, 0, 10, 0, 10, 0, 0]]);
+    const sessions = [impSession(-1, 22, 23, 10), impSession(-2, 17, 19, 10), impSession(-3, 22, 23, 10)];   // the middle one sits in the peak
+    const v = page.impactView(impCtx({ days, sessions }));
+    assert.equal(v.noSolar, true);
+    assert.equal(v.solarShare, null);
+    assert.equal(v.score.parts.length, 1);
+    assert.equal(v.score.parts[0].key, 'offpeak');
+    assert.equal(v.streak.label, 'Peak-free streak');
+    assert.equal(v.streak.count, 1);   // yesterday is clean, the day before is not
+    assert.equal(v.card.gradeLabel, 'Charge Score');
+    assert.ok(!JSON.stringify(v.card).includes('CO2'));
+    assert.equal(v.card.a.label, 'less than gas');
+});
+
+test('impact view with no peak price and not Cheapest hours: the off-peak part is left out', () => {
+    const days = impDays([[19999, 20, 10, 8, 0, 0, 1]]);
+    const v = page.impactView(impCtx({ days, offpeakApplies: false, sessions: [impSession(-1, 17, 19, 10)] }));
+    assert.equal(v.offShare, null);
+    assert.equal(v.score.parts.length, 1);
+    assert.equal(v.badges.some(b => b.key === 'peakfree'), false);
+});
+
+test('a period with no charging is empty and has no score', () => {
+    const v = page.impactView(impCtx({ days: impDays([[19999, 20, 0, 0, 0, 0, 0]]) }));
+    assert.equal(v.empty, true);
+    assert.equal(v.score, null);
+});
+
+test('the Impact tile and its buttons exist and have help text', () => {
+    ['impact', 'imp-tab-week', 'imp-tab-month', 'imp-body', 'imp-empty', 'imp-score', 'imp-grade', 'imp-name', 'imp-parts', 'imp-nums', 'imp-streak', 'imp-streak-n', 'imp-streak-l', 'imp-badges', 'imp-share']
+        .forEach(id => assert.ok(html.includes('id="' + id + '"'), id));
+    assert.ok(read('typeof TIPS.impact') === 'object');
+    assert.ok(html.includes('onclick="shareImpact()"') && html.includes("onclick=\"setImpactPeriod('month')\""));
+});
