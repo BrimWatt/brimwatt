@@ -345,6 +345,7 @@ HttpResponse ApiHandler::sessions(const Params& query) {
         out["sunKwh"] = std::round(std::min(x.sunWh, x.estimatedWh) / 10.0) / 100.0;
         out["avgAmps"] = std::round(energyWh / hours / config::kHouseholdVoltage * 10) / 10.0;
         out["reason"] = x.reason;
+        out["tag"] = x.tag;   // fingerprint of the charger's ID tag, "" if none (never the tag itself)
         out["plugged"] = x.pluggedAt;   // when the car was plugged in before this session, 0 if unknown
         // Money recorded for only part of the session (it began before prices were recorded) would read far too low:
         // treat a price well under the cheapest rate in use as "not recorded" so the page estimates it instead.
