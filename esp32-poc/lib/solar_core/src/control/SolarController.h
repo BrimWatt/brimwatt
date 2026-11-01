@@ -10,6 +10,7 @@
 #include "daylight/DaylightSchedule.h"
 #include "history/HistoryService.h"
 #include "planner/ChargingPlanner.h"
+#include "planner/GoalTracker.h"
 #include "state/SettingsStore.h"
 #include "state/SystemState.h"
 #include "wallbox/ChargeDevice.h"
@@ -114,6 +115,7 @@ private:
     bool insideDaylightWindow(int64_t epochSeconds);
     void pauseForNight();
     bool carPluggedIn();
+    void recordGoalOutcome();   // when a goal's deadline has just passed, records whether it was reached
     bool goalTakesOver();
     void control(uint64_t now, ChargingMode mode, const MeterReading& reading);
     void showReading(uint64_t now, const MeterResult& result);
@@ -135,6 +137,7 @@ private:
     uint64_t lastErrorLogged_ = 0;
     bool failSafeActive_ = false;
     bool goalForcing_ = false;
+    GoalTracker goalTracker_;
     std::optional<bool> wasExpensive_;
     std::optional<double> lastAllowanceWatts_;
     std::optional<uint64_t> lastDisplayErrorLogged_;

@@ -34,6 +34,11 @@ public final class GoalPlanner {
         return nowEpoch + delta;
     }
 
+    /** The most recent deadline that has already passed (or is right now): the one before {@link #nextDeadline}. */
+    public static long previousDeadline(long nowEpoch, int utcOffsetSeconds, int goalMinutes) {
+        return nextDeadline(nowEpoch, utcOffsetSeconds, goalMinutes) - 86400;
+    }
+
     public static Decision decide(double goalWh, double doneWh, long secondsLeft, int minAmps, int maxAmps, double volts) {
         double remaining = Math.max(0, goalWh - doneWh);
         if (goalWh <= 0 || remaining <= 0) return new Decision(0, 0, goalWh > 0, false);

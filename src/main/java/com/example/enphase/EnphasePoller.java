@@ -88,7 +88,24 @@ public class EnphasePoller {
         logger.info("Enphase polling scheduled every {} seconds.", AppConfig.POLL_INTERVAL_SECONDS);
     }
 
+    private final com.example.charging.GoalTracker goalTracker = new com.example.charging.GoalTracker();
+
+    /** When a departure goal's deadline has just passed, records whether the goal was reached (once per deadline). */
+    private void recordGoalOutcome() {
+        com.example.history.HistoryService h = history;
+        if (h == null) return;
+        int kwh = state.paused() || state.mode() == ChargingMode.FAST ? 0 : state.goalKwh();   // ignored in these, so nothing is judged
+        long nowSec = clock.getAsLong() / 1000;
+        int offset = h.zone().getRules().getOffset(Instant.ofEpochSecond(nowSec)).getTotalSeconds();
+        long deadline = goalTracker.due(nowSec, offset, state.goalMinutes(), kwh);
+        if (deadline < 0) return;
+        double done = h.carEnergyWhSince(deadline - com.example.charging.GoalPlanner.WINDOW_SECONDS);
+        if (done < 50 && !wallbox.carPluggedIn()) return;   // no car that night: nothing to judge
+        h.recordGoalResult(deadline, done >= kwh * 1000.0, kwh * 1000.0, done);
+    }
+
     void poll() {
+        recordGoalOutcome();
         ChargingMode mode = state.mode();
         if (mode == ChargingMode.CHEAPEST && !state.paused() && wallbox.hasConnectedChargers()) {
             // Cheapest hours needs no solar: the price period decides. A departure goal that is running out of time still wins.

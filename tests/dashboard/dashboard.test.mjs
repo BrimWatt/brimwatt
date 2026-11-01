@@ -852,3 +852,10 @@ test('diagnostics says where the lowest memory was reached', () => {
     assert.equal(page.lowestMemoryText({ minFreeKb: 88, atStartUp: true, atUptimeSeconds: 12, largestKb: 95 }, 25000), '88 KB, during start-up (largest block 95 KB)');
     assert.equal(page.lowestMemoryText({ minFreeKb: 96, atStartUp: false, atUptimeSeconds: 14200, largestKb: 0 }, 25000), '96 KB, ~3h ago');
 });
+
+test('when the share sheet is not available the card is shown to press and hold or save, not downloaded straight away', () => {
+    ['sharebox', 'share-img', 'share-hint', 'share-save', 'share-close', 'share-title'].forEach(id => assert.ok(html.includes('id="' + id + '"'), id));
+    assert.ok(html.includes('showShareCard(blob);'));
+    assert.ok(read('typeof showShareCard') === 'function' && read('typeof saveShareCard') === 'function' && read('typeof closeShareCard') === 'function');
+    assert.ok(!/showShareCard\(blob\);[\s\S]{0,40}a\.download/.test(html.slice(html.indexOf('async function shareImpact'), html.indexOf('let shareBlob'))), 'no immediate download in shareImpact');
+});

@@ -313,6 +313,7 @@ HttpResponse ApiHandler::days(const Params& query) {
             row.add(kwh(entry.second.importWh));
             row.add(kwh(entry.second.exportWh));
             row.add(dollars(controller_.state(), entry.second));
+            row.add(history_->goalOutcome(entry.first));   // last: 0 no goal judged, 1 met, 2 missed
         }
     }
     HttpResponse response;
@@ -344,6 +345,7 @@ HttpResponse ApiHandler::sessions(const Params& query) {
         out["sunKwh"] = std::round(std::min(x.sunWh, x.estimatedWh) / 10.0) / 100.0;
         out["avgAmps"] = std::round(energyWh / hours / config::kHouseholdVoltage * 10) / 10.0;
         out["reason"] = x.reason;
+        out["plugged"] = x.pluggedAt;   // when the car was plugged in before this session, 0 if unknown
         // Money recorded for only part of the session (it began before prices were recorded) would read far too low:
         // treat a price well under the cheapest rate in use as "not recorded" so the page estimates it instead.
         out["saved"] = plausibleSaving(controller_.state(), x.savedCents, x.sunWh) ? std::round(x.savedCents) / 100.0 : -1.0;

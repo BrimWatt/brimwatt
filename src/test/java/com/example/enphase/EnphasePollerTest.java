@@ -548,6 +548,60 @@ class EnphasePollerTest {
         assertFalse(state.goalForcing());
     }
 
+    private com.example.history.HistoryService goalHistory(String time) {
+        clock.set(java.time.Instant.parse(time).toEpochMilli());
+        poller = new EnphasePoller(source, state, wallbox, schedule, clock::get);
+        com.example.history.HistoryService h = new com.example.history.HistoryService(java.time.ZoneOffset.UTC, clock::get);
+        poller.setHistory(h);
+        daylightOpen = false;
+        state.setGoal(1, 7 * 60);                     // 1 kWh by 7:00
+        poller.poll();                                // the first look only sets the baseline
+        return h;
+    }
+
+    private void charge(com.example.history.HistoryService h, int minutes, double carWatts) {
+        for (int i = 0; i < minutes; i++) { clock.addAndGet(60_000); h.recordSample(0, 0, carWatts, ChargingMode.ECO, false); }
+    }
+
+    @Test
+    void aGoalReachedByTheDeadlineIsRecordedAsMet() {
+        var h = goalHistory("2026-10-19T06:00:00Z");
+        charge(h, 30, 2400);                          // about 1.2 kWh before 6:30
+        clock.set(java.time.Instant.parse("2026-10-19T07:00:20Z").toEpochMilli());
+        poller.poll();
+        assertEquals(1, h.goalOutcome(java.time.LocalDate.of(2026, 10, 19)));
+        poller.poll();                                // not judged twice
+        assertEquals(1, h.recentEvents(10).stream().filter(e -> e.text().startsWith("Departure goal met")).count());
+    }
+
+    @Test
+    void aGoalNotReachedWithACarPluggedInIsRecordedAsMissed() {
+        var h = goalHistory("2026-10-19T06:00:00Z");
+        charge(h, 5, 600);                            // far too little
+        clock.set(java.time.Instant.parse("2026-10-19T07:00:20Z").toEpochMilli());
+        carPlugged = true;
+        poller.poll();
+        assertEquals(2, h.goalOutcome(java.time.LocalDate.of(2026, 10, 19)));
+    }
+
+    @Test
+    void noCarAndNoEnergyMeansThereWasNothingToJudge() {
+        var h = goalHistory("2026-10-19T06:00:00Z");
+        carPlugged = false;
+        clock.set(java.time.Instant.parse("2026-10-19T07:00:20Z").toEpochMilli());
+        poller.poll();
+        assertEquals(0, h.goalOutcome(java.time.LocalDate.of(2026, 10, 19)));
+    }
+
+    @Test
+    void pausedOrCustomNeverJudgesAGoal() {
+        var h = goalHistory("2026-10-19T06:00:00Z");
+        state.setPaused(true);
+        clock.set(java.time.Instant.parse("2026-10-19T07:00:20Z").toEpochMilli());
+        poller.poll();
+        assertEquals(0, h.goalOutcome(java.time.LocalDate.of(2026, 10, 19)));
+    }
+
     // --- Cheapest hours ---
 
     private void setLocalTime(int month, int day, int hour) {

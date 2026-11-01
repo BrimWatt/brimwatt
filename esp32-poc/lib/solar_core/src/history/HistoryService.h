@@ -56,9 +56,17 @@ struct HistorySession {
     std::string reason;         // why it ended, as the wallbox reported it (Remote, EVDisconnected, ...)
     int mode = -1;              // mode code (0 Eco, 1 Max solar, 2 Custom) at the first reading of the session, -1 if unknown
     bool mixed = false;         // the mode changed during the session
+    uint32_t pluggedAt = 0;     // when the car was plugged in before this session started, 0 if we did not see it
     double savedCents = 0;      // what the sun's share was worth at the prices of the hours it was charged
 
     double energyWh() const { return meterWh >= 0 ? meterWh : estimatedWh; }
+};
+
+/** Whether a departure goal was reached by its deadline, for the local day the deadline fell on. */
+struct GoalResult {
+    bool met = false;
+    double targetWh = 0;
+    double doneWh = 0;
 };
 
 struct HistoryEvent {
@@ -97,6 +105,16 @@ public:
 
     /** The wallbox ended the session. Ignored if we never saw it start (the app was not running). */
     void sessionStopped(double meterStopWh, const std::string& reason);
+
+    /** The car was just plugged in (the charger went from available to preparing), or unplugged. */
+    void notePluggedIn();
+    void notePluggedOut() { pluggedAt_ = 0; }
+
+    /** Records whether the departure goal was reached at the deadline that has just passed. */
+    void recordGoalResult(int64_t deadlineEpoch, bool met, double targetWh, double doneWh);
+
+    /** 0 if no goal was judged that local day, 1 met, 2 missed. */
+    int goalOutcome(int64_t epochDay) const;
 
     /** The session running now, if any. */
     const HistorySession* openSession() const { return open_ ? &*open_ : nullptr; }
@@ -192,6 +210,8 @@ private:
     size_t pendingFiveMin_ = 0, pendingHourly_ = 0;
     std::deque<HistoryEvent> events_;
     std::map<int64_t, DayTotals> days_;
+    std::map<int64_t, GoalResult> goals_;   // one per local day a goal deadline was judged
+    uint32_t pluggedAt_ = 0;                // when the car was last seen being plugged in (0 = not plugged, or not seen)
     std::deque<HistorySession> sessions_;
     std::optional<HistorySession> open_;
     uint32_t lastSampleAt_ = 0;

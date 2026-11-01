@@ -46,9 +46,15 @@ public final class CoreHandlers {
                         Charger.Status before = c.status();
                         c.setStatus(status);
                         if (history != null) {
-                            if (status == Charger.Status.PREPARING && before == Charger.Status.AVAILABLE) history.addEvent("Car plugged in");
+                            if (status == Charger.Status.PREPARING && before == Charger.Status.AVAILABLE) {
+                                history.addEvent("Car plugged in");
+                                history.notePluggedIn();
+                            }
                             if (status == Charger.Status.AVAILABLE && before != Charger.Status.AVAILABLE
-                                    && before != Charger.Status.UNKNOWN) history.addEvent("Car unplugged");
+                                    && before != Charger.Status.UNKNOWN) {
+                                history.addEvent("Car unplugged");
+                                history.notePluggedOut();
+                            }
                         }
                         // No transaction exists in these states, so a restored one must be stale.
                         if (wasRestored && (status == Charger.Status.AVAILABLE

@@ -487,6 +487,81 @@ void test_a_year_of_days_is_kept() {
     TEST_ASSERT_TRUE(HistoryService::kMaxDays >= 366);
 }
 
+void test_a_session_remembers_when_the_car_was_plugged_in() {
+    Rig a;
+    a.minute(2000, 0, 0);
+    a.history.notePluggedIn();
+    const uint32_t pluggedAt = static_cast<uint32_t>(a.platform.epoch);
+    for (int i = 0; i < 90; i++) a.minute(2000, 0, 0);
+    a.history.sessionStarted(0);
+    TEST_ASSERT_TRUE(a.history.openSession()->pluggedAt == pluggedAt);
+    for (int i = 0; i < 10; i++) a.minute(3000, 0, 1000);
+    a.history.sessionStopped(100, "Remote");
+    TEST_ASSERT_TRUE(a.history.recentSessions(1)[0].pluggedAt == pluggedAt);
+    std::vector<std::string> lines;
+    a.history.forEachLine([&](const std::string& l) { lines.push_back(l); });
+    Rig b;
+    for (const auto& l : lines) b.history.loadLine(l);
+    TEST_ASSERT_TRUE(b.history.recentSessions(1)[0].pluggedAt == pluggedAt);
+}
+
+void test_no_plug_in_seen_or_an_old_one_gives_no_plug_in_time() {
+    Rig r;
+    r.minute(2000, 0, 0);
+    r.history.sessionStarted(0);
+    TEST_ASSERT_EQUAL(0, (int)r.history.openSession()->pluggedAt);
+    r.history.sessionStopped(0, "Remote");
+    r.history.notePluggedIn();
+    r.history.notePluggedOut();
+    r.history.sessionStarted(0);
+    TEST_ASSERT_EQUAL(0, (int)r.history.openSession()->pluggedAt);
+    r.history.sessionStopped(0, "Remote");
+    r.history.notePluggedIn();
+    r.platform.epoch += 4 * 86400;                 // four days later
+    r.history.sessionStarted(0);
+    TEST_ASSERT_EQUAL(0, (int)r.history.openSession()->pluggedAt);
+}
+
+void test_a_goal_result_is_kept_per_day_survives_saving_and_old_files_still_load() {
+    Rig a;
+    a.minute(2000, 0, 0);
+    a.history.recordGoalResult(a.platform.epoch, true, 20000, 21500);
+    TEST_ASSERT_EQUAL(1, a.history.goalOutcome(a.today()));
+    TEST_ASSERT_EQUAL(0, a.history.goalOutcome(a.today() - 1));
+    a.history.recordGoalResult(a.platform.epoch - 86400, false, 20000, 9000);
+    TEST_ASSERT_EQUAL(2, a.history.goalOutcome(a.today() - 1));
+    bool metText = false, missedText = false;
+    for (const auto& e : a.history.recentEvents(10)) {
+        if (e.text.rfind("Departure goal met: 21.5 of 20.0 kWh", 0) == 0) metText = true;
+        if (e.text.rfind("Departure goal missed", 0) == 0) missedText = true;
+    }
+    TEST_ASSERT_TRUE(metText);
+    TEST_ASSERT_TRUE(missedText);
+    std::vector<std::string> lines;
+    a.history.forEachLine([&](const std::string& l) { lines.push_back(l); });
+    bool hasG = false;
+    for (const auto& l : lines) if (l.rfind("G\t", 0) == 0) hasG = true;
+    TEST_ASSERT_TRUE(hasG);
+    Rig b;
+    for (const auto& l : lines) b.history.loadLine(l);
+    TEST_ASSERT_EQUAL(1, b.history.goalOutcome(b.today()));
+    TEST_ASSERT_EQUAL(2, b.history.goalOutcome(b.today() - 1));
+    Rig old;                                        // a file from before goal results existed
+    for (const auto& l : lines) if (l.rfind("G\t", 0) != 0) old.history.loadLine(l);
+    TEST_ASSERT_EQUAL(0, old.history.goalOutcome(old.today()));
+}
+
+void test_the_journal_carries_recent_goal_results() {
+    Rig r;
+    r.minute(2000, 0, 0);
+    r.history.markClean();
+    r.minute(2000, 0, 0);
+    r.history.recordGoalResult(r.platform.epoch, true, 20000, 22000);
+    bool hasG = false;
+    r.history.forEachJournalLine([&](const std::string& l) { if (l.rfind("G\t", 0) == 0) hasG = true; });
+    TEST_ASSERT_TRUE(hasG);
+}
+
 void test_the_ring_drops_the_oldest_and_can_use_a_custom_allocator() {
     Ring<int> ring(3);
     for (int i = 1; i <= 5; i++) ring.push(i);
@@ -552,6 +627,10 @@ int main() {
     RUN_TEST(test_a_year_of_days_is_kept);
     RUN_TEST(test_the_journal_on_top_of_the_full_save_restores_everything);
     RUN_TEST(test_a_session_that_ended_after_the_full_save_is_not_left_open);
+    RUN_TEST(test_a_session_remembers_when_the_car_was_plugged_in);
+    RUN_TEST(test_no_plug_in_seen_or_an_old_one_gives_no_plug_in_time);
+    RUN_TEST(test_a_goal_result_is_kept_per_day_survives_saving_and_old_files_still_load);
+    RUN_TEST(test_the_journal_carries_recent_goal_results);
     RUN_TEST(test_the_ring_drops_the_oldest_and_can_use_a_custom_allocator);
     return UNITY_END();
 }

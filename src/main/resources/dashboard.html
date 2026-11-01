@@ -223,14 +223,15 @@
         .info::before { content: ""; position: absolute; inset: -12px; }   /* a finger-sized tap area around the small circle */
         .info:hover:not(:disabled) { background: var(--info-hover); }
         .hub .info { margin-left: 8px; pointer-events: auto; }
-        #tipbox, #settingsbox { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); background: rgba(15, 23, 42, 0.4); overflow-y: auto; overscroll-behavior: contain; }
-        #tipbox[hidden], #settingsbox[hidden] { display: none; }
+        #tipbox, #settingsbox, #sharebox { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); background: rgba(15, 23, 42, 0.4); overflow-y: auto; overscroll-behavior: contain; }
+        #tipbox[hidden], #settingsbox[hidden], #sharebox[hidden] { display: none; }
+        #sharebox { z-index: 21; }
         #settingsbox { z-index: 19; }
-        #tipbox .card, #settingsbox .card { width: 100%; max-width: min(420px, 100%); max-height: 100%; overflow-y: auto; overflow-wrap: anywhere; background: var(--card); border-radius: 16px; padding: 16px 18px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); }
-        #tipbox h3, #settingsbox h3 { margin: 0 0 8px; font-size: 1.05rem; }
+        #tipbox .card, #settingsbox .card, #sharebox .card { width: 100%; max-width: min(420px, 100%); max-height: 100%; overflow-y: auto; overflow-wrap: anywhere; background: var(--card); border-radius: 16px; padding: 16px 18px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); }
+        #tipbox h3, #settingsbox h3, #sharebox h3 { margin: 0 0 8px; font-size: 1.05rem; }
         #tipbox p { margin: 0 0 8px; font-size: 0.95rem; line-height: 1.45; }
-        #tipbox .gotit, #settingsbox .gotit { width: 100%; margin-top: 10px; background: var(--blue); color: #fff; }
-        #tipbox .gotit:hover:not(:disabled), #settingsbox .gotit:hover:not(:disabled) { background: #1d4ed8; }
+        #tipbox .gotit, #settingsbox .gotit, #sharebox .gotit { width: 100%; margin-top: 10px; background: var(--blue); color: #fff; }
+        #tipbox .gotit:hover:not(:disabled), #settingsbox .gotit:hover:not(:disabled), #sharebox .gotit:hover:not(:disabled) { background: #1d4ed8; }
         @media (min-width: 900px) { #tipbox, #settingsbox { align-items: center; } }
         .help { margin: 8px 0 0; font-size: 0.82rem; color: var(--muted); }
         .setting { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--tint); border: 1px solid var(--line); display: none; }
@@ -377,6 +378,9 @@
         #impact { order: 9; } #impact[hidden] { display: none; }
         .impchip { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; min-height: 30px; padding: 0 12px; border-radius: 999px; background: var(--tint); color: var(--green); border: 1px solid var(--line); font-size: 0.82rem; font-weight: 600; }
         #impact-back { position: fixed; inset: 0; z-index: 18; background: rgba(15, 23, 42, 0.4); } #impact-back[hidden] { display: none; }
+        #sharebox img { display: block; width: 100%; max-width: 360px; margin: 8px auto; border-radius: 12px; border: 1px solid var(--line); -webkit-touch-callout: default; user-select: auto; }
+        #sharebox .hint-share { color: var(--muted); font-size: 0.88rem; margin: 6px 0; } #sharebox #share-save { width: 100%; margin-top: 6px; }
+        #sharebox #share-title:focus { outline: none; }
         #impact #imp-title:focus { outline: none; } #impact #imp-share { margin-top: 12px; }
         #impact .gotit { width: 100%; margin-top: 10px; background: var(--blue); color: #fff; }
         #impact:not(.open) { display: none; }
@@ -585,6 +589,13 @@
 <div id="ptr" aria-hidden="true"><svg viewBox="0 0 64 64"><defs><linearGradient id="wgp" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#0d9488"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#wgp)"/><g class="arrows"><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M14.15 25.5A19 19 0 0 1 46.55 19.79"/><path d="M49.85 38.5A19 19 0 0 1 17.45 44.2"/></g><g fill="#fff"><path d="M49.8 23.6L50 16.9L43.1 22.7Z"/><path d="M14.2 40.4L20.9 41.3L14 47.1Z"/></g></g><path class="bolt" d="M36 18L25 34H32L29 47L40 30H33Z" fill="#fde047"/></svg></div>
 <div id="toasts" aria-live="polite"></div>
 <div id="tipbox" role="dialog" aria-modal="true" aria-labelledby="tip-title" hidden><div class="card"><h3 id="tip-title"></h3><div id="tip-text"></div><button type="button" class="gotit" id="tip-close">Got it</button></div></div>
+<div id="sharebox" class="sheet" role="dialog" aria-modal="true" aria-labelledby="share-title" hidden><div class="card">
+<h3 id="share-title" tabindex="-1">Your card</h3>
+<img id="share-img" alt="Your WattSync impact card">
+<p class="hint-share" id="share-hint">Press and hold the picture, then choose Share or Save Image.</p>
+<button type="button" id="share-save" onclick="saveShareCard()">Save picture</button>
+<button type="button" class="gotit" id="share-close" onclick="closeShareCard()">Done</button>
+</div></div>
 <div id="impact-back" hidden></div>
 <div id="settingsbox" class="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden><div class="card">
 <div class="sethead"><div class="settop"><h3 id="settings-title" tabindex="-1">Settings</h3><button type="button" class="xbtn" id="settings-x" aria-label="Close settings" title="Close">✕</button></div>
@@ -763,12 +774,13 @@ document.addEventListener('click', e => {
     if (btn) { e.preventDefault(); e.stopPropagation(); openTip(btn.dataset.tip); return; }
     if (e.target === el('tipbox') || e.target === el('tip-close')) closeTip();
     if (e.target === el('impact-back')) closeImpact();
+    if (e.target === el('sharebox')) closeShareCard();
     if (e.target === el('settingsbox') || e.target === el('settings-close') || (e.target.closest && e.target.closest('#settings-x'))) closeSettings();
 }, true);
 // Keep Tab inside whichever card is open, so a keyboard or screen-reader user cannot wander into the page behind it.
 document.addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
-    const open = !el('tipbox').hidden ? el('tipbox') : !el('settingsbox').hidden ? el('settingsbox') : el('impact').classList.contains('open') ? el('impact') : null;
+    const open = !el('sharebox').hidden ? el('sharebox') : !el('tipbox').hidden ? el('tipbox') : !el('settingsbox').hidden ? el('settingsbox') : el('impact').classList.contains('open') ? el('impact') : null;
     if (!open) return;
     const items = [...open.querySelectorAll('button, input, summary, [href]')].filter(x => !x.disabled && x.offsetParent !== null);
     if (!items.length) return;
@@ -779,7 +791,8 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    if (!el('tipbox').hidden) closeTip();
+    if (!el('sharebox').hidden) closeShareCard();
+    else if (!el('tipbox').hidden) closeTip();
     else if (el('impact').classList.contains('open')) closeImpact();
     else if (!el('settingsbox').hidden && !(e.target && e.target.tagName === 'INPUT' && e.target.type === 'number')) closeSettings();   // Esc in a box only puts its saved value back
 });
@@ -2018,7 +2031,24 @@ async function shareImpact() {
     try {
         if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'My WattSync impact' }); return; }
     } catch (e) { if (e && e.name === 'AbortError') return; }
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'wattsync-impact.png'; document.body.appendChild(a); a.click(); a.remove();
+    showShareCard(blob);   // the share sheet is not available here (it needs a secure page): show the picture to press and hold, or save
+}
+let shareBlob = null, shareUrl = '';
+/** A phone's share sheet only works on secure (https) pages and this page is plain http, so show the picture: a long press offers Share and Save. */
+function showShareCard(blob) {
+    shareBlob = blob;
+    if (shareUrl) URL.revokeObjectURL(shareUrl);
+    shareUrl = URL.createObjectURL(blob);
+    el('share-img').src = shareUrl;
+    const touch = typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || 'ontouchstart' in window);
+    el('share-hint').textContent = touch ? 'Press and hold the picture, then choose Share or Save Image.' : 'Save the picture, then post it wherever you like.';
+    el('sharebox').hidden = false;
+    el('share-title').focus({ preventScroll: true });
+}
+function closeShareCard() { el('sharebox').hidden = true; if (shareUrl) { URL.revokeObjectURL(shareUrl); shareUrl = ''; } shareBlob = null; el('imp-share').focus(); }
+function saveShareCard() {
+    if (!shareBlob) return;
+    const a = document.createElement('a'); a.href = shareUrl; a.download = 'wattsync-impact.png'; document.body.appendChild(a); a.click(); a.remove();
 }
 
 // ---- a short card when a charge finishes ----
