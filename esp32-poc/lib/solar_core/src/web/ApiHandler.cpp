@@ -725,6 +725,11 @@ HttpResponse ApiHandler::telemetry() {
     daylight["startMinutes"] = state.daylightStartMinutes();
     daylight["endMinutes"] = state.daylightEndMinutes();
 
+    // Where the site is, rounded to a tenth of a degree (about 11 km): enough for a weather forecast, not a street address.
+    JsonObject site = doc["site"].to<JsonObject>();
+    site["lat"] = std::round(config::kSiteLatitude * 10) / 10;
+    site["lon"] = std::round(config::kSiteLongitude * 10) / 10;
+
     JsonObject power = doc["power"].to<JsonObject>();
     power["voltage"] = volts;
     power["solarWatts"] = state.solarWatts();

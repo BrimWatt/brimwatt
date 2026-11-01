@@ -223,16 +223,16 @@
         .info::before { content: ""; position: absolute; inset: -12px; }   /* a finger-sized tap area around the small circle */
         .info:hover:not(:disabled) { background: var(--info-hover); }
         .hub .info { margin-left: 8px; pointer-events: auto; }
-        #tipbox, #settingsbox, #sharebox { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); background: rgba(15, 23, 42, 0.4); overflow-y: auto; overscroll-behavior: contain; }
-        #tipbox[hidden], #settingsbox[hidden], #sharebox[hidden] { display: none; }
+        #tipbox, #settingsbox, #sharebox, #fcbox { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); background: rgba(15, 23, 42, 0.4); overflow-y: auto; overscroll-behavior: contain; }
+        #tipbox[hidden], #settingsbox[hidden], #sharebox[hidden], #fcbox[hidden] { display: none; }
         #sharebox { z-index: 21; }
         #settingsbox { z-index: 19; }
-        #tipbox .card, #settingsbox .card, #sharebox .card { width: 100%; max-width: min(420px, 100%); max-height: 100%; overflow-y: auto; overflow-wrap: anywhere; background: var(--card); border-radius: 16px; padding: 16px 18px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); }
-        #tipbox h3, #settingsbox h3, #sharebox h3 { margin: 0 0 8px; font-size: 1.05rem; }
+        #tipbox .card, #settingsbox .card, #sharebox .card, #fcbox .card { width: 100%; max-width: min(420px, 100%); max-height: 100%; overflow-y: auto; overflow-wrap: anywhere; background: var(--card); border-radius: 16px; padding: 16px 18px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); }
+        #tipbox h3, #settingsbox h3, #sharebox h3, #fcbox h3 { margin: 0 0 8px; font-size: 1.05rem; }
         #tipbox p { margin: 0 0 8px; font-size: 0.95rem; line-height: 1.45; }
-        #tipbox .gotit, #settingsbox .gotit, #sharebox .gotit { width: 100%; margin-top: 10px; background: var(--blue); color: #fff; }
-        #tipbox .gotit:hover:not(:disabled), #settingsbox .gotit:hover:not(:disabled), #sharebox .gotit:hover:not(:disabled) { background: #1d4ed8; }
-        @media (min-width: 900px) { #tipbox, #settingsbox { align-items: center; } }
+        #tipbox .gotit, #settingsbox .gotit, #sharebox .gotit, #fcbox .gotit { width: 100%; margin-top: 10px; background: var(--blue); color: #fff; }
+        #tipbox .gotit:hover:not(:disabled), #settingsbox .gotit:hover:not(:disabled), #sharebox .gotit:hover:not(:disabled), #fcbox .gotit:hover:not(:disabled) { background: #1d4ed8; }
+        @media (min-width: 900px) { #tipbox, #settingsbox, #sharebox, #fcbox { align-items: center; } }
         .help { margin: 8px 0 0; font-size: 0.82rem; color: var(--muted); }
         .setting { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--tint); border: 1px solid var(--line); display: none; }
         .setting .top { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; font-size: 0.85rem; color: var(--sub); }
@@ -376,11 +376,16 @@
         #hero { order: 1; } #sesscard { order: 2; } #flow, #nosolar { order: 3; } #chartcard { order: 4; } #modes { order: 5; } #carcard { order: 6; }
         #feedcard { order: 7; } #sessions { order: 8; }
         #impact { order: 9; } #impact[hidden] { display: none; }
-        .impchip { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; min-height: 30px; padding: 0 12px; border-radius: 999px; background: var(--tint); color: var(--green); border: 1px solid var(--line); font-size: 0.82rem; font-weight: 600; }
+        .impchip { display: inline-flex; align-items: center; gap: 4px; margin: 6px 6px 0 0; min-height: 30px; padding: 0 12px; border-radius: 999px; background: var(--tint); color: var(--green); border: 1px solid var(--line); font-size: 0.82rem; font-weight: 600; }
         #impact-back { position: fixed; inset: 0; z-index: 18; background: rgba(15, 23, 42, 0.4); } #impact-back[hidden] { display: none; }
         #sharebox img { display: block; width: 100%; max-width: 360px; margin: 8px auto; border-radius: 12px; border: 1px solid var(--line); -webkit-touch-callout: default; user-select: auto; }
         #sharebox .hint-share { color: var(--muted); font-size: 0.88rem; margin: 6px 0; } #sharebox #share-save { width: 100%; margin-top: 6px; }
-        #sharebox #share-title:focus { outline: none; }
+        #sharebox #share-title:focus, #fcbox #fc-title:focus { outline: none; }
+        #fcbox { z-index: 21; } #fcbox p { margin: 8px 0; } #fcbox .hint-share { color: var(--muted); font-size: 0.88rem; }
+        #fcbox .fcbars { display: flex; align-items: flex-end; gap: 3px; height: 80px; margin: 10px 0 2px; padding: 0 2px; border-bottom: 1px solid var(--line); }
+        #fcbox .fcbars i { flex: 1; min-width: 0; border-radius: 3px 3px 0 0; background: var(--solar); }
+        #fcbox .fcaxis { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.75rem; margin-bottom: 6px; }
+
         #peak-fields .planfield { margin: 4px 0; } #peak-fields .planfield label { display: block; margin-bottom: 6px; }
         #peak-fields .planfield select { display: block; width: 100%; max-width: 100%; min-height: 44px; padding: 6px 8px; border: 1px solid var(--bd2); border-radius: 8px; background: var(--field); font: inherit; font-size: 16px; font-weight: 600; text-overflow: ellipsis; }
         #impact #imp-title:focus { outline: none; } #impact #imp-share { margin-top: 12px; }
@@ -450,7 +455,7 @@
         <div class="stack stack-a">
         <section class="tile hero" id="hero" aria-live="polite">
             <div class="badge" id="hero-icon">⚡</div>
-            <div class="txt"><div class="title" id="hero-title">Connecting…</div><div class="sub" id="hero-sub">&nbsp;</div><button type="button" class="impchip" id="imp-chip" hidden onclick="openImpact()" aria-haspopup="dialog">Your impact ›</button></div>
+            <div class="txt"><div class="title" id="hero-title">Connecting…</div><div class="sub" id="hero-sub">&nbsp;</div><button type="button" class="impchip" id="imp-chip" hidden onclick="openImpact()" aria-haspopup="dialog">Your impact ›</button><button type="button" class="impchip" id="fc-chip" hidden onclick="openForecast()" aria-haspopup="dialog">Tomorrow ›</button></div>
             <button id="pause-btn" onclick="togglePause()"><svg class="ic" id="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><span id="pause-label">Pause</span></button>
         </section>
         <section class="tile sessdone" id="sesscard" role="status" aria-live="polite" hidden>
@@ -598,6 +603,16 @@
 <button type="button" id="share-save" onclick="saveShareCard()">Save picture</button>
 <button type="button" class="gotit" id="share-close" onclick="closeShareCard()">Done</button>
 </div></div>
+<div id="fcbox" class="sheet" role="dialog" aria-modal="true" aria-labelledby="fc-title" hidden><div class="card">
+<h3 id="fc-title" tabindex="-1">Tomorrow</h3>
+<p id="fc-line1"></p>
+<div class="fcbars" id="fc-bars" aria-hidden="true"></div>
+<div class="fcaxis" aria-hidden="true"><span>6 am</span><span>noon</span><span>6 pm</span></div>
+<p id="fc-line2"></p>
+<p class="hint-share" id="fc-line3"></p>
+<p class="hint-share">Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a>. A forecast is an estimate.</p>
+<button type="button" class="gotit" id="fc-close" onclick="closeForecast()">Done</button>
+</div></div>
 <div id="impact-back" hidden></div>
 <div id="settingsbox" class="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden><div class="card">
 <div class="sethead"><div class="settop"><h3 id="settings-title" tabindex="-1">Settings</h3><button type="button" class="xbtn" id="settings-x" aria-label="Close settings" title="Close">✕</button></div>
@@ -678,6 +693,7 @@
 <section class="sc" id="sec-more"><h4>Display</h4>
             <div class="field"><span><label for="theme-select">Theme</label><button type="button" class="info" data-tip="theme" aria-label="What does theme do?">i</button></span><span class="edit"><select id="theme-select"><option value="auto">Match my phone</option><option value="light">Light</option><option value="dark">Dark</option></select></span></div>
             <div class="field"><span><label for="unit-select">Show energy as</label><button type="button" class="info" data-tip="units" aria-label="What does show energy as do?">i</button></span><span class="edit"><select id="unit-select"><option value="kwh">kWh</option><option value="miles">Miles</option></select></span></div>
+            <label class="check"><input type="checkbox" id="forecast-toggle" checked onchange="forecastSwitch(this)"><span>Show tomorrow's forecast<button type="button" class="info" data-tip="forecast" aria-label="What does the forecast ask for?">i</button></span></label>
             <div class="field"><label for="mpk-input">Miles per kWh</label><span class="edit"><input type="number" id="mpk-input" inputmode="decimal" min="1" max="6" step="0.1" value="3"></span></div>
             <div class="field"><label for="gas-price">Gas price ($ per gallon)</label><span class="edit"><input type="number" id="gas-price" inputmode="decimal" min="1" max="20" step="0.01" value="4.60"></span></div>
             <div class="field"><label for="gas-mpg">Gas car's miles per gallon</label><span class="edit"><input type="number" id="gas-mpg" inputmode="decimal" min="5" max="100" step="1" value="28"></span></div>
@@ -703,6 +719,7 @@ const TIPS = {
     bars: ['Sun and grid bars', ['Each bar is the energy that charged the car that day.', 'Yellow (sun) is the part that came from your solar panels. Red (grid) is the part that came from the electric grid.']],
     saved: ['Saved', ['The money you saved by charging the car from the sun instead of the grid, for the period you picked (Today, Week, Month or the last 12 months).', 'It uses the electricity price in Settings (the gear icon at the top).']],
     gas: ['Compared with gas', ['A gas car would burn fuel for the same miles. This shows what that fuel would cost, what charging would cost with no solar, and what you actually paid.', 'The miles are an estimate: the energy the car took times your Miles per kWh. The gas price and the gas car\'s miles per gallon are yours to set in Settings (they stay on this phone); the first numbers are only a starting guess.', '"Your charging" is the grid part of the charging at your electricity price. "From charging with solar" is the Saved amount above.']],
+    forecast: ['Tomorrow\'s forecast', ['Your phone asks open-meteo.com, a free weather service, for the sunshine forecast, at most every 3 hours. It sends your approximate area (to about 11 km) and your phone\'s address, like any web page. Nothing about your charging leaves your phone.', 'The kWh figure compares your own solar over the last days with those days\' weather, so it is a rough guess. It only informs: it does not change how charging works.', 'Turn the switch off and nothing is requested.']],
     impact: ['Your impact', ['The score is out of 100. With solar: 50 points for the share of the car\'s energy that came from your panels, 30 for charging outside your expensive hours and 20 for Ready by goals met, scaled to 100.', 'Without solar, with no peak price set, or with no Ready by goal, only the parts that apply count.', 'Grades: A is 90 or more, B 75, C 60, D below that.', 'A sunny-day streak counts days the car got at least half its energy from solar. Days with no charging, or too little sun to cover the car, are skipped, not counted against you.', 'A peak-free streak counts charging days with no energy in the expensive hours. Off-peak numbers assume each charge drew evenly from start to stop.', 'Saved by Cheapest hours compares each charge with charging at full current from the moment the car was plugged in. It needs a peak price above your normal price.', 'Gas and CO2 use your miles per kWh, gas price and mpg from Settings (the first numbers are guesses), about 8.9 kg of CO2 a gallon and a rough 0.23 kg per kWh for the grid. All of it is an estimate.']],
     share: ['From your solar', ['How much of the car\'s energy, in the period you picked, came from your solar panels instead of the grid. 100% means all of it.']],
     hours: ['Solar hours', ['Eco and Max solar only work during the day: from a little after sunrise until a little before sunset. Outside these hours they do nothing.', 'You can change how many minutes after sunrise it starts, and before sunset it stops, in the two boxes below.', 'Custom works at any time.']],
@@ -779,12 +796,13 @@ document.addEventListener('click', e => {
     if (e.target === el('tipbox') || e.target === el('tip-close')) closeTip();
     if (e.target === el('impact-back')) closeImpact();
     if (e.target === el('sharebox')) closeShareCard();
+    if (e.target === el('fcbox')) closeForecast();
     if (e.target === el('settingsbox') || e.target === el('settings-close') || (e.target.closest && e.target.closest('#settings-x'))) closeSettings();
 }, true);
 // Keep Tab inside whichever card is open, so a keyboard or screen-reader user cannot wander into the page behind it.
 document.addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
-    const open = !el('sharebox').hidden ? el('sharebox') : !el('tipbox').hidden ? el('tipbox') : !el('settingsbox').hidden ? el('settingsbox') : el('impact').classList.contains('open') ? el('impact') : null;
+    const open = !el('fcbox').hidden ? el('fcbox') : !el('sharebox').hidden ? el('sharebox') : !el('tipbox').hidden ? el('tipbox') : !el('settingsbox').hidden ? el('settingsbox') : el('impact').classList.contains('open') ? el('impact') : null;
     if (!open) return;
     const items = [...open.querySelectorAll('button, input, summary, [href]')].filter(x => !x.disabled && x.offsetParent !== null);
     if (!items.length) return;
@@ -795,7 +813,8 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    if (!el('sharebox').hidden) closeShareCard();
+    if (!el('fcbox').hidden) closeForecast();
+    else if (!el('sharebox').hidden) closeShareCard();
     else if (!el('tipbox').hidden) closeTip();
     else if (el('impact').classList.contains('open')) closeImpact();
     else if (!el('settingsbox').hidden && !(e.target && e.target.tagName === 'INPUT' && e.target.type === 'number')) closeSettings();   // Esc in a box only puts its saved value back
@@ -1757,6 +1776,7 @@ function renderValue() {
     el('v-share-bar').style.width = (v.share === null ? 0 : v.share) + '%';
     renderGas(v);
     renderImpact(); ensureImpactSessions();
+    renderForecast(); ensureForecast();
 }
 /** Folds the graph away or opens it in place; the choice is kept on this phone. Wide screens always show it. */
 function toggleGraph() {
@@ -1837,6 +1857,129 @@ async function loadValueDays(n) {
 function ensureValueDays() {
     const n = range === '365' ? 365 : 30;
     if (valueDays[n] === null || Date.now() - valueDaysAt[n] > 300000) loadValueDays(n);
+}
+
+// ---- Tomorrow: a forecast of the sun, asked for by the phone from open-meteo.com (never by the board) ----
+// Text only: it says what tomorrow looks like and roughly how much solar to expect. It changes nothing about how charging works.
+const FORECAST_EVERY_MS = 3 * 3600 * 1000, FORECAST_RETRY_MS = 15 * 60 * 1000;
+function forecastUrl(lat, lon) {
+    return 'https://api.open-meteo.com/v1/forecast?latitude=' + Number(lat).toFixed(1) + '&longitude=' + Number(lon).toFixed(1)
+        + '&hourly=shortwave_radiation,cloud_cover&past_days=7&forecast_days=2&timezone=auto';
+}
+/** The site's day number (days since 1 Jan 1970, the same numbering as /api/days) for a local date string such as "2026-11-01T09:00". */
+function forecastDayNumber(timeText) {
+    const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(timeText);
+    return m ? Math.round(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000) : NaN;
+}
+/** Groups the hourly reply by day: radiation in W/m2 per hour (24 entries), the daylight cloud cover, and the day's total in kWh/m2. */
+function forecastByDay(f) {
+    const out = new Map();
+    if (!f || !f.hourly || !Array.isArray(f.hourly.time)) return out;
+    const h = f.hourly;
+    h.time.forEach((t, i) => {
+        const day = forecastDayNumber(t), hour = Number(String(t).slice(11, 13)), rad = Number(h.shortwave_radiation[i]), cloud = Number(h.cloud_cover[i]);
+        if (!Number.isFinite(day) || !Number.isFinite(hour) || !Number.isFinite(rad)) return;
+        const d = out.get(day) || { day, rad: new Array(24).fill(0), cloud: new Array(24).fill(null), kwhM2: 0 };
+        d.rad[hour] = rad; d.cloud[hour] = Number.isFinite(cloud) ? cloud : null; d.kwhM2 += rad / 1000;
+        out.set(day, d);
+    });
+    return out;
+}
+function medianOf(values) {
+    const v = [...values].sort((a, b) => a - b), n = v.length;
+    return n ? (n % 2 ? v[(n - 1) / 2] : (v[n / 2 - 1] + v[n / 2]) / 2) : null;
+}
+/**
+ * What the Tomorrow sheet says, from the forecast reply and the board's daily rows (/api/days), or null if there is nothing to say.
+ * The kWh figure is learned from the owner's own recent days: for each of the last 7 days, solar kWh divided by that day's forecast-model
+ * sunshine (kWh/m2); the median ratio times tomorrow's sunshine. Needs 3 usable days, otherwise only the words are given.
+ */
+function forecastView(f, daysReply, todayNum, mode) {
+    const days = forecastByDay(f), tomorrow = days.get(todayNum + 1);
+    if (!tomorrow || tomorrow.kwhM2 < 0.05) return null;
+    const peak = Math.max(...tomorrow.rad);
+    const sunny = tomorrow.cloud.filter((c, hr) => c !== null && tomorrow.rad[hr] > 20 && hr >= 9 && hr <= 15);
+    const cloud = sunny.length ? sunny.reduce((a, b) => a + b, 0) / sunny.length : 100;
+    const label = cloud < 25 ? 'Mostly sunny' : cloud < 60 ? 'Partly cloudy' : 'Cloudy';
+    const strong = tomorrow.rad.map((r, hr) => (r >= peak * 0.5 ? hr : -1)).filter(hr => hr >= 0);
+    const window = strong.length ? { from: strong[0], to: strong[strong.length - 1] + 1 } : null;
+    const solarByDay = new Map();
+    if (daysReply && Array.isArray(daysReply.days)) daysReply.days.forEach(r => solarByDay.set(r[0], r[1]));
+    const ratios = [], actuals = [];
+    for (let d = todayNum - 7; d < todayNum; d++) {
+        const model = days.get(d), actual = solarByDay.get(d);
+        if (model && model.kwhM2 >= 0.5 && actual >= 2) { ratios.push(actual / model.kwhM2); actuals.push(actual); }
+    }
+    const v = { label, cloud: Math.round(cloud), peakWatts: peak, window, kwh: null, typicalKwh: null, comparison: '', mode,
+                bars: tomorrow.rad.map((r, hr) => ({ hour: hr, pct: peak > 0 ? Math.round(r / peak * 100) : 0 })).filter(b => b.hour >= 6 && b.hour <= 20) };
+    if (ratios.length >= 3) {
+        v.kwh = Math.round(medianOf(ratios) * tomorrow.kwhM2); v.typicalKwh = Math.round(medianOf(actuals));
+        const rel = v.typicalKwh > 0 ? v.kwh / v.typicalKwh : 1;
+        v.comparison = rel >= 1.15 ? 'more than lately' : rel <= 0.85 ? 'less than lately' : 'about the same as lately';
+    }
+    v.chip = 'Tomorrow: ' + label.toLowerCase() + ' ›';
+    return v;
+}
+/** The plain lines for the sheet. Pure and tested. */
+/** "10 am" for an hour 0-23 (the forecast speaks in whole hours). */
+function hourWords(h) { return ((h + 11) % 12 + 1) + (h % 24 >= 12 ? ' pm' : ' am'); }
+function forecastLines(v) {
+    const lines = [];
+    lines.push(v.kwh !== null ? 'Solar: about ' + v.kwh + ' kWh, ' + v.comparison + ' (your recent days: about ' + v.typicalKwh + ' kWh).'
+                              : 'Solar: not enough recent days yet to say how many kWh.');
+    lines.push(v.window ? 'Best solar from about ' + hourWords(v.window.from) + ' to ' + hourWords(v.window.to) + '.' : 'Not much sun is expected.');
+    lines.push(v.mode === 'ECO' ? 'Eco charges with what is left after the house takes its share.'
+             : v.mode === 'MAX_SOLAR' ? 'Max solar follows what the panels make.'
+             : 'Your mode does not need the sun.');
+    return lines;
+}
+/** Show the forecast only for a home with solar (a meter) and when the owner has not turned it off. */
+function forecastWanted(data, enabled) { return enabled !== false && !!data && data.meterLinked !== false && !!data.site && Number.isFinite(data.site.lat) && Number.isFinite(data.site.lon); }
+function forecastEnabled() { try { return localStorage.getItem('forecast') !== '0'; } catch (e) { return true; } }
+let forecastData = null, forecastAt = 0, forecastTriedAt = 0, forecastLoading = false;
+async function loadForecast() {
+    if (forecastLoading || !lastData || !forecastWanted(lastData, forecastEnabled())) return;
+    const lat = lastData.site.lat, lon = lastData.site.lon;
+    try {   // the last answer is kept on this phone, so a reload does not ask again
+        const c = JSON.parse(localStorage.getItem('fcache') || 'null');
+        if (c && c.lat === lat && c.lon === lon && Date.now() - c.at < FORECAST_EVERY_MS) { forecastData = c.data; forecastAt = c.at; renderForecast(); return; }
+    } catch (e) { /* no cache */ }
+    if (Date.now() - forecastTriedAt < FORECAST_RETRY_MS) return;
+    forecastLoading = true; forecastTriedAt = Date.now();
+    try {
+        const res = await fetchWithTimeout(forecastUrl(lat, lon), undefined, 10000);
+        if (res.ok) {
+            forecastData = await res.json(); forecastAt = Date.now();
+            try { localStorage.setItem('fcache', JSON.stringify({ at: forecastAt, lat, lon, data: forecastData })); } catch (e) { /* not cached */ }
+            renderForecast();
+        }
+    } catch (e) { /* no forecast: the button simply stays away */ }
+    forecastLoading = false;
+}
+function ensureForecast() { if (forecastWanted(lastData, forecastEnabled()) && Date.now() - forecastAt > FORECAST_EVERY_MS) loadForecast(); }
+let lastForecast = null;
+function renderForecast() {
+    const chip = el('fc-chip');
+    lastForecast = forecastWanted(lastData, forecastEnabled()) && forecastData && hist ? forecastView(forecastData, valueDays[30], hist.today, lastData.currentMode) : null;
+    chip.hidden = !lastForecast;
+    if (!lastForecast) { if (!el('fcbox').hidden) closeForecast(); return; }
+    if (chip.textContent !== lastForecast.chip) chip.textContent = lastForecast.chip;
+}
+function openForecast() {
+    if (!lastForecast) return;
+    setText('fc-title', 'Tomorrow: ' + lastForecast.label.toLowerCase());
+    const lines = forecastLines(lastForecast);
+    setText('fc-line1', lines[0]); setText('fc-line2', lines[1]); setText('fc-line3', lines[2]);
+    const bars = el('fc-bars'); bars.textContent = '';
+    lastForecast.bars.forEach(b => { const i = document.createElement('i'); i.style.height = Math.max(3, b.pct) + '%'; bars.appendChild(i); });
+    el('fcbox').hidden = false; el('fcbox').querySelector('.card').scrollTop = 0;
+    el('fc-title').focus({ preventScroll: true });
+}
+function closeForecast() { el('fcbox').hidden = true; if (!el('fc-chip').hidden) el('fc-chip').focus(); }
+function forecastSwitch(cb) {
+    try { localStorage.setItem('forecast', cb.checked ? '1' : '0'); } catch (e) { /* not saved */ }
+    if (!cb.checked) { try { localStorage.removeItem('fcache'); } catch (e) { /* nothing */ } forecastData = null; forecastAt = 0; renderForecast(); }
+    else { forecastTriedAt = 0; loadForecast(); }
 }
 
 // ---- Your impact: a score, a streak, badges and a shareable card, worked out on the phone from /api/days and /api/sessions ----
@@ -2792,6 +2935,7 @@ new ResizeObserver(() => drawFlow()).observe(el('flowgrid'));
     document.addEventListener('touchcancel', reset, { passive: true });
 })();
 fillPlans();
+el('forecast-toggle').checked = forecastEnabled();
 refresh(); refreshHistory();
 let pollTick = 0;
 setInterval(() => { pollTick++; if (failedPolls < 3 || pollTick % 3 === 0) refresh(); }, 2500);   // every 2.5 s, and every ~7.5 s once it is clearly down

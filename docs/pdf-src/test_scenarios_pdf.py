@@ -251,6 +251,8 @@ S += section("L. Your impact, goals, plug-in time and the share picture (not yet
      "A card with <i>Press and hold the picture, then choose Share or Save Image</i> opens (the phone's own share sheet needs a secure page, and this page is plain http). Press and hold offers Share and Save to Photos. <i>Save picture</i> downloads it.", False),
     (76, "Memory log", "Call <font face='Courier'>GET /api/diagnostics?memory=1</font> a day after a restart.",
      "<font face='Courier'>memory.lowest</font> says where the free memory was lowest, and <font face='Courier'>memorySamples</font> holds up to 288 five-minute samples. Free memory should stay flat; a steady downward slope would be a leak.", False),
+    (78, "Tomorrow's forecast", "Open the dashboard on a phone on the home Wi-Fi in the afternoon. Tap the <i>Tomorrow</i> button under the headline.",
+     "A card with an hourly sunshine chart, <i>Best solar from about 10 am to 5 pm</i>, and a kWh figure compared with your recent days (after about three days of solar history). Turn <i>Settings > Display > Show tomorrow's forecast</i> off and the button disappears and nothing is requested.", False),
     (77, "Rejoining Wi-Fi after the router was off", "Switch the router off for 3 minutes, then on again.",
      "The board comes back by itself within about two minutes of the router returning (watch the dashboard reconnect). The router must be off long enough for the board to notice; it never restarts itself.", False)])
 

@@ -689,6 +689,11 @@ public class ApiRoutes {
         daylightInfo.put("endMinutes", state.daylightEndMinutes());
 
         body.put("daylight", daylightInfo);
+        // Where the site is, rounded to a tenth of a degree (about 11 km): enough for a weather forecast, not a street address.
+        Map<String, Object> site = new LinkedHashMap<>();
+        site.put("lat", Math.round(AppConfig.siteLatitude() * 10) / 10.0);
+        site.put("lon", Math.round(AppConfig.siteLongitude() * 10) / 10.0);
+        body.put("site", site);
         body.put("power", power);
         body.put("charger", charger);
         body.put("controller", controller);
