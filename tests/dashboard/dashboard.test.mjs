@@ -1077,9 +1077,9 @@ test('a hidden headline button really is hidden (its style sets display, so it n
 test('the Tomorrow button and card show the expected solar in the unit the owner chose', () => {
     const f = fcReply(FC_TODAY, [700, 700, 700, 700, 700, 700, 700, 700, 900], [10, 10, 10, 10, 10, 10, 10, 10, 10]);
     const v = page.forecastView(f, fcDays([30, 30, 30, 30, 30, 30, 30]), FC_TODAY, 'ECO');
-    assert.equal(page.forecastChipText(v, false, 3), 'Tomorrow: mostly sunny \u00b7 ' + v.kwh + ' kWh \u203a');
-    assert.equal(page.forecastChipText(v, true, 3), 'Tomorrow: mostly sunny \u00b7 ~' + Math.round(v.kwh * 3) + ' mi \u203a');
-    assert.equal(page.forecastChipText(v, true, 2.5), 'Tomorrow: mostly sunny \u00b7 ~' + Math.round(v.kwh * 2.5) + ' mi \u203a');
+    assert.equal(page.forecastChipText(v, false, 3), 'Tomorrow ~' + v.kwh + ' kWh \u203a');
+    assert.equal(page.forecastChipText(v, true, 3), 'Tomorrow ~' + Math.round(v.kwh * 3) + ' mi \u203a');
+    assert.equal(page.forecastChipText(v, true, 2.5), 'Tomorrow ~' + Math.round(v.kwh * 2.5) + ' mi \u203a');
     const kwhLines = page.forecastLines(v, false, 3);
     assert.equal(kwhLines.length, 3);
     assert.ok(kwhLines[0].startsWith('Solar: about ' + v.kwh + ' kWh, more than lately'));
@@ -1095,8 +1095,8 @@ test('with no kWh figure yet the button shows only the conditions in either unit
     const f = fcReply(FC_TODAY, [700, 700, 700, 700, 700, 700, 700, 700, 700], [10, 10, 10, 10, 10, 10, 10, 10, 10]);
     const v = page.forecastView(f, null, FC_TODAY, 'ECO');
     assert.equal(v.kwh, null);
-    assert.equal(page.forecastChipText(v, false, 3), 'Tomorrow: mostly sunny \u203a');
-    assert.equal(page.forecastChipText(v, true, 3), 'Tomorrow: mostly sunny \u203a');
+    assert.equal(page.forecastChipText(v, false, 3), 'Tomorrow \u203a');
+    assert.equal(page.forecastChipText(v, true, 3), 'Tomorrow \u203a');
     assert.equal(page.forecastLines(v, true, 3).length, 3);   // no miles caveat without a figure
     assert.ok(page.forecastLines(v, true, 3)[0].startsWith('Solar: not enough recent days'));
 });
@@ -1129,10 +1129,48 @@ test('the grade letter takes the colour the gradient has reached, and the wheel 
     assert.equal(page.wheelLabel(null), 'No score yet');
 });
 
-test('the headline buttons sit in one row that centres them, so a taller one (with the ring) does not push the others off line', () => {
+test('the headline buttons sit in one row of their own across the card, below the text and Pause', () => {
     assert.ok(/\.chips \{ display: flex; flex-wrap: wrap; align-items: center;/.test(html));
-    const row = html.slice(html.indexOf('<div class="chips">'), html.indexOf('</div>', html.indexOf('<div class="chips">')));
-    ['imp-chip', 'fc-chip', 'site-chip'].forEach(id => assert.ok(row.includes('id="' + id + '"'), id + ' is inside the row'));
+    assert.ok(/\.hero \{ display: flex; flex-wrap: wrap;/.test(html) && /\.hero \.chips \{ flex: 0 0 100%;/.test(html));
+    const start = html.indexOf('<div class="chips">'), row = html.slice(start, html.indexOf('</section>', start));
+    ['imp-chip', 'td-chip', 'fc-chip', 'site-chip'].forEach(id => assert.ok(row.includes('id="' + id + '"'), id + ' is inside the row'));
+    assert.ok(row.indexOf('id="td-chip"') < row.indexOf('id="fc-chip"'), 'Today comes just before Tomorrow');
+    const hero = html.slice(html.indexOf('<section class="tile hero"'), start);
+    assert.ok(hero.includes('id="pause-btn"') && hero.includes('id="hero-sub"'), 'the row comes after the text and Pause, not inside the text column');
+});
+
+test('the weather picture comes from the cloud cover and rain, and every picture exists', () => {
+    assert.equal(page.weatherKind(10, 0), 'sun');
+    assert.equal(page.weatherKind(40, 0), 'partly');
+    assert.equal(page.weatherKind(80, 0), 'cloud');
+    assert.equal(page.weatherKind(10, 2.5), 'rain');
+    ['sun', 'partly', 'cloud', 'rain'].forEach(k => assert.ok(page.WX_ICONS === undefined || page.WX_ICONS[k]));
+    assert.ok(/WX_ICONS = \{\s*sun:[\s\S]*partly:[\s\S]*cloud:[\s\S]*rain:/.test(html));
+    assert.ok(page.forecastUrl(37.8, -121.3).includes('precipitation'));
+});
+
+test('Today shows the whole-day estimate in the day, and what was made after the solar hours', () => {
+    const f = fcReply(FC_TODAY, [700, 700, 700, 700, 700, 700, 700, 700, 700], [10, 10, 10, 10, 10, 10, 10, 10, 10]);
+    const day = page.forecastView(f, fcDays([30, 30, 30, 30, 30, 30, 30]), FC_TODAY, 'ECO', 12, true).today;
+    assert.equal(day.made, false); assert.equal(day.kind, 'sun'); assert.ok(day.kwh >= 12);
+    const low = page.forecastView(f, fcDays([30, 30, 30, 30, 30, 30, 30]), FC_TODAY, 'ECO', 50, true).today;
+    assert.equal(low.kwh, 50, 'never below what is already made');
+    const night = page.forecastView(f, fcDays([30, 30, 30, 30, 30, 30, 30]), FC_TODAY, 'ECO', 26, false).today;
+    assert.deepEqual([night.made, night.kwh], [true, 26]);
+    const before = page.forecastView(f, fcDays([30, 30, 30, 30, 30, 30, 30]), FC_TODAY, 'ECO', 0, false).today;
+    assert.equal(before.made, false, 'before sunrise nothing is made yet, so it is still an estimate');
+    const few = page.forecastView(f, null, FC_TODAY, 'ECO', 0, true).today;
+    assert.equal(few.kwh, null);
+    assert.equal(page.todayChipText(few, true, 3), 'Today \u203a');
+});
+
+test('the Today bubble words: ~ on estimates, none on kWh made, miles always estimated', () => {
+    assert.equal(page.todayChipText({ kwh: 31, made: false }, false, 3), 'Today ~31 kWh \u203a');
+    assert.equal(page.todayChipText({ kwh: 31, made: false }, true, 3), 'Today ~93 mi \u203a');
+    assert.equal(page.todayChipText({ kwh: 26, made: true }, false, 3), 'Today 26 kWh made \u203a');
+    assert.equal(page.todayChipText({ kwh: 26, made: true }, true, 3), 'Today ~78 mi made \u203a');
+    assert.equal(page.todayLine({ kwh: 26, made: true }, false, 3), 'Today: 26 kWh of solar made.');
+    assert.equal(page.todayLine({ kwh: null }, false, 3), '');
 });
 
 test('a saved forecast is only reused while it still includes tomorrow (after midnight an evening answer does not)', () => {
