@@ -1114,7 +1114,7 @@ test('the score wheel: a ring in the solar-to-green gradient with the grade in t
     assert.ok(html.includes('.vbar i { display: block; height: 100%; width: 0; border-radius: 4px; background: linear-gradient(90deg, var(--solar), var(--green))'), 'the bar it matches is unchanged');
     const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>'));
     const block = css.match(/@media \(prefers-reduced-motion: no-preference\) \{\s*\n\s*\.hero \.title\.swap[\s\S]*?\n        \}\n/)[0];
-    assert.ok(!/\.ring \{ transition/.test(css.replace(block, '')), 'the fill-in only runs when motion is allowed');
+    assert.ok(!/\.scorering \{ transition/.test(css.replace(block, '')), 'the fill-in only runs when motion is allowed');
 });
 
 test('the grade letter takes the colour the gradient has reached, and the wheel has words for screen readers', () => {
@@ -1181,4 +1181,24 @@ test('the line under the day graph says when the last reading was, only when not
     assert.equal(page.unmeasuredNote(true, 1000, 1000 + 120, 60, '8:22 pm'), '');     // a recent reading is still "now"
     assert.equal(page.unmeasuredNote(true, 1000, 1000 + 181, undefined, '8:22 pm') !== '', true);   // older than three polls, even if the poll length is not given
     assert.ok(html.includes('unmeasuredNote(isResting(lastData)'));
+});
+
+test('the score wheel never styles the headline card: its class is scorering, and plain ring only appears as the headline card\'s countdown (.hero.ring)', () => {
+    const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>'));
+    // any selector that mentions the class `ring` as a whole word must be the headline card's own
+    const mentions = [...css.matchAll(/[^{}]*\.ring(?![\w-])[^{}]*\{/g)].map(m => m[0].trim());
+    assert.ok(mentions.length > 0);
+    mentions.forEach(sel => assert.ok(/\.hero\.ring|\.hero\.wait:not\(\.ring\)/.test(sel), 'a rule styles plain .ring outside the headline card: ' + sel));
+    assert.ok(html.includes("hero.classList.toggle('ring'"), 'the headline card still gets ring while counting down');
+    assert.ok(!/class="ring"/.test(html) && !/class="[^"]*\bring\b[^"]*"/.test(html), 'no element is given the plain ring class in the markup');
+    ['imp-ring', 'imp-chip-ring'].forEach(id => assert.ok(new RegExp('class="scorering" id="' + id + '"').test(html), id + ' uses scorering'));
+});
+
+test('every class the page toggles on the headline card is unique to it (no stylesheet rule on a bare class of the same name)', () => {
+    const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>'));
+    const toggled = [...html.matchAll(/hero\.classList\.(?:toggle|add)\('([\w-]+)'/g)].map(m => m[1]);
+    toggled.forEach(c => {
+        const bare = new RegExp('(^|[,}\\s])\\.' + c + '\\s*[{,]', 'm');
+        assert.ok(!bare.test(css.replace(/\.hero\.[\w:().-]+/g, '')), 'a bare .' + c + ' rule would style the headline card');
+    });
 });
