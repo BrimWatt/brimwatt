@@ -431,27 +431,27 @@ test('countdowns are short and say nothing when there is no timer', () => {
 test('Eco: the house is using the solar, and the title says so', () => {
     const v = idle(d => { d.power.solarWatts = 5000; d.power.homeWatts = 4900; d.controller.gridAllowanceWatts = 1000; });
     assert.equal(v.title, 'Waiting: home is using the solar');
-    assert.equal(v.sub, 'Home is using 4.9 kW of your 5.0 kW solar. Needs 0.7 kW spare to start.');
+    assert.equal(v.sub, 'Needs 0.7 kW of solar left over after the house.');
     assert.equal(v.cls, 'wait');
 });
 
 test('Eco: just stopped, the title says it is waiting to restart and for how long', () => {
     const v = idle(d => { d.power.solarWatts = 5000; d.power.homeWatts = 4900; d.controller.gridAllowanceWatts = 1000; d.controller.waitSeconds = 70; });
     assert.equal(v.title, 'Waiting to restart');
-    assert.match(v.sub, /Restart possible in about 1 min\./);
+    assert.match(v.sub, /Can restart in about 1 min\./);
 });
 
 test('Max solar ignores the house and talks about the solar alone', () => {
     const v = idle(d => { d.currentMode = 'MAX_SOLAR'; d.power.solarWatts = 100; d.power.homeWatts = 4200; d.controller.gridAllowanceWatts = 1000; });
     assert.equal(v.title, 'Waiting for more solar');
-    assert.equal(v.sub, 'Solar is 0.1 kW. Needs about 0.4 kW to start.');
+    assert.equal(v.sub, 'Needs about 0.4 kW of solar to start.');
 });
 
 test('enough solar and the planner is confirming it lasts', () => {
     const v = idle(d => { d.controller.reason = 'surplus present, confirming it lasts'; d.controller.waitSeconds = 120; });
     assert.equal(v.title, 'Starting soon');
-    assert.equal(v.sub, 'Enough solar. Starts in about 2 min if it holds.');
-    assert.equal(idle(d => { d.controller.reason = 'surplus present, confirming it lasts'; }).sub, 'Enough solar. Starts shortly if it holds.');
+    assert.equal(v.sub, 'Starts in about 2 min if solar stays this strong.');
+    assert.equal(idle(d => { d.controller.reason = 'surplus present, confirming it lasts'; }).sub, 'Starts shortly if solar stays up.');
 });
 
 test('night: waiting for sunrise', () => {
@@ -468,7 +468,7 @@ test('a dip while charging warns and counts down to the stop', () => {
     const v = page.waitView(d);
     assert.equal(v.title, 'Low solar, charging at 6 A');
     assert.equal(v.cls, 'warn');
-    assert.equal(v.sub, 'Home is using 4.6 kW of your 5.0 kW solar. Stops in about 3 min if it stays low.');
+    assert.equal(v.sub, 'Stops in about 3 min if solar stays low.');
     d.controller.reason = 'track surplus';
     assert.equal(page.waitView(d), null);
 });
@@ -1200,5 +1200,22 @@ test('every class the page toggles on the headline card is unique to it (no styl
     toggled.forEach(c => {
         const bare = new RegExp('(^|[,}\\s])\\.' + c + '\\s*[{,]', 'm');
         assert.ok(!bare.test(css.replace(/\.hero\.[\w:().-]+/g, '')), 'a bare .' + c + ' rule would style the headline card');
+    });
+});
+
+test('the waiting lines say what is needed or what will happen, in words that need no background', () => {
+    const lines = [];
+    const grab = fn => { const v = idle(fn); if (v) lines.push(v.sub); return v; };
+    grab(d => { d.charger.status = 'PREPARING'; d.controller.reason = 'surplus present, confirming it lasts'; d.controller.waitSeconds = 120; });
+    grab(d => { d.charger.status = 'PREPARING'; d.controller.reason = 'surplus present, confirming it lasts'; d.controller.waitSeconds = -1; });
+    grab(d => { d.controller.reason = 'waiting for surplus'; d.controller.waitSeconds = 120; d.power.solarWatts = 3000; d.power.homeWatts = 3500; d.charger.status = 'PREPARING'; });
+    grab(d => { d.controller.reason = 'waiting for surplus'; d.controller.waitSeconds = -1; d.power.solarWatts = 3000; d.power.homeWatts = 3500; d.charger.status = 'PREPARING'; });
+    lines.push(page.waitView(Object.assign(base(), { charger: { status: 'CHARGING', amps: 6, limitAmps: 6 }, controller: Object.assign(base().controller, { reason: 'dip: below the minimum', waitSeconds: 180 }) })).sub);
+    assert.ok(lines.length >= 5);
+    lines.forEach(l => {
+        assert.ok(!/if it holds/i.test(l), 'what holds? ' + l);
+        assert.ok(!/\bspare to start/i.test(l), 'what spare? ' + l);
+        assert.ok(!/^Home is using|^Solar is /.test(l), 'the numbers are in the power picture: ' + l);
+        assert.ok(l.length <= 80, 'short: ' + l);
     });
 });
