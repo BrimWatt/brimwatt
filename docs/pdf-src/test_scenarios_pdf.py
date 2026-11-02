@@ -146,7 +146,9 @@ S += section("I. Daylight window", [
     (27, "Custom at night", "After the window has closed, choose Custom and set a current with the slider.",
      "Charging starts and the limit follows what you set. The window has no effect on Custom mode.", False),
     (28, "Restart overnight", "Run <font face='Courier'>sudo systemctl restart solar-charger</font> while the window is closed.",
-     "The startup log shows today's window, there is no polling, and nothing is sent to a charger that is not charging.", False)])
+     "The startup log shows today's window, there is no polling, and nothing is sent to a charger that is not charging.", False),
+    (80, "Eco after the solar hours", "After the window has closed, switch from Custom to Eco and look at the dashboard 10 minutes later.",
+     "Nothing is read at night: Home and Grid show <i>–</i> with <i>Not read at night</i> (Solar says <i>Resting until sunrise</i>), and under the Today graph it says <i>Last reading at (time). Eco and Max solar do not read the meter after solar hours.</i> No old numbers are shown as live. Custom still reads all night.", True)])
 
 S += section("J. Dashboard feedback", [
     (29, "Every action confirms", "Switch modes, move the Custom slider, drag the allowance slider, tick and untick Solar hours only.",

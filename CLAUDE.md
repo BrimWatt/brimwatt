@@ -86,7 +86,7 @@ Docs: `python3 docs/pdf-src/test_scenarios_pdf.py` and `python3 docs/pdf-src/dep
 - Limit changes: up needs 2 A and 60 s, down needs 1 A and 30 s. Meters are polled every 60 s.
 - Grid allowance 0-1000 W (default 1000), a slider on the dashboard.
 - **Daylight window**: ECO and Max solar only run from sunrise + 30 min to sunset - 60 min (NOAA formula, offline). Both margins
-  are adjustable (0-180 min) in Settings. Outside it: no meter polling, a running charge is stopped once.
+  are adjustable (0-180 min) in Settings. Outside it: no meter polling (a deliberate rule, confirmed by the owner 2026-11-01: do NOT read the meters after solar hours), a running charge is stopped once. So the page must not show old numbers as live: `flowUnmeasured(data)` (Eco or Max solar, window closed, reading older than 3 polls) makes the flow show `–` / `Not read at night` for Home and Grid, and `unmeasuredNote(...)` puts `Last reading at 8:22 pm. Eco and Max solar do not read the meter after solar hours.` under the Today graph instead of a stale Now line. A patch that made the controllers read for display at night was tried and dropped (not wanted).
 - **Fail-safe**: no Envoy data for 150 s stops ECO and Max solar. Custom and Paused still read the meters for display only.
 - **Pause** is a kill switch that beats every mode: stops a charge, blocks starts and limit changes (also a car started from
   the wallbox's own app), survives restarts and crashes; Resume hands back to the saved mode.

@@ -1161,3 +1161,24 @@ test('every bar carries its full date, and the chart wires the mouse (not the fi
     assert.ok(html.includes("g.addEventListener('click', () => showPastDay(r.daysAgo))"), 'tapping a bar still opens that day');
     assert.ok(read('typeof barHint') === 'function' && read('typeof canHover') === 'function');
 });
+
+// ---- after the solar hours, nothing is measured in Eco and Max solar ----
+test('after the solar hours in Eco the old reading is not shown as if it were now', () => {
+    const base = (extra) => Object.assign({ currentMode: 'ECO', enphaseOk: true, daylight: { open: false }, controller: { hasReading: true, readingAgeSeconds: 4590, pollSeconds: 60 } }, extra || {});
+    assert.equal(page.flowUnmeasured(base()), true);                                                     // Eco, night, an hour-old reading
+    assert.equal(page.flowUnmeasured(base({ currentMode: 'MAX_SOLAR' })), true);
+    assert.equal(page.flowUnmeasured(base({ currentMode: 'FAST' })), false);                              // Custom still reads at night
+    assert.equal(page.flowUnmeasured(base({ currentMode: 'CHEAPEST' })), false);
+    assert.equal(page.flowUnmeasured(base({ daylight: { open: true } })), false);                         // by day an old reading is a stale one, shown greyed as before
+    assert.equal(page.flowUnmeasured(base({ controller: { hasReading: true, readingAgeSeconds: 120, pollSeconds: 60 } })), false);   // just after sunset the last reading is still recent
+    assert.equal(page.flowUnmeasured(base({ controller: { hasReading: false, pollSeconds: 60 } })), false);   // no reading at all is already shown as dashes
+    assert.ok(html.includes('id="home-sub"') && html.includes("'Not read at night'"));
+});
+
+test('the line under the day graph says when the last reading was, only when nothing is being read', () => {
+    assert.equal(page.unmeasuredNote(true, 1000, 1000 + 4590, 60, '8:22 pm'), 'Last reading at 8:22 pm. Eco and Max solar do not read the meter after solar hours.');
+    assert.equal(page.unmeasuredNote(false, 1000, 1000 + 4590, 60, '8:22 pm'), '');   // not resting (Custom, or in the day): the normal Now line
+    assert.equal(page.unmeasuredNote(true, 1000, 1000 + 120, 60, '8:22 pm'), '');     // a recent reading is still "now"
+    assert.equal(page.unmeasuredNote(true, 1000, 1000 + 181, undefined, '8:22 pm') !== '', true);   // older than three polls, even if the poll length is not given
+    assert.ok(html.includes('unmeasuredNote(isResting(lastData)'));
+});
