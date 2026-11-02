@@ -488,7 +488,7 @@
                 <svg id="flowsvg" aria-hidden="true"></svg>
                 <div class="ft solar"><span class="fl">☀️ Solar</span><b id="solar-power">–</b><small id="solar-sub">&nbsp;</small></div>
                 <div class="hub"><span class="dot" aria-hidden="true">⚡</span><small>supply</small><button type="button" class="info" data-tip="flow" aria-label="How do I read this?">i</button></div>
-                <div class="ft home"><span class="fl">🏠 Home</span><b id="home-power">–</b><small>without the car</small></div>
+                <div class="ft home"><span class="fl">🏠 Home</span><b id="home-power">–</b><small id="home-sub">without the car</small></div>
                 <div class="ft grid" id="grid-tile"><span class="fl">🔌 Grid</span><b id="grid-power">–</b><small id="grid-sub">&nbsp;</small></div>
                 <div class="ft car" id="car-tile"><span class="fl">🚗 Car</span><b id="charger-power">–</b><small id="charger-sub">&nbsp;</small></div>
             </div>
@@ -1683,22 +1683,42 @@ function renderHeadline(data) {
     }
 }
 
+/**
+ * After the solar hours Eco and Max solar do not read the meter, so Home and Grid have no current value: the last reading is hours old.
+ * True when the page should say so instead of showing that old number as if it were now. Pure and tested.
+ */
+function flowUnmeasured(data) {
+    const k = data.controller || {};
+    return isResting(data) && !!k.hasReading && k.readingAgeSeconds > k.pollSeconds * 3;
+}
+/** The line under the day graph when nothing is being measured: when the last reading was, and why. Empty when readings are current. Pure and tested. */
+function unmeasuredNote(resting, lastReadingAt, nowAt, pollSeconds, whenText) {
+    if (!resting || !(nowAt - lastReadingAt > (pollSeconds || 60) * 3)) return '';
+    return 'Last reading at ' + whenText + '. Eco and Max solar do not read the meter after solar hours.';
+}
 function renderFlow(data) {
     const p = data.power, c = data.charger, k = data.controller;
     const stale = !k.hasReading || !data.enphaseOk || k.readingAgeSeconds > k.pollSeconds * 3 || (!flatMode(data) && !data.daylight.open);
     el('flow').classList.toggle('stale', stale);
     if (!k.hasReading) {
         ['solar-power', 'home-power', 'grid-power'].forEach(id => { glideStop(id); setText(id, '–'); });
-        setText('grid-sub', ' '); setText('solar-sub', ' ');
+        setText('grid-sub', ' '); setText('solar-sub', ' '); setText('home-sub', 'without the car');
     } else {
         glide('solar-power', p.solarWatts, fmtPower);
-        // Home is what is left after the car. If that comes out below zero the car's number is only its limit, not its real draw.
-        const homeRaw = p.solarWatts + p.gridWatts - (c.amps > 0 ? p.chargerWatts : 0);
-        if (homeRaw < -30) { glideStop('home-power'); setText('home-power', '≈ 0 W'); } else glide('home-power', p.homeWatts, fmtPower);
-        const importing = p.gridWatts > 0;
-        glide('grid-power', Math.abs(p.gridWatts), fmtPower, importing ? 'import' : 'export');
-        setText('grid-sub', importing ? 'from the grid' : 'to the grid');
-        el('grid-tile').classList.toggle('export', !importing);
+        if (flowUnmeasured(data)) {   // nothing is read at night in Eco or Max solar: do not show an old number as if it were now
+            glideStop('home-power'); setText('home-power', '–'); setText('home-sub', 'Not read at night');
+            glideStop('grid-power'); setText('grid-power', '–'); setText('grid-sub', 'Not read at night');
+            el('grid-tile').classList.remove('export');
+        } else {
+            // Home is what is left after the car. If that comes out below zero the car's number is only its limit, not its real draw.
+            const homeRaw = p.solarWatts + p.gridWatts - (c.amps > 0 ? p.chargerWatts : 0);
+            if (homeRaw < -30) { glideStop('home-power'); setText('home-power', '≈ 0 W'); } else glide('home-power', p.homeWatts, fmtPower);
+            setText('home-sub', 'without the car');
+            const importing = p.gridWatts > 0;
+            glide('grid-power', Math.abs(p.gridWatts), fmtPower, importing ? 'import' : 'export');
+            setText('grid-sub', importing ? 'from the grid' : 'to the grid');
+            el('grid-tile').classList.toggle('export', !importing);
+        }
         setText('solar-sub', stale ? (isResting(data) ? RESTING : fmtAge(k.readingAgeSeconds)) : ' ');
     }
     glide('charger-power', c.amps > 0 ? p.chargerWatts : 0, c.amps > 0 && !c.drawMeasured ? w => fmtApprox(fmtCarPower(w)) : fmtCarPower);
@@ -2535,7 +2555,12 @@ function drawChart(h) {
     const col = (label, value) => '<span><span class="rl">' + label + '</span><b>' + value + '</b></span>';
     const reading = (s, lead) => col('&nbsp;', lead) + col('Solar', fmtPower(s[1])) + col('Home', fmtPower(s[2])) + col('Car', fmtPower(s[4])) + col(s[3] >= 0 ? 'Grid in' : 'Grid out', fmtPower(Math.abs(s[3])));
     const setReading = html => { const r = el('readout'); r.className = html ? 'rd' : ''; r.innerHTML = html; };
-    const idleReading = () => setReading(h.daysAgo > 0 ? '' : reading(S[S.length - 1], 'Now'));
+    const idleReading = () => {
+        const last = S[S.length - 1][0];
+        const note = h.daysAgo > 0 || !lastData ? '' : unmeasuredNote(isResting(lastData), last, h.now, lastData.controller && lastData.controller.pollSeconds, siteTime(last));
+        if (note) { const r = el('readout'); r.className = ''; r.textContent = note; return; }   // no reading is current: say so, do not show an old "Now"
+        setReading(h.daysAgo > 0 ? '' : reading(S[S.length - 1], 'Now'));
+    };
     const show = evt => {
         const r = svg.getBoundingClientRect(), x = (evt.clientX - r.left) / r.width * width;
         let best = S[0], bd = 1e9; S.forEach(s => { const d = Math.abs(X(s[0]) - x); if (d < bd) { bd = d; best = s; } });
