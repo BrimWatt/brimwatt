@@ -153,6 +153,7 @@ S.append(side(shot("impact", width=2.1 * inch, caption="Your impact (sample data
     P("Without solar it is called <b>Charge Score</b> and counts only the parts that apply. Under the score you see miles, how much cheaper than gas, what Cheapest hours saved (an estimate), a streak of good days, badges, and a "
       "<i>Share image</i> button that makes a picture on your phone."),
     P("Days with no charging, or too little sun, are skipped and never count against you. Every figure is an estimate."),
+    P("<b>Today</b> and <b>Tomorrow</b> sit next to the score. Each has a small weather picture (sun, partly cloudy, cloud or rain) and the solar you can expect, in miles or kWh. After the solar hours Today shows what was <i>made</i>. Tap either for the hourly forecast. They need a solar meter and your location."),
     shot("impact-nosolar", width=2.1 * inch, caption="Charge Score, a home without solar"),
 ], pic_left=False))
 S.append(side(shot("settings-money", width=2.4 * inch, crop=(0.28, 0.66), caption="Settings: Money, with your plan"), [
