@@ -1023,25 +1023,24 @@ function waitView(data) {
     if (['NONE', 'FAULTED', 'AVAILABLE', 'SUSPENDED_EV', 'SUSPENDED_EVSE', 'FINISHING'].includes(c.status)) return null;
     const charging = c.status === 'CHARGING' && c.amps > 0;
     const eco = data.currentMode === 'ECO', volts = p.voltage || 240, allow = k.gridAllowanceWatts || 0;
-    const solar = kwText(p.solarWatts), wait = fmtWait(k.waitSeconds);
-    const homeLine = eco ? 'Home is using ' + kwText(p.homeWatts) + ' of your ' + solar + ' solar.' : 'Solar is ' + solar + '.';
+    const wait = fmtWait(k.waitSeconds);   // the solar and house numbers are in the power picture right below, so the lines here say only what is needed or what will happen
     if (charging) {
         if (!String(k.reason).startsWith('dip')) return null;
         return { cls: 'warn', icon: '🔋', title: 'Low solar, charging at ' + Math.round(c.limitAmps || c.amps) + ' A',
-                 sub: homeLine + (wait ? ' Stops in ' + wait + ' if it stays low.' : ' Stops soon if it stays low.') };
+                 sub: wait ? 'Stops in ' + wait + ' if solar stays low.' : 'Stops soon if solar stays low.' };
     }
     if (!data.daylight.open) return { cls: 'wait', rest: true, icon: '🌙', title: 'Waiting for sunrise', sub: 'Solar charging starts after sunrise.' };
     const reason = String(k.reason);
     const startW = (eco ? 7 : 6) * volts, minW = 6 * volts, needW = Math.max(0, startW - allow);
     if (reason.startsWith('surplus present'))
-        return { cls: 'wait', icon: '⏳', title: 'Starting soon', sub: 'Enough solar. ' + (wait ? 'Starts in ' + wait + ' if it holds.' : 'Starts shortly if it holds.') };
+        return { cls: 'wait', icon: '⏳', title: 'Starting soon', sub: wait ? 'Starts in ' + wait + ' if solar stays this strong.' : 'Starts shortly if solar stays up.' };
     if (reason === 'waiting for surplus' || reason.startsWith('stop:')) {
         const spare = eco ? p.solarWatts - p.homeWatts + allow : p.solarWatts + allow;
-        if (spare >= startW) return { cls: 'wait', icon: '⏳', title: 'Starting soon', sub: 'Enough solar. ' + (wait ? 'Starts in ' + wait + ' if it holds.' : 'Checking it lasts.') };
-        const restart = wait ? ' Restart possible in ' + wait + '.' : '';
+        if (spare >= startW) return { cls: 'wait', icon: '⏳', title: 'Starting soon', sub: wait ? 'Starts in ' + wait + ' if solar stays this strong.' : 'Checking that the solar lasts.' };
+        const restart = wait ? ' Can restart in ' + wait + '.' : '';
         if (eco && p.solarWatts + allow >= minW)
-            return { cls: 'wait', icon: '⏳', title: wait ? 'Waiting to restart' : 'Waiting: home is using the solar', sub: homeLine + ' Needs ' + kwText(needW) + ' spare to start.' + restart };
-        return { cls: 'wait', icon: '☁️', title: 'Waiting for more solar', sub: 'Solar is ' + solar + '. Needs about ' + kwText(needW) + ' to start.' + restart };
+            return { cls: 'wait', icon: '⏳', title: wait ? 'Waiting to restart' : 'Waiting: home is using the solar', sub: 'Needs ' + kwText(needW) + ' of solar left over after the house.' + restart };
+        return { cls: 'wait', icon: '☁️', title: 'Waiting for more solar', sub: 'Needs about ' + kwText(needW) + ' of solar to start.' + restart };
     }
     return null;
 }
