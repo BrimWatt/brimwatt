@@ -71,7 +71,7 @@
         .tile h2 { margin: 0 0 8px; font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 
         /* headline */
-        .hero { display: flex; align-items: center; gap: 12px; }
+        .hero { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
         .hero .badge { width: 46px; height: 46px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: var(--soft); }
         .hero.good .badge { background: var(--ok-bg); } .hero.warn .badge { background: var(--warn-bg); } .hero.bad .badge { background: var(--bad-bg); } .hero.wait .badge { background: var(--info-bg); }
         .hero .txt { flex: 1; min-width: 0; }
@@ -377,7 +377,12 @@
         #hero { order: 1; } #sesscard { order: 2; } #flow, #nosolar { order: 3; } #chartcard { order: 4; } #modes { order: 5; } #carcard { order: 6; }
         #feedcard { order: 7; } #sessions { order: 8; }
         #impact { order: 9; } #impact[hidden] { display: none; }
-        .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+        .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+        .hero .chips { flex: 0 0 100%; margin-top: -2px; padding-top: 10px; border-top: 1px solid var(--line); }   /* its own row across the card, so the text above keeps its whole width */
+        .hero .chips:not(:has(> :not([hidden]))) { display: none; }   /* no bubble to show: no empty strip either */
+        .impchip.wx { color: var(--ink); padding-left: 9px; }
+        .wxi { display: inline-flex; width: 18px; height: 18px; flex: none; } .wxi svg { width: 100%; height: 100%; }
+        .wxi .ws { fill: var(--solar); } .wxi .wc { fill: var(--muted); } .wxi .wr { stroke: var(--blue); stroke-width: 2; stroke-linecap: round; } .wxi .wray { stroke: var(--solar); stroke-width: 2; stroke-linecap: round; }
         .impchip { display: inline-flex; align-items: center; gap: 4px; margin: 0; min-height: 34px; padding: 0 12px; border-radius: 999px; background: var(--tint); color: var(--green); border: 1px solid var(--line); font-size: 0.82rem; font-weight: 600; }
         #impact-back { position: fixed; inset: 0; z-index: 18; background: rgba(15, 23, 42, 0.4); } #impact-back[hidden] { display: none; }
         #sharebox img { display: block; width: 100%; max-width: 360px; margin: 8px auto; border-radius: 12px; border: 1px solid var(--line); -webkit-touch-callout: default; user-select: auto; }
@@ -475,8 +480,9 @@
         <div class="stack stack-a">
         <section class="tile hero" id="hero" aria-live="polite">
             <div class="badge" id="hero-icon">⚡</div>
-            <div class="txt"><div class="title" id="hero-title">Connecting…</div><div class="sub" id="hero-sub">&nbsp;</div><div class="chips"><button type="button" class="impchip wheeled" id="imp-chip" hidden onclick="openImpact()" aria-haspopup="dialog"><span class="chipwheel" aria-hidden="true"><span class="scorering" id="imp-chip-ring" style="--p: 0"></span><b id="imp-chip-letter"></b></span><span id="imp-chip-text">Your impact ›</span></button><button type="button" class="impchip" id="fc-chip" hidden onclick="openForecast()" aria-haspopup="dialog">Tomorrow ›</button><button type="button" class="impchip warn" id="site-chip" hidden onclick="openSiteSettings()">Set your location ›</button></div></div>
+            <div class="txt"><div class="title" id="hero-title">Connecting…</div><div class="sub" id="hero-sub">&nbsp;</div></div>
             <button id="pause-btn" onclick="togglePause()"><svg class="ic" id="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><span id="pause-label">Pause</span></button>
+            <div class="chips"><button type="button" class="impchip wheeled" id="imp-chip" hidden onclick="openImpact()" aria-haspopup="dialog"><span class="chipwheel" aria-hidden="true"><span class="scorering" id="imp-chip-ring" style="--p: 0"></span><b id="imp-chip-letter"></b></span><span id="imp-chip-text">Your impact ›</span></button><button type="button" class="impchip wx" id="td-chip" hidden onclick="openForecast()" aria-haspopup="dialog"><span class="wxi" id="td-chip-icon" aria-hidden="true"></span><span id="td-chip-text">Today ›</span></button><button type="button" class="impchip wx" id="fc-chip" hidden onclick="openForecast()" aria-haspopup="dialog"><span class="wxi" id="fc-chip-icon" aria-hidden="true"></span><span id="fc-chip-text">Tomorrow ›</span></button><button type="button" class="impchip warn" id="site-chip" hidden onclick="openSiteSettings()">Set your location ›</button></div>
         </section>
         <section class="tile sessdone" id="sesscard" role="status" aria-live="polite" hidden>
             <span class="sd-ic" aria-hidden="true">⚡</span>
@@ -628,6 +634,7 @@
 </div></div>
 <div id="fcbox" class="sheet" role="dialog" aria-modal="true" aria-labelledby="fc-title" hidden><div class="card">
 <h3 id="fc-title" tabindex="-1">Tomorrow</h3>
+<p id="fc-today" hidden></p>
 <p id="fc-line1"></p>
 <div class="fcbars" id="fc-bars" aria-hidden="true"></div>
 <div class="fcaxis" aria-hidden="true"><span>6 am</span><span>noon</span><span>6 pm</span></div>
@@ -1978,7 +1985,7 @@ el('site-q').addEventListener('keydown', e => { if (e.key === 'Enter') findSite(
 const FORECAST_EVERY_MS = 3 * 3600 * 1000, FORECAST_RETRY_MS = 15 * 60 * 1000;
 function forecastUrl(lat, lon) {
     return 'https://api.open-meteo.com/v1/forecast?latitude=' + Number(lat).toFixed(1) + '&longitude=' + Number(lon).toFixed(1)
-        + '&hourly=shortwave_radiation,cloud_cover&past_days=7&forecast_days=2&timezone=auto';
+        + '&hourly=shortwave_radiation,cloud_cover,precipitation&past_days=7&forecast_days=2&timezone=auto';
 }
 /** The site's day number (days since 1 Jan 1970, the same numbering as /api/days) for a local date string such as "2026-11-01T09:00". */
 function forecastDayNumber(timeText) {
@@ -1992,9 +1999,10 @@ function forecastByDay(f) {
     const h = f.hourly;
     h.time.forEach((t, i) => {
         const day = forecastDayNumber(t), hour = Number(String(t).slice(11, 13)), rad = Number(h.shortwave_radiation[i]), cloud = Number(h.cloud_cover[i]);
+        const rain = Array.isArray(h.precipitation) ? Number(h.precipitation[i]) : 0;
         if (!Number.isFinite(day) || !Number.isFinite(hour) || !Number.isFinite(rad)) return;
-        const d = out.get(day) || { day, rad: new Array(24).fill(0), cloud: new Array(24).fill(null), kwhM2: 0 };
-        d.rad[hour] = rad; d.cloud[hour] = Number.isFinite(cloud) ? cloud : null; d.kwhM2 += rad / 1000;
+        const d = out.get(day) || { day, rad: new Array(24).fill(0), cloud: new Array(24).fill(null), kwhM2: 0, rainMm: 0 };
+        d.rainMm += Number.isFinite(rain) ? rain : 0; d.rad[hour] = rad; d.cloud[hour] = Number.isFinite(cloud) ? cloud : null; d.kwhM2 += rad / 1000;
         out.set(day, d);
     });
     return out;
@@ -2008,15 +2016,22 @@ function medianOf(values) {
  * The kWh figure is learned from the owner's own recent days: for each of the last 7 days, solar kWh divided by that day's forecast-model
  * sunshine (kWh/m2); the median ratio times tomorrow's sunshine. Needs 3 usable days, otherwise only the words are given.
  */
-function forecastView(f, daysReply, todayNum, mode) {
-    const days = forecastByDay(f), tomorrow = days.get(todayNum + 1);
-    if (!tomorrow || tomorrow.kwhM2 < 0.05) return null;
-    const peak = Math.max(...tomorrow.rad);
-    const sunny = tomorrow.cloud.filter((c, hr) => c !== null && tomorrow.rad[hr] > 20 && hr >= 9 && hr <= 15);
-    const cloud = sunny.length ? sunny.reduce((a, b) => a + b, 0) / sunny.length : 100;
-    const label = cloud < 25 ? 'Mostly sunny' : cloud < 60 ? 'Partly cloudy' : 'Cloudy';
-    const strong = tomorrow.rad.map((r, hr) => (r >= peak * 0.5 ? hr : -1)).filter(hr => hr >= 0);
-    const window = strong.length ? { from: strong[0], to: strong[strong.length - 1] + 1 } : null;
+/** Average daylight cloud cover (percent) of one forecast day, from the hours around noon that have real sunshine. */
+function dayCloud(d) {
+    const sunny = d.cloud.filter((c, hr) => c !== null && d.rad[hr] > 20 && hr >= 9 && hr <= 15);
+    return sunny.length ? sunny.reduce((a, b) => a + b, 0) / sunny.length : 100;
+}
+/** The picture for a day: sun, partly, cloud or rain (1 mm of rain or more in the day). Pure and tested. */
+function weatherKind(cloudPct, rainMm) { return rainMm >= 1 ? 'rain' : cloudPct < 25 ? 'sun' : cloudPct < 60 ? 'partly' : 'cloud'; }
+/** Small inline pictures (static markup, coloured by theme variables). */
+const WX_ICONS = {
+    sun: '<svg viewBox="0 0 24 24"><circle class="ws" cx="12" cy="12" r="4.6"/><path class="wray" d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7"/></svg>',
+    partly: '<svg viewBox="0 0 24 24"><circle class="ws" cx="8.5" cy="8.5" r="3.6"/><path class="wray" d="M8.5 1.8v1.8M1.8 8.5h1.8M3.8 3.8l1.3 1.3M13.2 3.8l-1.3 1.3"/><path class="wc" d="M9 20h9a3.7 3.7 0 0 0 .4-7.4A5 5 0 0 0 9 11.8 4.1 4.1 0 0 0 9 20z"/></svg>',
+    cloud: '<svg viewBox="0 0 24 24"><path class="wc" d="M6.5 19h11a4.2 4.2 0 0 0 .5-8.4A6 6 0 0 0 6.6 9.6 4.7 4.7 0 0 0 6.5 19z"/></svg>',
+    rain: '<svg viewBox="0 0 24 24"><path class="wc" d="M6.5 15h11a4 4 0 0 0 .5-8A5.8 5.8 0 0 0 6.6 6.1 4.5 4.5 0 0 0 6.5 15z"/><path class="wr" fill="none" d="M8.5 17.5l-1 2.5M12.5 17.5l-1 2.5M16.5 17.5l-1 2.5"/></svg>'
+};
+/** Solar-per-sunshine ratios learned from the owner's last 7 days (needs the forecast model's figure and at least 2 kWh actually made). */
+function solarRatios(days, daysReply, todayNum) {
     const solarByDay = new Map();
     if (daysReply && Array.isArray(daysReply.days)) daysReply.days.forEach(r => solarByDay.set(r[0], r[1]));
     const ratios = [], actuals = [];
@@ -2024,7 +2039,33 @@ function forecastView(f, daysReply, todayNum, mode) {
         const model = days.get(d), actual = solarByDay.get(d);
         if (model && model.kwhM2 >= 0.5 && actual >= 2) { ratios.push(actual / model.kwhM2); actuals.push(actual); }
     }
-    const v = { label, cloud: Math.round(cloud), peakWatts: peak, window, kwh: null, typicalKwh: null, comparison: '', mode,
+    return { ratios, actuals };
+}
+/**
+ * Today's bubble: whole-day solar expected (learned ratio times today's model sunshine, never below what is already made), or after the
+ * solar hours what was actually made (the meter is not read then, so an estimate would pretend). null without a figure.
+ * kind is the day's weather picture. Pure and tested.
+ */
+function todayView(days, ratios, todayNum, madeKwh, solarHoursOpen) {
+    const d = days.get(todayNum);
+    if (!d || d.kwhM2 < 0.05) return null;
+    const made = Number.isFinite(madeKwh) ? Math.max(0, madeKwh) : 0;
+    const kind = weatherKind(dayCloud(d), d.rainMm);
+    if (!solarHoursOpen && made >= 0.5) return { kind, kwh: made, made: true };
+    if (ratios.length < 3) return { kind, kwh: null, made: false };
+    return { kind, kwh: Math.max(made, medianOf(ratios) * d.kwhM2), made: false };
+}
+function forecastView(f, daysReply, todayNum, mode, madeKwh, solarHoursOpen) {
+    const days = forecastByDay(f), tomorrow = days.get(todayNum + 1);
+    if (!tomorrow || tomorrow.kwhM2 < 0.05) return null;
+    const peak = Math.max(...tomorrow.rad);
+    const cloud = dayCloud(tomorrow);
+    const label = cloud < 25 ? 'Mostly sunny' : cloud < 60 ? 'Partly cloudy' : 'Cloudy';
+    const strong = tomorrow.rad.map((r, hr) => (r >= peak * 0.5 ? hr : -1)).filter(hr => hr >= 0);
+    const window = strong.length ? { from: strong[0], to: strong[strong.length - 1] + 1 } : null;
+    const { ratios, actuals } = solarRatios(days, daysReply, todayNum);
+    const v = { label, kind: weatherKind(cloud, tomorrow.rainMm), cloud: Math.round(cloud), peakWatts: peak, window, kwh: null, typicalKwh: null, comparison: '', mode,
+                today: todayView(days, ratios, todayNum, madeKwh, solarHoursOpen !== false),
                 bars: tomorrow.rad.map((r, hr) => ({ hour: hr, pct: peak > 0 ? Math.round(r / peak * 100) : 0 })).filter(b => b.hour >= 6 && b.hour <= 20) };
     if (ratios.length >= 3) {
         v.kwh = Math.round(medianOf(ratios) * tomorrow.kwhM2); v.typicalKwh = Math.round(medianOf(actuals));
@@ -2036,9 +2077,19 @@ function forecastView(f, daysReply, todayNum, mode) {
 }
 /** An amount of solar energy in the owner's unit: "28 kWh", or "~84 mi" (kWh times miles per kWh; the ~ says it is an estimate). */
 function forecastAmount(kwh, miles, mpk) { return miles ? '~' + Math.round(kwh * mpk) + ' mi' : Math.round(kwh) + ' kWh'; }
-/** The text on the Tomorrow button: the conditions, then the expected solar when there is a figure. Pure and tested. */
+/** The text on the Tomorrow bubble (the weather is the picture in front): "Tomorrow ~30 mi ›", or just "Tomorrow ›" with no figure yet. Pure and tested. */
 function forecastChipText(v, miles, mpk) {
-    return 'Tomorrow: ' + v.label.toLowerCase() + (v.kwh !== null ? ' \u00b7 ' + forecastAmount(v.kwh, miles, mpk) : '') + ' \u203a';
+    return 'Tomorrow' + (v.kwh !== null ? ' ' + (miles ? '' : '~') + forecastAmount(v.kwh, miles, mpk) : '') + ' \u203a';
+}
+/** The text on the Today bubble: the expected solar, or after the solar hours what was made ("Today ~78 mi made ›"). */
+function todayChipText(t, miles, mpk) {
+    if (t.kwh === null) return 'Today \u203a';
+    return 'Today ' + (miles || t.made ? '' : '~') + forecastAmount(t.kwh, miles, mpk) + (t.made ? ' made' : '') + ' \u203a';
+}
+/** One plain line about today for the sheet, in kWh or miles. */
+function todayLine(t, miles, mpk) {
+    if (!t || t.kwh === null) return '';
+    return t.made ? 'Today: ' + forecastAmount(t.kwh, miles, mpk) + ' of solar made.' : 'Today: about ' + forecastAmount(t.kwh, miles, mpk) + ' of solar expected in all.';
 }
 /** "10 am" for an hour 0-23 (the forecast speaks in whole hours). */
 function hourWords(h) { return ((h + 11) % 12 + 1) + (h % 24 >= 12 ? ' pm' : ' am'); }
@@ -2088,11 +2139,20 @@ function ensureForecast() {
 let lastForecast = null;
 function renderForecast() {
     const chip = el('fc-chip');
-    lastForecast = forecastWanted(lastData, forecastEnabled()) && forecastData && hist ? forecastView(forecastData, valueDays[30], hist.today, lastData.currentMode) : null;
+    lastForecast = forecastWanted(lastData, forecastEnabled()) && forecastData && hist
+        ? forecastView(forecastData, valueDays[30], hist.today, lastData.currentMode, hist.totals ? hist.totals.solarKwh : 0, !!(lastData.daylight && lastData.daylight.open)) : null;
     chip.hidden = !lastForecast;
+    const tchip = el('td-chip'), td = lastForecast ? lastForecast.today : null;
+    tchip.hidden = !td;
     if (!lastForecast) { if (!el('fcbox').hidden) closeForecast(); return; }
-    const text = forecastChipText(lastForecast, unitMiles, milesPerKwh);
-    if (chip.textContent !== text) chip.textContent = text;
+    setChip('fc-chip', lastForecast.kind, forecastChipText(lastForecast, unitMiles, milesPerKwh));
+    if (td) setChip('td-chip', td.kind, todayChipText(td, unitMiles, milesPerKwh));
+}
+/** A weather bubble: the picture (redrawn only when it changes) and the words. */
+function setChip(id, kind, text) {
+    const icon = el(id + '-icon');
+    if (icon.dataset.kind !== kind) { icon.dataset.kind = kind; icon.innerHTML = WX_ICONS[kind] || ''; }
+    setText(id + '-text', text);
 }
 function fillForecastSheet() {
     if (!lastForecast) return;
@@ -2100,6 +2160,7 @@ function fillForecastSheet() {
     const lines = forecastLines(lastForecast, unitMiles, milesPerKwh);
     setText('fc-line1', lines[0]); setText('fc-line2', lines[1]); setText('fc-line3', lines[2]);
     setText('fc-line4', lines[3] || ''); el('fc-line4').hidden = !lines[3];
+    const tl = todayLine(lastForecast.today, unitMiles, milesPerKwh); setText('fc-today', tl); el('fc-today').hidden = !tl;
 }
 function openForecast() {
     if (!lastForecast) return;
