@@ -32,6 +32,7 @@ SHIM = r"""<script>
     currentMode: C.mode, paused: C.paused, gridAllowanceWatts: 600, chargerConnected: true, enphaseOk: true, meterLinked: C.meterLinked !== false, rateCents: 25,
     peakRateCents: C.peakCents || 0, peakStartHour: 16, peakEndHour: 21, peakWeekends: true, fastModeAmps: C.fastAmps || 24, maxAmps: 32, notifyTo: '',
     daylight: { enabled: true, open: C.daylightOpen, startMinutes: 30, endMinutes: 60, window: '07:00 to 17:00' },
+    site: { lat: 37.8, lon: -121.3, set: true, timezone: 'America/Los_Angeles', name: 'Sample town' },
     power: { voltage: 240, solarWatts: C.solar, gridWatts: C.grid, chargerWatts: C.chargerW, homeWatts: C.home },
     charger: { status: C.status, amps: C.amps, limitAmps: C.amps, drawMeasured: true },
     goal: { kwh: C.goalKwh, byMinutes: 420, doneKwh: C.goalDone, forcing: false, forcedAmps: 0 },
@@ -64,7 +65,13 @@ SHIM = r"""<script>
   const diag = { now: nowT, uptimeSeconds: 183000, clockSet: true, lastRestart: { reason: 'Power on', crash: false }, restarts: 3, crashes: 0, lastCrash: null,
     memory: { freeKb: 214, minFreeKb: 160 }, wifiRssi: -58, firmwareBuilt: 'sample' };
   const map = { '/api/telemetry': tele, '/api/days': { today: hist.today, days }, '/api/history': hist, '/api/sessions': sessions, '/api/events': events, '/api/diagnostics': diag };
-  window.fetch = url => { const p = String(url).split('?')[0]; return Promise.resolve({ ok: p in map, status: p in map ? 200 : 404, json: async () => map[p], text: async () => '' }); };
+  const fcReply = () => {   // sample forecast: the last 7 days sunny, tomorrow partly cloudy
+    const time = [], rad = [], cc = [], pr = [], d0 = hist.today - 7;
+    for (let d = 0; d < 9; d++) { const dt = new Date((d0 + d) * 86400000).toISOString().slice(0, 10), tm = d === 8;
+      for (let h = 0; h < 24; h++) { time.push(dt + 'T' + String(h).padStart(2, '0') + ':00'); rad.push(Math.max(0, Math.round((tm ? 430 : 700) * Math.exp(-Math.pow((h - 12.5) / 3.3, 2)))));
+        cc.push(tm ? 45 : 10); pr.push(0); } }
+    return { hourly: { time, shortwave_radiation: rad, cloud_cover: cc, precipitation: pr } }; };
+  window.fetch = url => { if (String(url).startsWith('https://api.open-meteo.com')) return Promise.resolve({ ok: true, json: async () => fcReply() }); const p = String(url).split('?')[0]; return Promise.resolve({ ok: p in map, status: p in map ? 200 : 404, json: async () => map[p], text: async () => '' }); };
   try { localStorage.setItem('unit', C.miles ? 'miles' : 'kwh'); localStorage.setItem('mpk', '3'); } catch (e) {}
 })();
 </script>
