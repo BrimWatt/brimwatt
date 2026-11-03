@@ -1213,6 +1213,16 @@ test('after the solar hours in Eco the old reading is not shown as if it were no
     assert.ok(html.includes('id="home-sub"') && html.includes("'Not read at night'"));
 });
 
+test('when nothing is being read the Solar tile is dashed too, and no arrow is drawn from the old meter numbers', () => {
+    const fn = html.slice(html.indexOf('function renderFlow'), html.indexOf('function drawFlow'));
+    const un = fn.slice(fn.indexOf('if (flowUnmeasured(data))'), fn.indexOf('} else {', fn.indexOf('if (flowUnmeasured(data))')));
+    assert.ok(un.includes("setText('solar-power', '–')"), 'solar dashed');
+    assert.ok(!/glide\('solar-power'/.test(un), 'no live solar number in the unmeasured branch');
+    const draw = html.slice(html.indexOf('function drawFlow'), html.indexOf('function renderStats'));
+    assert.ok(draw.includes('const measured = has && !flowUnmeasured(d)') && draw.includes('measured ? watts : 0'));
+    assert.ok(draw.includes('const carW = Math.max(0, has && d.charger.amps > 0'), 'the car arrow still follows the charger');
+});
+
 test('the line under the day graph says when the last reading was, only when nothing is being read', () => {
     assert.equal(page.unmeasuredNote(true, 1000, 1000 + 4590, 60, '8:22 pm'), 'Last reading at 8:22 pm. Eco and Max solar do not read the meter after solar hours.');
     assert.equal(page.unmeasuredNote(false, 1000, 1000 + 4590, 60, '8:22 pm'), '');   // not resting (Custom, or in the day): the normal Now line
