@@ -1708,7 +1708,8 @@ function renderFlow(data) {
     el('flow').classList.toggle('stale', stale);
     if (!k.hasReading) {
         ['solar-power', 'home-power', 'grid-power'].forEach(id => { glideStop(id); setText(id, '–'); });
-        setText('grid-sub', ' '); setText('solar-sub', ' '); setText('home-sub', 'without the car');
+        const night = isResting(data);   // no reading since the board started, and none is taken at night in Eco or Max solar
+        setText('grid-sub', night ? 'Not read at night' : ' '); setText('solar-sub', night ? RESTING : ' '); setText('home-sub', night ? 'Not read at night' : 'without the car');
     } else {
         if (flowUnmeasured(data)) {   // nothing is read at night in Eco or Max solar: do not show an old number as if it were now (solar, home or grid)
             glideStop('solar-power'); setText('solar-power', '–');

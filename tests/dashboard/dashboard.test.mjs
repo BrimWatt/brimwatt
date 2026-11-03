@@ -1223,6 +1223,13 @@ test('when nothing is being read the Solar tile is dashed too, and no arrow is d
     assert.ok(draw.includes('const carW = Math.max(0, has && d.charger.amps > 0'), 'the car arrow still follows the charger');
 });
 
+test('with no reading at all (board just restarted at night) the Solar tile still says Resting until sunrise', () => {
+    const fn = html.slice(html.indexOf('function renderFlow'), html.indexOf('function drawFlow'));
+    const none = fn.slice(fn.indexOf('if (!k.hasReading)'), fn.indexOf('} else {', fn.indexOf('if (!k.hasReading)')));
+    assert.ok(none.includes('isResting(data)') && none.includes("setText('solar-sub', night ? RESTING : ' ')"));
+    assert.ok(none.includes("setText('home-sub', night ? 'Not read at night'"));
+});
+
 test('the line under the day graph says when the last reading was, only when nothing is being read', () => {
     assert.equal(page.unmeasuredNote(true, 1000, 1000 + 4590, 60, '8:22 pm'), 'Last reading at 8:22 pm. Eco and Max solar do not read the meter after solar hours.');
     assert.equal(page.unmeasuredNote(false, 1000, 1000 + 4590, 60, '8:22 pm'), '');   // not resting (Custom, or in the day): the normal Now line
