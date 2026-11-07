@@ -101,7 +101,7 @@ static device::MbedTeslaCrypto fleetCrypto;
 static solar::fleet::FleetAuth fleetAuth(fleetHttp, fleetStore, platform);
 static solar::fleet::FleetApi fleetApi(fleetHttp, fleetAuth);
 static solar::fleet::FleetCar fleetCar(fleetApi, fleetAuth, teslaIdentity, fleetCrypto, platform, fleetExecutor);
-static solar::fleet::FleetManager fleetManager(fleetAuth, teslaIdentity, fleetCrypto);
+static solar::fleet::FleetManager fleetManager(fleetAuth, fleetApi, teslaIdentity, fleetStore, fleetHttp, fleetCrypto, platform, fleetExecutor);
 static solar::CarLinkSwitch carLink(carService, fleetCar);
 // Who is in command of the charge: the OCPP wallbox (default) or, if the owner chose it, the car (over Bluetooth or the Tesla account).
 static solar::CarCommander carCommander(platform, carLink);

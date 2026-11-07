@@ -1277,20 +1277,41 @@ test('the waiting lines say what is needed or what will happen, in words that ne
 });
 
 
-test('Connect through: Bluetooth says nothing, the Tesla account says where things stand', () => {
-    const quiet = JSON.stringify({ api: false, connected: false, text: '', warn: false });   // (objects from the page's own context: compare as text)
+test('Connect through: Bluetooth says nothing, the Tesla account says where things stand and what to do next', () => {
+    const quiet = JSON.stringify({ api: false, connected: false, text: '', warn: false, canSignIn: false, appMissing: false, needsVin: false, keyLink: '', note: '' });   // (objects from the page's own context: compare as text)
     assert.equal(JSON.stringify(page.linkView({ mode: { link: 'ble' } })), quiet);
     assert.equal(JSON.stringify(page.linkView(undefined)), quiet);
     const base = { mode: { link: 'api' } };
-    assert.match(page.linkView(base).text, /Not signed in/);
-    assert.match(page.linkView({ ...base, account: { connected: false } }).text, /Not signed in/);
-    assert.match(page.linkView({ ...base, account: { connected: true, state: 'needs_sign_in' } }).text, /Sign in again/);
-    assert.match(page.linkView({ ...base, account: { connected: true, state: 'offline', error: 'Could not reach Tesla (no internet?).' } }).text, /Can't reach Tesla right now: Could not reach/);
-    assert.match(page.linkView({ ...base, account: { connected: true, state: 'ok', hasVin: false, hasKey: true } }).text, /still needs the car\./);
-    assert.match(page.linkView({ ...base, account: { connected: true, state: 'ok', hasVin: true, hasKey: false } }).text, /still needs a signing key\./);
-    const ok = page.linkView({ ...base, account: { connected: true, state: 'ok', hasVin: true, hasKey: true, client: 'ab12...f9' } });
+    // the app is not on the board: nothing to tap, the words say what to do
+    const noApp = page.linkView({ ...base, account: { connected: false, appReady: false } });
+    assert.equal(noApp.appMissing, true); assert.equal(noApp.canSignIn, false); assert.match(noApp.text, /setup tool/);
+    assert.equal(page.linkView(base).appMissing, true);
+    // the app is there, nobody signed in: offer the button
+    const ready = page.linkView({ ...base, account: { connected: false, appReady: true, domain: 'wattsync.netlify.app' } });
+    assert.equal(ready.canSignIn, true); assert.match(ready.text, /Tap Sign in to Tesla/); assert.equal(ready.keyLink, '');
+    assert.equal(page.linkView({ ...base, account: { connected: false, appReady: true, signIn: 'working', signInText: 'Signing in…' } }).canSignIn, false);   // not twice at once
+    assert.equal(page.linkView({ ...base, account: { connected: false, appReady: true, signIn: 'failed', signInText: 'Tesla did not accept the sign-in.' } }).note, 'Tesla did not accept the sign-in.');
+    // signed in
+    const again = page.linkView({ ...base, account: { connected: true, appReady: true, state: 'needs_sign_in' } });
+    assert.match(again.text, /Sign in again/); assert.equal(again.canSignIn, true);
+    assert.match(page.linkView({ ...base, account: { connected: true, appReady: true, state: 'offline', error: 'Could not reach Tesla (no internet?).' } }).text, /Can't reach Tesla right now: Could not reach/);
+    const noCar = page.linkView({ ...base, account: { connected: true, appReady: true, state: 'ok', hasVin: false, hasKey: true, domain: 'wattsync.netlify.app' } });
+    assert.equal(noCar.needsVin, true); assert.match(noCar.text, /still needs the car \(enter its VIN below\)\./);
+    assert.match(page.linkView({ ...base, account: { connected: true, appReady: true, state: 'ok', hasVin: true, hasKey: false } }).text, /still needs a signing key/);
+    const ok = page.linkView({ ...base, account: { connected: true, appReady: true, state: 'ok', hasVin: true, hasKey: true, client: 'ab12...f9', domain: 'wattsync.netlify.app', signIn: 'done', signInText: 'Signed in. Car found: 5YJ**********9ABC.' } });
     assert.equal(ok.warn, false);
     assert.match(ok.text, /Connected to your Tesla account \(app ab12\.\.\.f9\)\./);
+    assert.equal(ok.keyLink, 'https://tesla.com/_ak/wattsync.netlify.app');   // the car's key approval: no VIN in the address
+    assert.match(ok.note, /Car found/);
+});
+
+test('signing in from the page: the origin goes in the body, the answer is Tesla\'s address, the VIN box clears itself, and no secret is ever handled', () => {
+    const fn = html.slice(html.indexOf('async function carSignIn'), html.indexOf('async function carDisconnect'));
+    assert.ok(fn.includes("postForm('/api/car/fleet/signin', { origin: location.origin })"));
+    assert.ok(fn.includes('location.href = result.text.trim()'));
+    assert.ok(fn.includes("postForm('/api/car/fleet/vin', { vin })") && fn.includes("input.value = ''"));
+    assert.ok(html.includes('id="car-signin"') && html.includes('id="car-fvin"') && html.includes('id="car-keylink-a"'));
+    assert.ok(!/clientSecret|client_secret|refreshToken/.test(html));
 });
 
 test('the Connect through control asks first, posts to the link route, and the pairing box is hidden on the account route', () => {

@@ -50,6 +50,10 @@ void WebServerAdapter::begin() {
     server_.on("/api/car/link", HTTP_POST, [this] { serveApi(); });
     server_.on("/api/car/fleet/connect", HTTP_POST, [this] { serveApi(); });
     server_.on("/api/car/fleet/disconnect", HTTP_POST, [this] { serveApi(); });
+    server_.on("/api/car/fleet/app", HTTP_POST, [this] { serveApi(); });
+    server_.on("/api/car/fleet/signin", HTTP_POST, [this] { serveApi(); });
+    server_.on("/api/car/fleet/vin", HTTP_POST, [this] { serveApi(); });
+    server_.on("/api/car/fleet/callback", HTTP_GET, [this] { serveApi(); });
     server_.on("/api/history", HTTP_GET, [this] { serveApi(); });
     server_.on("/api/days", HTTP_GET, [this] { serveApi(); });
     server_.on("/api/sessions", HTTP_GET, [this] { serveApi(); });

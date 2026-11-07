@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "fleet/FleetAuth.h"
 #include "fleet/FleetHttp.h"
@@ -23,6 +24,8 @@ public:
 
     /** GET vehicle_data (charge state only). Does NOT wake the car: a sleeping car answers 408, which becomes asleep = true. */
     FleetRead readCharge(const std::string& vin);
+    /** GET vehicles: the VINs on the signed-in account. Used once after sign-in to find the car. */
+    bool listVehicles(std::vector<std::string>& vins, std::string& error);
     /** POST wake_up. True when Tesla accepted the request (the car may need seconds to wake). */
     bool wake(const std::string& vin, std::string& error);
     /** POST signed_command with one routable message (the same protobuf the Bluetooth link sends, without the length prefix). `reply` is the car's routable answer. */

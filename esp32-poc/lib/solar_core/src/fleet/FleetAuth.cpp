@@ -2,26 +2,11 @@
 
 #include <ArduinoJson.h>
 
+#include "fleet/UrlEncode.h"
+
 namespace solar {
 namespace fleet {
 
-namespace {
-/** Percent-encoding for form values (tokens use only safe characters, but never trust that). */
-std::string formEncode(const std::string& s) {
-    static const char* hex = "0123456789ABCDEF";
-    std::string out;
-    for (unsigned char c : s) {
-        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' || c == '~') {
-            out += static_cast<char>(c);
-        } else {
-            out += '%';
-            out += hex[c >> 4];
-            out += hex[c & 15];
-        }
-    }
-    return out;
-}
-}  // namespace
 
 void FleetAuth::reload() {
     creds_ = FleetCredentials();
@@ -64,7 +49,7 @@ bool FleetAuth::refresh() {
     req.method = "POST";
     req.url = kTokenUrl;
     req.headers.push_back({"Content-Type", "application/x-www-form-urlencoded"});
-    req.body = "grant_type=refresh_token&client_id=" + formEncode(creds_.clientId) + "&refresh_token=" + formEncode(creds_.refreshToken);
+    req.body = "grant_type=refresh_token&client_id=" + urlEncode(creds_.clientId) + "&refresh_token=" + urlEncode(creds_.refreshToken);
     const FleetHttpResponse res = http_.send(req);
     const uint64_t now = nowSeconds();
 

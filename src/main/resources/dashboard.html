@@ -706,7 +706,11 @@
                 <div class="field" id="car-link-row" hidden><span><label for="car-link">Connect through</label></span><span class="edit"><select id="car-link" onchange="carLink(this)"><option value="ble">Bluetooth</option><option value="api">Tesla account</option></select></span></div>
                 <div id="car-account" hidden>
                     <p class="hint" id="car-account-state">&nbsp;</p>
-                    <p class="hint">Needs internet at home. The board asks Tesla for the car's state and sends the same signed charging commands. Tesla may bill the app per request, so reads are less frequent. Sign in once with the tool in <code>tools/tesla_fleet</code> on your computer.</p>
+                    <div class="field" id="car-signin-row" hidden><span>Tesla account</span><button type="button" id="car-signin" class="smallbtn" onclick="carSignIn()">Sign in to Tesla</button></div>
+                    <p class="hint" id="car-signin-note" hidden></p>
+                    <div class="field" id="car-fvin-row" hidden><span><label for="car-fvin">Car VIN</label></span><span class="edit"><input type="text" id="car-fvin" maxlength="23" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="17 characters"><button type="button" id="car-fvin-btn" class="smallbtn" onclick="carSetVin()">Save</button></span></div>
+                    <p class="hint" id="car-keylink" hidden>Last step: on the phone that is the car's key, open <a id="car-keylink-a" href="#" target="_blank" rel="noopener">the key link</a> and approve the app's key in the car. Commands only work after that.</p>
+                    <p class="hint">Needs internet at home. The board asks Tesla for the car's state and sends the same signed charging commands. Tesla may bill the app per request, so reads are less frequent. Set the app up once with the tool in <code>tools/tesla_fleet</code> on your computer; after that anyone can sign in here.</p>
                     <div class="field" id="car-account-off-row" hidden><label for="car-account-off">Remove this Tesla account</label><button type="button" id="car-account-off" class="smallbtn danger" onclick="carDisconnect()">Disconnect</button></div>
                 </div>
             </div>
@@ -1245,19 +1249,31 @@ function carProgressText(c) {
     }
     return c.job === 'charge' ? 'Sending the command to the car…' : c.job === 'wake' ? 'Waking the car… this can take about 20 seconds.' : 'Reading the car…';
 }
-/** What the Connect through box says. Pure. `c` is telemetry `car`; Bluetooth is the default and says nothing. */
+/** What the Connect through box says and offers. Pure. `c` is telemetry `car`; Bluetooth is the default and says nothing. */
 function linkView(c) {
     const m = c && c.mode, a = c && c.account;
-    const api = !!(m && m.link === 'api');
-    if (!api) return { api: false, connected: false, text: '', warn: false };
-    if (!a || !a.connected) return { api: true, connected: false, text: 'Not signed in to a Tesla account yet. Sign in once with the tool on your computer.', warn: true };
-    if (a.state === 'needs_sign_in') return { api: true, connected: true, text: 'Tesla no longer accepts the saved sign-in. Sign in again on your computer.', warn: true };
-    if (a.state === 'offline') return { api: true, connected: true, text: "Can't reach Tesla right now" + (a.error ? ': ' + a.error : '.'), warn: true };
-    const need = [];
-    if (!a.hasVin) need.push('the car');
-    if (!a.hasKey) need.push('a signing key');
-    if (need.length) return { api: true, connected: true, text: 'Signed in, but this board still needs ' + need.join(' and ') + '.', warn: true };
-    return { api: true, connected: true, text: 'Connected to your Tesla account' + (a.client ? ' (app ' + a.client + ')' : '') + '.', warn: false };
+    const none = { api: false, connected: false, text: '', warn: false, canSignIn: false, appMissing: false, needsVin: false, keyLink: '', note: '' };
+    if (!(m && m.link === 'api')) return none;
+    const v = Object.assign({}, none, { api: true });
+    const connected = !!(a && a.connected);
+    v.connected = connected;
+    v.appMissing = !a || a.appReady !== true;
+    v.canSignIn = !v.appMissing && (!connected || a.state === 'needs_sign_in') && a.signIn !== 'working';
+    v.needsVin = connected && a.hasVin === false;
+    if (connected && a.hasKey && a.domain) v.keyLink = 'https://tesla.com/_ak/' + a.domain;
+    if (a && a.signIn && a.signIn !== 'idle' && a.signInText) v.note = a.signInText;
+    v.warn = true;
+    if (!connected) v.text = v.appMissing ? 'This board needs the Tesla app set up first. Run the setup tool on your computer once (see the guide).'
+                                          : 'Not signed in to a Tesla account yet. Tap Sign in to Tesla.';
+    else if (a.state === 'needs_sign_in') v.text = 'Tesla no longer accepts the saved sign-in. Sign in again.';
+    else if (a.state === 'offline') v.text = "Can't reach Tesla right now" + (a.error ? ': ' + a.error : '.');
+    else if (v.needsVin || !a.hasKey) {
+        const need = [];
+        if (v.needsVin) need.push('the car (enter its VIN below)');
+        if (!a.hasKey) need.push('a signing key (run the setup tool on your computer)');
+        v.text = 'Signed in, but this board still needs ' + need.join(' and ') + '.';
+    } else { v.warn = false; v.text = 'Connected to your Tesla account' + (a.client ? ' (app ' + a.client + ')' : '') + '.'; }
+    return v;
 }
 function renderCar(data) {
     const c = data.car || { supported: false };
@@ -1283,6 +1299,12 @@ function renderCar(data) {
     el('car-account').hidden = !supported || !mode.on || !link.api;
     setText('car-account-state', link.text || '\u00a0', link.warn ? 'warn' : '');
     el('car-account-off-row').hidden = !link.connected;
+    el('car-signin-row').hidden = !link.canSignIn;
+    el('car-fvin-row').hidden = !link.needsVin;
+    el('car-signin-note').hidden = !link.note;
+    el('car-signin-note').textContent = link.note;
+    el('car-keylink').hidden = !link.keyLink;
+    if (link.keyLink) { const a = el('car-keylink-a'); a.href = link.keyLink; a.textContent = link.keyLink.replace('https://', ''); }
     el('car-setup').hidden = !supported || paired || c.busy === true || !mode.on || link.api;   // the account route has no pairing here
     el('car-paired').hidden = !paired;
     el('car-controls').hidden = !mode.on;
@@ -1394,6 +1416,23 @@ async function carLink(select) {
     const result = await post('/api/car/link?mode=' + want + '&confirm=yes');
     if (!result.ok) { select.value = was; toast("Couldn't switch", 'err', result.text); return; }
     toast('Restarting…', 'ok', result.text);
+    refresh();
+}
+async function carSignIn() {
+    const button = el('car-signin');
+    button.disabled = true;
+    const result = await postForm('/api/car/fleet/signin', { origin: location.origin });   // where Tesla's answer must come back to: this board
+    button.disabled = false;
+    if (!result.ok) { toast("Can't start the sign-in", 'err', result.text); return; }
+    location.href = result.text.trim();   // Tesla's own sign-in page; it returns through the callback page to this board
+}
+async function carSetVin() {
+    const input = el('car-fvin'), vin = cleanVin(input.value);
+    if (!VIN_OK.test(vin)) { toast('Check the VIN', 'err', '17 letters and digits, no I, O or Q.'); return; }
+    const result = await postForm('/api/car/fleet/vin', { vin });
+    if (!result.ok) { toast("Couldn't save the car", 'err', result.text); return; }
+    input.value = '';   // do not leave the VIN sitting in the page
+    toast('Car saved', 'ok');
     refresh();
 }
 async function carDisconnect() {

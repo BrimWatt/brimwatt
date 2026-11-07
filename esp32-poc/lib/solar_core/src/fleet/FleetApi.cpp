@@ -109,6 +109,26 @@ FleetRead FleetApi::readCharge(const std::string& vin) {
     return out;
 }
 
+bool FleetApi::listVehicles(std::vector<std::string>& vins, std::string& error) {
+    vins.clear();
+    const FleetHttpResponse res = call("GET", "/api/1/vehicles", "", error);
+    if (!res.sent) return false;
+    if (res.status != 200) {
+        error = describeStatus(res.status);
+        return false;
+    }
+    JsonDocument doc;
+    if (deserializeJson(doc, res.body) || !doc["response"].is<JsonArrayConst>()) {
+        error = "Tesla's list of cars could not be read.";
+        return false;
+    }
+    for (JsonObjectConst car : doc["response"].as<JsonArrayConst>()) {
+        const std::string vin = car["vin"] | "";
+        if (!vin.empty()) vins.push_back(vin);
+    }
+    return true;
+}
+
 bool FleetApi::wake(const std::string& vin, std::string& error) {
     const FleetHttpResponse res = call("POST", "/api/1/vehicles/" + vin + "/wake_up", "", error);
     if (!res.sent) return false;

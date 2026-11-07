@@ -79,6 +79,7 @@ HttpResponse ApiHandler::handle(const std::string& method, const std::string& pa
     if (path == "/api/diagnostics" && method == "GET") return diagnostics(query);
     if (path == "/api/export.csv" && method == "GET") return exportCsv();
     if (path == "/api/car/hotspot" && method == "GET") return hotspot();
+    if (path == "/api/car/fleet/callback" && method == "GET") return fleetCallback(query);   // Tesla's answer, forwarded by the callback page (checked by its one-use state)
     if (path == "/api/clock" && method == "POST") return setClock(query);
     if (path == "/api/site" && method == "POST") return updateSite(query);
     if (path.rfind("/api/car/", 0) == 0 && method == "POST") return car(path, query);
@@ -526,6 +527,10 @@ void addCarToTelemetry(JsonObject root, const CarControl* car, const ChargeRoute
             account["client"] = f.client;
             account["hasVin"] = f.hasVin;
             account["hasKey"] = f.hasKey;
+            account["appReady"] = f.appReady;
+            account["domain"] = f.domain;   // public (it hosts the app's key)
+            account["signIn"] = f.signIn;
+            account["signInText"] = f.signInText;
         }
     }
     out["paired"] = s.paired;
@@ -606,6 +611,25 @@ HttpResponse ApiHandler::teslaMode(const Params& query) {
     return text(200, on ? "Tesla mode is on. The board is restarting." : "Tesla mode is off. The board is restarting.");
 }
 
+HttpResponse ApiHandler::fleetCallback(const Params& query) {
+    HttpResponse page;
+    page.contentType = "text/html; charset=utf-8";
+    auto html = [&](const std::string& title, const std::string& line) {
+        page.body = "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta http-equiv=refresh content='4;url=/'>"
+                    "<title>WattSync</title><body style='font:18px system-ui;margin:2em;line-height:1.4'><h2>" + title + "</h2><p>" + line +
+                    "</p><p><a href='/'>Back to the dashboard</a></p>";
+        return page;
+    };
+    if (!fleet_ || (mode_ && !mode_->enabled())) return html("Not available", "Turn Tesla mode on first.");
+    if (find(query, "error")) return html("Sign-in cancelled", "Tesla did not complete the sign-in. You can try again from Settings > Tesla.");
+    const std::string* code = find(query, "code");
+    const std::string* state = find(query, "state");
+    if (!code || !state) return html("Nothing to sign in", "This address needs the answer from Tesla's sign-in page.");
+    const std::string error = fleet_->completeSignIn(*code, *state);
+    if (!error.empty()) return html("Sign-in did not work", error);   // our own words: never the code or the state
+    return html("Signing you in…", "The board is finishing the sign-in with Tesla. This page returns to the dashboard in a few seconds.");
+}
+
 HttpResponse ApiHandler::hotspot() {
     if (!mode_ || !mode_->enabled()) return text(400, "Tesla mode is off.");
     JsonDocument doc;
@@ -668,6 +692,38 @@ HttpResponse ApiHandler::car(const std::string& path, const Params& query) {
         const std::string error = fleet_->connect(creds, vin ? *vin : "", key ? *key : "");
         if (!error.empty()) return text(400, error);
         return text(200, "Saved. Choose Tesla account under Connect through to use it.");
+    }
+    if (path == "/api/car/fleet/app") {
+        if (!fleet_) return text(400, "The Tesla account link needs the ESP32 board.");
+        const std::string* client = find(query, "clientId");
+        const std::string* secret = find(query, "clientSecret");
+        const std::string* domain = find(query, "domain");
+        const std::string* region = find(query, "region");
+        const std::string* key = find(query, "key");
+        fleet::FleetApp app;
+        app.clientId = client ? *client : "";
+        app.clientSecret = secret ? *secret : "";
+        app.domain = domain ? *domain : "";
+        app.region = region ? *region : "na";
+        // The secret and the key are never echoed back, not even in an error.
+        const std::string error = fleet_->saveApp(app, key ? *key : "");
+        if (!error.empty()) return text(400, error);
+        return text(200, "Saved. The board can now sign a Tesla account in.");
+    }
+    if (path == "/api/car/fleet/signin") {
+        if (!fleet_) return text(400, "The Tesla account link needs the ESP32 board.");
+        const std::string* origin = find(query, "origin");
+        std::string url;
+        const std::string error = fleet_->beginSignIn(origin ? *origin : "", url);
+        if (!error.empty()) return text(400, error);
+        return text(200, url);   // the Tesla sign-in address to open: client id, redirect and a one-use state, nothing secret
+    }
+    if (path == "/api/car/fleet/vin") {
+        if (!fleet_) return text(400, "The Tesla account link needs the ESP32 board.");
+        const std::string* vin = find(query, "vin");
+        const std::string error = fleet_->setVin(vin ? *vin : "");
+        if (!error.empty()) return text(400, error);   // the VIN is never echoed
+        return text(200, "Car saved");
     }
     if (path == "/api/car/fleet/disconnect") {
         if (!fleet_) return text(400, "The Tesla account link needs the ESP32 board.");

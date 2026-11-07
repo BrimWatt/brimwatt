@@ -2,6 +2,9 @@
 """One-time Tesla Fleet API set-up for a WattSync board, run on your computer (standard library only; needs `openssl`).
 
   python3 tools/tesla_fleet/tesla_fleet.py register          tell Tesla about the app's domain (once per region)
+  python3 tools/tesla_fleet/tesla_fleet.py setup-board --board http://wattsync.local
+                                                             put the app (client id, SECRET, domain, signing key) on the board ONCE, so that
+                                                             anyone can then sign a Tesla account in from the board's own page
   python3 tools/tesla_fleet/tesla_fleet.py login [--board http://wattsync.local] [--region na|eu] [--vin VIN]
                                                              sign in to Tesla in your browser, list the cars, and (with --board) hand the
                                                              sign-in to the board
@@ -223,18 +226,39 @@ def cmd_login(args):
     print("  (approve adding the app's key to the car; WattSync cannot send charge commands until that is done)")
 
 
+def cmd_setup_board(args):
+    env = load_env()
+    form = {"clientId": env["TESLA_CLIENT_ID"], "clientSecret": env["TESLA_CLIENT_SECRET"], "domain": env["TESLA_DOMAIN"], "region": args.region}
+    if not args.no_key:
+        form["key"] = private_key_hex()
+    status, body = request("POST", args.board.rstrip("/") + "/api/car/fleet/app", form, {"X-WattSync": "1"}, form=True)
+    if not say_status("Put the app on the board", status, body if status != 200 else ""):
+        if "Tesla mode is off" in body:
+            print("  Turn Tesla mode on in Settings > Tesla first.")
+        sys.exit(1)
+    print("The board now holds the app's client id, secret, domain and signing key (in its flash; never shown or logged).")
+    print("Two things Tesla needs, once:")
+    print("  1. In the Tesla developer dashboard add this to Allowed Redirect URIs:  https://%s/callback.html" % env["TESLA_DOMAIN"])
+    print("  2. Upload tesla-key-site/ again to the site (it now contains callback.html), then check it opens:  https://%s/callback.html" % env["TESLA_DOMAIN"])
+    print("Then, on the board's page: Settings > Tesla > Connect through: Tesla account > Sign in to Tesla.")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
     reg = sub.add_parser("register", help="register the app's domain with Tesla (once per region)")
     reg.add_argument("--region", choices=sorted(API), default="na")
+    setup = sub.add_parser("setup-board", help="put the app on the board so it can sign an account in itself")
+    setup.add_argument("--board", required=True, help="the board's address, e.g. http://wattsync.local or http://192.168.1.153")
+    setup.add_argument("--region", choices=sorted(API), default="na")
+    setup.add_argument("--no-key", action="store_true", help="do not send the app's signing key")
     login = sub.add_parser("login", help="sign in to Tesla and hand the sign-in to the board")
     login.add_argument("--region", choices=sorted(API), default="na")
     login.add_argument("--board", help="the board's address, e.g. http://wattsync.local or http://192.168.1.153")
     login.add_argument("--vin", help="the car's VIN (needed when the account has several cars)")
     login.add_argument("--no-key", action="store_true", help="do not send the app's signing key (the board already has one)")
     args = parser.parse_args()
-    {"register": cmd_register, "login": cmd_login}[args.command](args)
+    {"register": cmd_register, "login": cmd_login, "setup-board": cmd_setup_board}[args.command](args)
 
 
 if __name__ == "__main__":

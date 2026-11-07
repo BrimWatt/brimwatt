@@ -47,7 +47,30 @@ void NvsFleetStore::saveKey(const solar::tesla::Bytes& key) {
 void NvsFleetStore::clear() {
     Preferences prefs;
     if (!prefs.begin(kNamespace, /*readOnly=*/false)) return;
-    prefs.clear();
+    prefs.remove("cid");
+    prefs.remove("rtok");
+    prefs.remove("reg");
+    prefs.end();
+}
+
+bool NvsFleetStore::load(solar::fleet::FleetApp& out) {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return false;
+    out.clientId = prefs.getString("acid", "").c_str();
+    out.clientSecret = prefs.getString("asec", "").c_str();
+    out.domain = prefs.getString("adom", "").c_str();
+    out.region = prefs.getString("areg", "na").c_str();
+    prefs.end();
+    return out.ready();
+}
+
+void NvsFleetStore::save(const solar::fleet::FleetApp& in) {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return;
+    prefs.putString("acid", in.clientId.c_str());
+    prefs.putString("asec", in.clientSecret.c_str());
+    prefs.putString("adom", in.domain.c_str());
+    prefs.putString("areg", in.region.c_str());
     prefs.end();
 }
 

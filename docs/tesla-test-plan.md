@@ -123,7 +123,8 @@ Paste the Activity lines / the Tesla tile / the serial log for any failure (neve
 | # | Test | Expected | Result |
 |---|------|----------|--------|
 | H1 | `tesla_fleet.py register` | "Register ... ok" | |
-| H2 | `tesla_fleet.py login --board ...` with Tesla mode on | the car listed (masked), "Send to the board: ok" | |
+| H1b | Tesla mode on, then `tesla_fleet.py setup-board --board ...` | "Put the app on the board: ok" | |
+| H2 | Settings > Tesla > Connect through: Tesla account, then **Sign in to Tesla** (phone on the home Wi-Fi), allow the permissions | back on the dashboard: "Signed in. Car found: ..." (or "no car" for an account without one) | |
 | H3 | Settings > Tesla > Connect through: Tesla account | board restarts; box says "Connected to your Tesla account" | |
 | H4 | Open `tesla.com/_ak/<domain>` on the key phone, approve in the car | key appears in the car (Controls > Locks) | |
 | H5 | Check now (car awake) | charge state, limit, current shown | |

@@ -107,6 +107,7 @@ private:
     HttpResponse updateSite(const Params& query);
     HttpResponse exportCsv();
     HttpResponse car(const std::string& path, const Params& query);
+    HttpResponse fleetCallback(const Params& query);
     HttpResponse teslaMode(const Params& query);
     HttpResponse hotspot();
     HttpResponse setClock(const Params& query);

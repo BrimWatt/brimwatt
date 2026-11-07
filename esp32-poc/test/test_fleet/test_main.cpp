@@ -28,6 +28,14 @@ public:
     void clear() override { creds = FleetCredentials(); }
 };
 
+class MemoryApps : public FleetAppStore {
+public:
+    FleetApp app;
+    bool load(FleetApp& out) override { out = app; return app.ready(); }
+    void save(const FleetApp& in) override { app = in; }
+    void clear() override { app = FleetApp(); }
+};
+
 /** A scripted Tesla: answers by URL, records what was asked. */
 class FakeTesla : public FleetHttp {
 public:
@@ -40,6 +48,8 @@ public:
     int wakeStatus = 200;
     int wakes = 0;
     int vehicleFirstStatus401s = 0;   // answer this many vehicle_data calls with 401 first
+    std::string vehiclesBody = "{\"response\":[{\"vin\":\"5YJ30123456789ABC\"}]}";
+    int vehiclesStatus = 200;
 
     FleetHttpResponse send(const FleetHttpRequest& r) override {
         seen.push_back(r);
@@ -53,6 +63,7 @@ public:
                        "\",\"expires_in\":28800}";
             return out;
         }
+        if (r.url.size() >= 15 && r.url.compare(r.url.size() - 15, 15, "/api/1/vehicles") == 0) { out.status = vehiclesStatus; out.body = vehiclesBody; return out; }
         if (r.url.find("/wake_up") != std::string::npos) { wakes++; out.status = wakeStatus; out.body = "{\"response\":{\"state\":\"online\"}}"; return out; }
         if (r.url.find("/vehicle_data") != std::string::npos) {
             if (vehicleFirstStatus401s > 0) { vehicleFirstStatus401s--; out.status = 401; return out; }
@@ -391,9 +402,18 @@ void test_the_watch_is_off_by_default_and_reads_rarely_when_on() {
 // ---- the account manager (what the API saves) -----------------------------------------------------------------------------
 
 struct ManagerRig {
-    FakePlatform p; FakeTesla net; MemoryStore store; FakeIdentity id; testing::OpenSslCrypto crypto;
-    FleetAuth auth; FleetManager manager;
-    ManagerRig() : auth(net, store, p), manager(auth, id, crypto) { id.v = ""; }
+    FakePlatform p; FakeTesla net; MemoryStore store; MemoryApps apps; InlineExecutor exec; FakeIdentity id; testing::OpenSslCrypto crypto;
+    FleetAuth auth; FleetApi api; FleetManager manager;
+    ManagerRig() : auth(net, store, p), api(net, auth), manager(auth, api, id, apps, net, crypto, p, exec) { id.v = ""; }
+    static FleetApp app() { FleetApp a; a.clientId = "abcd1234-ef56"; a.clientSecret = "ta-secret-value-0123456789"; a.domain = "wattsync.netlify.app"; return a; }
+    /** Starts a sign-in and returns the state that Tesla would send back. */
+    std::string startSignIn(const std::string& origin = "http://192.168.1.153") {
+        std::string url;
+        if (!manager.beginSignIn(origin, url).empty()) return "";
+        const size_t at = url.find("state=");
+        const size_t end = url.find('&', at);
+        return url.substr(at + 6, end - at - 6);
+    }
     static FleetCredentials good() { FleetCredentials c; c.clientId = "abcd1234-ef56"; c.refreshToken = "a-very-long-refresh-token-value-123456"; c.region = "na"; return c; }
 };
 
@@ -458,6 +478,142 @@ void test_the_link_switch_sends_everything_to_the_chosen_link_only() {
     TEST_ASSERT_EQUAL(3, ble.calls);
 }
 
+// ---- signing an account in on the board ------------------------------------------------------------------------------------
+
+void test_only_addresses_on_the_home_network_may_get_the_sign_in_code() {
+    for (const char* ok : {"http://192.168.1.153", "http://10.0.0.5:80", "http://172.16.4.2", "http://172.31.255.1", "http://wattsync.local", "http://wattsync.local:80", "http://localhost", "http://localhost:3000", "http://169.254.1.2"})
+        TEST_ASSERT_TRUE_MESSAGE(FleetManager::isLocalOrigin(ok), ok);
+    for (const char* bad : {"https://192.168.1.153", "http://example.com", "http://8.8.8.8", "http://172.32.0.1", "http://172.15.0.1", "http://192.169.1.1", "http://192.168.1", "http://192.168.1.1.5",
+                            "http://192.168.1.1/path", "http://user@192.168.1.1", "http://evil.local.example.com", "http://", "", "192.168.1.1", "http://192.168.1.300", "http://wattsync.local:abc", "http://a b.local"})
+        TEST_ASSERT_FALSE_MESSAGE(FleetManager::isLocalOrigin(bad), bad);
+}
+
+void test_the_app_is_saved_only_when_it_checks_out_and_the_secret_is_never_in_status() {
+    ManagerRig r;
+    FleetApp a = ManagerRig::app();
+    a.clientSecret = "short";
+    TEST_ASSERT_FALSE(r.manager.saveApp(a, "").empty());
+    a = ManagerRig::app(); a.domain = "https://wattsync.netlify.app/";
+    TEST_ASSERT_TRUE(r.manager.saveApp(a, "").find("host name") != std::string::npos);
+    a = ManagerRig::app(); a.domain = "nodots";
+    TEST_ASSERT_FALSE(r.manager.saveApp(a, "").empty());
+    a = ManagerRig::app(); a.region = "x";
+    TEST_ASSERT_FALSE(r.manager.saveApp(a, "").empty());
+    a = ManagerRig::app(); a.clientSecret = "has a space in it";
+    TEST_ASSERT_FALSE(r.manager.saveApp(a, "").empty());
+    TEST_ASSERT_FALSE(r.manager.status().appReady);
+    TEST_ASSERT_EQUAL_STRING("", r.manager.saveApp(ManagerRig::app(), "").c_str());
+    const FleetStatus s = r.manager.status();
+    TEST_ASSERT_TRUE(s.appReady);
+    TEST_ASSERT_EQUAL_STRING("wattsync.netlify.app", s.domain.c_str());
+    TEST_ASSERT_TRUE(s.signInText.find("ta-secret") == std::string::npos && s.client.find("ta-secret") == std::string::npos);
+}
+
+void test_the_sign_in_page_address_carries_the_client_id_the_callback_and_a_one_use_state_but_no_secret() {
+    ManagerRig r;
+    std::string url;
+    TEST_ASSERT_TRUE(r.manager.beginSignIn("http://192.168.1.153", url).find("not set up") != std::string::npos);   // no app yet
+    r.apps.app = ManagerRig::app();
+    TEST_ASSERT_TRUE(r.manager.beginSignIn("http://example.com", url).find("home network") != std::string::npos);
+    TEST_ASSERT_EQUAL_STRING("", r.manager.beginSignIn("http://192.168.1.153", url).c_str());
+    TEST_ASSERT_TRUE(url.rfind("https://auth.tesla.com/oauth2/v3/authorize?", 0) == 0);
+    TEST_ASSERT_TRUE(url.find("client_id=abcd1234-ef56") != std::string::npos);
+    TEST_ASSERT_TRUE(url.find("redirect_uri=https%3A%2F%2Fwattsync.netlify.app%2Fcallback.html") != std::string::npos);
+    TEST_ASSERT_TRUE(url.find("response_type=code") != std::string::npos);
+    TEST_ASSERT_TRUE(url.find("vehicle_charging_cmds") != std::string::npos && url.find("offline_access") != std::string::npos);
+    TEST_ASSERT_TRUE(url.find("ta-secret") == std::string::npos);
+    // the state is a 32-digit nonce, a dot, and the board's address (so the callback page can send the answer home)
+    const std::string state = url.substr(url.find("state=") + 6, url.find('&', url.find("state=")) - url.find("state=") - 6);
+    TEST_ASSERT_EQUAL(32, state.find('.'));
+    tesla::Bytes origin;
+    TEST_ASSERT_TRUE(base64Decode(state.substr(33), origin));
+    TEST_ASSERT_EQUAL_STRING("http://192.168.1.153", std::string(origin.begin(), origin.end()).c_str());
+    TEST_ASSERT_EQUAL_STRING("waiting", r.manager.status().signIn.c_str());
+}
+
+void test_a_sign_in_exchanges_the_code_keeps_the_token_and_finds_the_car() {
+    ManagerRig r;
+    r.apps.app = ManagerRig::app();
+    const std::string state = r.startSignIn();
+    TEST_ASSERT_EQUAL_STRING("", r.manager.completeSignIn("NA_code-123_abc", state).c_str());
+    const FleetStatus s = r.manager.status();
+    TEST_ASSERT_EQUAL_STRING("done", s.signIn.c_str());
+    TEST_ASSERT_TRUE_MESSAGE(s.signInText.find("5YJ**********9ABC") != std::string::npos, s.signInText.c_str());
+    TEST_ASSERT_TRUE(s.connected && s.hasVin);
+    TEST_ASSERT_EQUAL_STRING("5YJ30123456789ABC", r.id.v.c_str());
+    // the first request to Tesla is the code exchange, with the secret in the body, to the sign-in server only
+    const FleetHttpRequest& ex = r.net.seen[0];
+    TEST_ASSERT_TRUE(ex.url.find("fleet-auth.prd.vn.cloud.tesla.com") != std::string::npos);
+    TEST_ASSERT_TRUE(ex.body.find("grant_type=authorization_code") != std::string::npos);
+    TEST_ASSERT_TRUE(ex.body.find("client_secret=ta-secret-value-0123456789") != std::string::npos);
+    TEST_ASSERT_TRUE(ex.body.find("code=NA_code-123_abc") != std::string::npos);
+    TEST_ASSERT_TRUE(ex.body.find("redirect_uri=https%3A%2F%2Fwattsync.netlify.app%2Fcallback.html") != std::string::npos);
+    TEST_ASSERT_TRUE(ex.body.find("audience=https%3A%2F%2Ffleet-api.prd.na.vn.cloud.tesla.com") != std::string::npos);
+    for (size_t i = 1; i < r.net.seen.size(); i++) TEST_ASSERT_TRUE(r.net.seen[i].body.find("client_secret") == std::string::npos);   // never again after the exchange
+    TEST_ASSERT_TRUE(r.store.creds.refreshToken.rfind("refresh-", 0) == 0);
+}
+
+void test_a_sign_in_code_works_once_only_with_the_right_state_and_in_time() {
+    ManagerRig r;
+    r.apps.app = ManagerRig::app();
+    std::string state = r.startSignIn();
+    TEST_ASSERT_FALSE(r.manager.completeSignIn("code1", "0000000000000000000000000000000f.abc").empty());   // somebody else's state
+    TEST_ASSERT_EQUAL(0, r.net.seen.size());
+    TEST_ASSERT_EQUAL_STRING("", r.manager.completeSignIn("code1", state).c_str());
+    TEST_ASSERT_FALSE(r.manager.completeSignIn("code1", state).empty());   // used up
+    state = r.startSignIn();
+    r.p.now += (FleetManager::kSignInWindowSeconds + 1) * 1000ULL;
+    TEST_ASSERT_TRUE(r.manager.completeSignIn("code2", state).find("expired") != std::string::npos);
+    state = r.startSignIn();
+    TEST_ASSERT_FALSE(r.manager.completeSignIn("co de", state).empty());   // odd characters
+    TEST_ASSERT_FALSE(r.manager.completeSignIn("", state).empty());
+    TEST_ASSERT_FALSE(r.manager.completeSignIn(std::string(2500, 'a'), state).empty());
+    TEST_ASSERT_EQUAL_STRING("", r.manager.completeSignIn("fine_code", state).c_str());   // the real one still works after the refused tries
+}
+
+void test_a_refused_code_exchange_says_why_and_saves_nothing() {
+    ManagerRig r;
+    r.apps.app = ManagerRig::app();
+    r.net.tokenStatus = 400;
+    TEST_ASSERT_EQUAL_STRING("", r.manager.completeSignIn("c", r.startSignIn()).c_str());
+    FleetStatus s = r.manager.status();
+    TEST_ASSERT_EQUAL_STRING("failed", s.signIn.c_str());
+    TEST_ASSERT_TRUE(s.signInText.find("did not accept") != std::string::npos);
+    TEST_ASSERT_FALSE(s.connected);
+    r.net.tokenStatus = 200; r.net.online = false;
+    r.manager.completeSignIn("c", r.startSignIn());
+    TEST_ASSERT_TRUE(r.manager.status().signInText.find("reach Tesla") != std::string::npos);
+    TEST_ASSERT_FALSE(r.manager.status().connected);
+}
+
+void test_an_account_with_no_car_or_several_asks_for_the_vin() {
+    ManagerRig r;
+    r.apps.app = ManagerRig::app();
+    r.net.vehiclesBody = "{\"response\":[]}";
+    r.manager.completeSignIn("c", r.startSignIn());
+    TEST_ASSERT_TRUE(r.manager.status().signInText.find("no car") != std::string::npos);
+    TEST_ASSERT_TRUE(r.manager.status().connected);
+    TEST_ASSERT_FALSE(r.manager.status().hasVin);
+    r.net.vehiclesBody = "{\"response\":[{\"vin\":\"5YJ30123456789ABC\"},{\"vin\":\"5YJ30123456789ABD\"}]}";
+    r.manager.completeSignIn("c", r.startSignIn());
+    TEST_ASSERT_TRUE(r.manager.status().signInText.find("2 cars") != std::string::npos);
+    TEST_ASSERT_FALSE(r.manager.status().hasVin);   // it never guesses between cars
+    TEST_ASSERT_TRUE(r.manager.setVin("5yj3-0123 456789abd").empty());
+    TEST_ASSERT_EQUAL_STRING("5YJ30123456789ABD", r.id.v.c_str());
+    TEST_ASSERT_FALSE(r.manager.setVin("NOTAVIN").empty());
+    TEST_ASSERT_EQUAL_STRING("5YJ30123456789ABD", r.id.v.c_str());   // a bad VIN changes nothing
+}
+
+void test_disconnect_removes_the_account_but_keeps_the_app() {
+    ManagerRig r;
+    r.apps.app = ManagerRig::app();
+    r.manager.completeSignIn("c", r.startSignIn());
+    TEST_ASSERT_TRUE(r.manager.status().connected);
+    r.manager.disconnect();
+    TEST_ASSERT_FALSE(r.manager.status().connected);
+    TEST_ASSERT_TRUE(r.manager.status().appReady);   // the next person can sign in again straight away
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_base64_matches_the_standard_examples);
@@ -486,5 +642,13 @@ int main() {
     RUN_TEST(test_manager_saves_only_after_everything_checks_out);
     RUN_TEST(test_manager_saves_account_vin_and_key_and_masks_the_client);
     RUN_TEST(test_the_link_switch_sends_everything_to_the_chosen_link_only);
+    RUN_TEST(test_only_addresses_on_the_home_network_may_get_the_sign_in_code);
+    RUN_TEST(test_the_app_is_saved_only_when_it_checks_out_and_the_secret_is_never_in_status);
+    RUN_TEST(test_the_sign_in_page_address_carries_the_client_id_the_callback_and_a_one_use_state_but_no_secret);
+    RUN_TEST(test_a_sign_in_exchanges_the_code_keeps_the_token_and_finds_the_car);
+    RUN_TEST(test_a_sign_in_code_works_once_only_with_the_right_state_and_in_time);
+    RUN_TEST(test_a_refused_code_exchange_says_why_and_saves_nothing);
+    RUN_TEST(test_an_account_with_no_car_or_several_asks_for_the_vin);
+    RUN_TEST(test_disconnect_removes_the_account_but_keeps_the_app);
     return UNITY_END();
 }

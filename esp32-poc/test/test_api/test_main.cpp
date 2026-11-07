@@ -1015,6 +1015,11 @@ public:
         return "";
     }
     void disconnect() override { disconnects++; st.connected = false; st.state = "not_connected"; }
+    fleet::FleetApp lastApp; std::string lastAppKey, signInRefuse, signInOrigin, callbackCode, callbackState, callbackRefuse, lastVinSet, vinRefuse;
+    std::string saveApp(const fleet::FleetApp& a, const std::string& key) override { if (!refuse.empty()) return refuse; lastApp = a; lastAppKey = key; st.appReady = true; return ""; }
+    std::string beginSignIn(const std::string& origin, std::string& url) override { signInOrigin = origin; if (!signInRefuse.empty()) return signInRefuse; url = "https://auth.example/authorize?state=abc"; return ""; }
+    std::string completeSignIn(const std::string& code, const std::string& state) override { callbackCode = code; callbackState = state; return callbackRefuse; }
+    std::string setVin(const std::string& vin) override { if (!vinRefuse.empty()) return vinRefuse; lastVinSet = vin; return ""; }
 };
 
 void test_the_account_link_saves_what_a_computer_collected_and_never_echoes_secrets() {
@@ -1090,6 +1095,69 @@ void test_telemetry_shows_the_account_state_without_secrets() {
     serializeJson(t, all);
     TEST_ASSERT_TRUE(all.find("refresh") == std::string::npos || all.find("Sign in again") != std::string::npos);
     TEST_ASSERT_TRUE(all.find("rtok") == std::string::npos);
+}
+
+void test_the_board_signs_an_account_in_through_four_routes_and_never_echoes_secrets() {
+    Rig r;
+    FakeCar car; FakeMode mode; FakeFleet fleet;
+    mode.on = true;
+    r.api.setCar(&car); r.api.setTeslaMode(&mode); r.api.setFleet(&fleet);
+    const std::string secret = "ta-secret-value-0123456789";
+    HttpResponse saved = r.post("/api/car/fleet/app", {{"clientId", "client-1"}, {"clientSecret", secret}, {"domain", "wattsync.netlify.app"}, {"key", std::string(64, 'b')}});
+    TEST_ASSERT_EQUAL(200, saved.status);
+    testing::check("client-1", fleet.lastApp.clientId);
+    testing::check(secret, fleet.lastApp.clientSecret);
+    testing::check("wattsync.netlify.app", fleet.lastApp.domain);
+    testing::check("na", fleet.lastApp.region);
+    TEST_ASSERT_TRUE(saved.body.find(secret) == std::string::npos);
+    fleet.refuse = "The client secret looks wrong (too short or too long).";
+    HttpResponse bad = r.post("/api/car/fleet/app", {{"clientId", "client-1"}, {"clientSecret", secret}});
+    TEST_ASSERT_EQUAL(400, bad.status);
+    TEST_ASSERT_TRUE(bad.body.find(secret) == std::string::npos);
+    fleet.refuse.clear();
+
+    HttpResponse start = r.post("/api/car/fleet/signin", {{"origin", "http://192.168.1.153"}});
+    TEST_ASSERT_EQUAL(200, start.status);
+    testing::check("http://192.168.1.153", fleet.signInOrigin);
+    TEST_ASSERT_TRUE(start.body.rfind("https://auth.example/authorize", 0) == 0);
+    fleet.signInRefuse = "The Tesla app is not set up on this board yet. Run the setup tool on your computer first.";
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/fleet/signin", {{"origin", "http://192.168.1.153"}}).status);
+    TEST_ASSERT_EQUAL(403, r.api.handle("POST", "/api/car/fleet/signin", {{"origin", "http://192.168.1.153"}}, false).status);
+
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/fleet/vin", {{"vin", "5YJ3E1EA8KF000001"}}).status);
+    testing::check("5YJ3E1EA8KF000001", fleet.lastVinSet);
+    fleet.vinRefuse = "That is not a VIN (17 letters and digits, no I, O or Q).";
+    HttpResponse badVin = r.post("/api/car/fleet/vin", {{"vin", "5YJ3E1EA8KF000001x"}});
+    TEST_ASSERT_EQUAL(400, badVin.status);
+    TEST_ASSERT_TRUE(badVin.body.find("5YJ3E1EA8KF000001") == std::string::npos);   // the VIN is never echoed
+}
+
+void test_teslas_answer_arrives_as_a_get_and_is_checked_by_its_state_not_by_a_header() {
+    Rig r;
+    FakeCar car; FakeMode mode; FakeFleet fleet;
+    mode.on = true;
+    r.api.setCar(&car); r.api.setTeslaMode(&mode); r.api.setFleet(&fleet);
+    HttpResponse ok = r.api.handle("GET", "/api/car/fleet/callback", {{"code", "NA_abc"}, {"state", "nonce.b64"}});
+    TEST_ASSERT_EQUAL(200, ok.status);
+    TEST_ASSERT_TRUE(ok.contentType.find("text/html") != std::string::npos);
+    testing::check("NA_abc", fleet.callbackCode);
+    testing::check("nonce.b64", fleet.callbackState);
+    TEST_ASSERT_TRUE(ok.body.find("NA_abc") == std::string::npos && ok.body.find("nonce.b64") == std::string::npos);   // the page never repeats the code or the state
+    TEST_ASSERT_TRUE(ok.body.find("Signing you in") != std::string::npos);
+    fleet.callbackRefuse = "That sign-in has expired. Start it again.";
+    HttpResponse expired = r.api.handle("GET", "/api/car/fleet/callback", {{"code", "x"}, {"state", "y"}});
+    TEST_ASSERT_TRUE(expired.body.find("expired") != std::string::npos);
+    fleet.callbackRefuse.clear();
+    fleet.callbackCode.clear();
+    HttpResponse denied = r.api.handle("GET", "/api/car/fleet/callback", {{"error", "access_denied"}, {"code", "x"}, {"state", "y"}});
+    TEST_ASSERT_TRUE(denied.body.find("cancelled") != std::string::npos);
+    testing::check("", fleet.callbackCode);   // a refusal never reaches the sign-in
+    TEST_ASSERT_TRUE(r.api.handle("GET", "/api/car/fleet/callback", {}).body.find("Nothing to sign in") != std::string::npos);
+    mode.on = false;
+    testing::check("", fleet.callbackCode);
+    HttpResponse off = r.api.handle("GET", "/api/car/fleet/callback", {{"code", "NA_abc"}, {"state", "s"}});
+    TEST_ASSERT_TRUE(off.body.find("Tesla mode on") != std::string::npos);
+    testing::check("", fleet.callbackCode);   // with Tesla mode off nothing is signed in
 }
 
 void test_telemetry_says_whether_a_solar_meter_is_linked() {
@@ -1347,6 +1415,8 @@ int main() {
     RUN_TEST(test_the_account_routes_need_tesla_mode_and_a_board_that_has_the_link);
     RUN_TEST(test_connect_through_needs_confirmation_then_saves_and_restarts);
     RUN_TEST(test_telemetry_shows_the_account_state_without_secrets);
+    RUN_TEST(test_the_board_signs_an_account_in_through_four_routes_and_never_echoes_secrets);
+    RUN_TEST(test_teslas_answer_arrives_as_a_get_and_is_checked_by_its_state_not_by_a_header);
     RUN_TEST(test_in_tesla_mode_the_charger_cannot_be_chosen_back);
     RUN_TEST(test_the_hotspot_password_is_only_given_on_request_and_never_in_telemetry);
     RUN_TEST(test_the_phone_can_set_the_clock_only_when_the_board_has_none);
