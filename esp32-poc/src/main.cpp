@@ -246,10 +246,16 @@ static void startControl() {
     diagnostics.recordBoot(platform.epochSeconds());
     LOG_INFO("Clock is set: starting the OCPP server and the meter polling.");
     LOG_INFO("[DAYLIGHT] Today's window: %s", controller.daylightText().c_str());
-    ocpp::registerCoreHandlers(router, platform, [](Charger& charger) { wallbox.onChargerChanged(charger); }, &history);
-    ocppServer.begin();
-    LOG_INFO("Point the wallbox at ws://%s.local:%u/pair  (or ws://%s:%u/pair); it adds its own id",
-             device::kHostname, (unsigned)config::kOcppPort, WiFi.localIP().toString().c_str(), (unsigned)config::kOcppPort);
+    // Wallbox mode and Tesla mode are either-or. In Tesla mode the OCPP server never starts, so no wallbox can connect and nothing here can
+    // start, stop or limit one (a wallbox on this network keeps behaving as it does on its own).
+    if (teslaMode.enabled()) {
+        LOG_WARN("Tesla mode: the wallbox side is OFF (no OCPP server). The car is the only thing controlled.");
+    } else {
+        ocpp::registerCoreHandlers(router, platform, [](Charger& charger) { wallbox.onChargerChanged(charger); }, &history);
+        ocppServer.begin();
+        LOG_INFO("Point the wallbox at ws://%s.local:%u/pair  (or ws://%s:%u/pair); it adds its own id",
+                 device::kHostname, (unsigned)config::kOcppPort, WiFi.localIP().toString().c_str(), (unsigned)config::kOcppPort);
+    }
     meterPoller.start();
     // First control cycle a few seconds from now, then every poll interval.
     lastCycle = millis() - device::kPollIntervalMillis + 5000;
@@ -383,9 +389,11 @@ void loop() {
             return;
         }
     }
-    ocppServer.loop();
-    scheduler.tick();
-    chargerPersistence.tick();
+    if (!teslaMode.enabled()) {   // wallbox mode only
+        ocppServer.loop();
+        scheduler.tick();
+        chargerPersistence.tick();
+    }
 
     // A finished meter reading goes to the controller, which decides what the wallbox should do.
     if (auto result = meterPoller.takeResult()) controller.onMeterResult(*result);

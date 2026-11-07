@@ -1233,7 +1233,7 @@ function carModeView(c) {
     const v = { known: true, on: m.enabled === true, pending: m.restartPending === true, hotspotUp: m.hotspotUp === true, clients: m.hotspotClients || 0, note: '', needsClock: m.enabled === true && m.clockSet === false };
     if (v.pending) v.note = 'Restarting the board… reload this page in about a minute.';
     else if (!v.on) v.note = 'Off. Bluetooth stays off and nothing here talks to a car.' + (c.paired ? ' The paired car is kept.' : '');
-    else v.note = 'On. The car is in command' + (c.paired ? '' : ' once one is paired') + '. The charger is not controlled.';
+    else v.note = 'On. The car is in command' + (c.paired ? '' : ' once one is paired') + '. Wallbox mode is off: the board does not run the wallbox connection while this is on.';
     return v;
 }
 /** The words for the pairing box and the busy states, from the car block. */

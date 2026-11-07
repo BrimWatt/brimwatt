@@ -323,6 +323,7 @@ test('Tesla mode says what is on or off, that a paired car is kept, and when the
     const on = page.carModeView({ paired: false, mode: { enabled: true, hotspotUp: true, hotspotClients: 2, clockSet: false } });
     assert.equal(on.on, true);
     assert.match(on.note, /once one is paired/);
+    assert.match(on.note, /Wallbox mode is off/);   // either wallbox or Tesla, never both
     assert.equal(on.clients, 2);
     assert.equal(on.needsClock, true);   // away from home the phone gives the board the time
     const pending = page.carModeView({ mode: { enabled: true, restartPending: true } });
