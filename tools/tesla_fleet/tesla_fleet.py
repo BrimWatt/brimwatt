@@ -21,6 +21,7 @@ import http.server
 import json
 import os
 import secrets
+import ssl
 import subprocess
 import sys
 import threading
@@ -36,6 +37,20 @@ TOKEN_URL = "https://fleet-auth.prd.vn.cloud.tesla.com/oauth2/v3/token"
 API = {"na": "https://fleet-api.prd.na.vn.cloud.tesla.com", "eu": "https://fleet-api.prd.eu.vn.cloud.tesla.com"}
 USER_SCOPES = "openid offline_access vehicle_device_data vehicle_cmds vehicle_charging_cmds"
 PARTNER_SCOPES = "openid vehicle_device_data vehicle_cmds vehicle_charging_cmds"
+
+
+def tls_context():
+    """Certificate checking stays ON. Some Python installs on macOS ship with no root certificates; then use the system's own list."""
+    ctx = ssl.create_default_context()
+    if ctx.cert_store_stats().get("x509_ca", 0) == 0 and not os.environ.get("SSL_CERT_FILE"):
+        for path in ("/etc/ssl/cert.pem", "/opt/homebrew/etc/ca-certificates/cert.pem"):
+            if os.path.exists(path):
+                ctx = ssl.create_default_context(cafile=path)
+                break
+    return ctx
+
+
+TLS = tls_context()
 
 
 def die(message):
@@ -77,7 +92,7 @@ def request(method, url, data=None, headers=None, form=False):
             headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=body, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=30) as response:
+        with urllib.request.urlopen(req, timeout=30, context=TLS) as response:
             return response.status, response.read().decode()
     except urllib.error.HTTPError as e:
         return e.code, e.read().decode()
