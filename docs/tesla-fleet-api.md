@@ -50,6 +50,13 @@ Partner registration for the owner's app; the OAuth sign-in; token refresh rotat
 replies (including the handshake, and whether Tesla returns broadcasts or empty replies); that the app key approved through Tesla's link can sign; the
 wake; request prices. Checklist: `docs/tesla-test-plan.md`, section H.
 
+## The charger while the car is in command
+
+In car command (Tesla mode, either link) the planner's commands go to the car only; the board's own OCPP wallbox just has any fixed hold released. WattSync does NOT
+start that wallbox or set its current. That suits a car on a charger WattSync does not talk to (the demo plan: a friend's car on his own garage charger). It does
+NOT cover a car plugged into the board's own wallbox, which needs a remote start before it gives power: for that case use the wallbox's own modes, or add an explicit
+"charger gives full power" option (tried 2026-11-07 and dropped as a default: it would remote-start the owner's wallbox for the owner's own car, uncontrolled).
+
 ## Not built
 
 The Pi (the Java app answers "needs the ESP32 board"); several cars per board; fleet telemetry streaming; the sign-in on the phone itself (today it is a
