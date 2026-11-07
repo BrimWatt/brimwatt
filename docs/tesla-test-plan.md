@@ -113,3 +113,26 @@ The Activity lines around the time, the Tesla tile text, a screenshot of Setting
 - Every Bluetooth session pauses the board for a few seconds; checks happen about every 10 minutes while in command.
 - The planner is told the draw WattSync **set**, not a measurement; the energy count follows it.
 - Stepping down to the minimum before an outage is not possible (nothing can be sent to an unreachable car); the car keeps its last setting.
+
+
+## H. Tesla account link (Fleet API) - built 2026-11-07, never tried
+
+Needs: the owner's developer app set up as in `docs/tesla-fleet-api.md`, a Tesla account that owns or has the car, the car's key approval done through Tesla's link.
+Paste the Activity lines / the Tesla tile / the serial log for any failure (never a token or a key).
+
+| # | Test | Expected | Result |
+|---|------|----------|--------|
+| H1 | `tesla_fleet.py register` | "Register ... ok" | |
+| H2 | `tesla_fleet.py login --board ...` with Tesla mode on | the car listed (masked), "Send to the board: ok" | |
+| H3 | Settings > Tesla > Connect through: Tesla account | board restarts; box says "Connected to your Tesla account" | |
+| H4 | Open `tesla.com/_ak/<domain>` on the key phone, approve in the car | key appears in the car (Controls > Locks) | |
+| H5 | Check now (car awake) | charge state, limit, current shown | |
+| H6 | Check now (car asleep) | "asleep", nothing woken | |
+| H7 | For testing > Charging Stop, then Start | the car's state changes; each prints a read-back | |
+| H8 | For testing > Current 10 A, then Put back | the car's request follows | |
+| H9 | Wake now (allow wake) | awake within about 30 s, billed once | |
+| H10 | Switch Control through: Car; plan a few minutes of solar | limit follows the planner like Bluetooth | |
+| H11 | Router off for 2 minutes during a charge | car keeps its setting; message after 10 min | |
+| H12 | Leave it a day, then check the token still works | no "Sign in again" | |
+| H13 | Disconnect, then Connect through: Bluetooth | Bluetooth pairing still works (its key was never replaced) | |
+| H14 | Look at the Tesla developer billing page after a week | requests and cost as expected | |

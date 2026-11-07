@@ -703,6 +703,12 @@
                     <div class="field"><span>Password</span><span class="edit"><b id="car-hotspot-pw" hidden></b><button type="button" id="car-hotspot-btn" class="smallbtn" onclick="carShowPassword()">Show</button></span></div>
                     <p class="hint" id="car-hotspot-note">&nbsp;</p>
                 </div>
+                <div class="field" id="car-link-row" hidden><span><label for="car-link">Connect through</label></span><span class="edit"><select id="car-link" onchange="carLink(this)"><option value="ble">Bluetooth</option><option value="api">Tesla account</option></select></span></div>
+                <div id="car-account" hidden>
+                    <p class="hint" id="car-account-state">&nbsp;</p>
+                    <p class="hint">Needs internet at home. The board asks Tesla for the car's state and sends the same signed charging commands. Tesla may bill the app per request, so reads are less frequent. Sign in once with the tool in <code>tools/tesla_fleet</code> on your computer.</p>
+                    <div class="field" id="car-account-off-row" hidden><label for="car-account-off">Remove this Tesla account</label><button type="button" id="car-account-off" class="smallbtn danger" onclick="carDisconnect()">Disconnect</button></div>
+                </div>
             </div>
             <div id="car-setup">
                 <div class="field"><span><label for="car-vin">Car VIN</label><button type="button" class="info" data-tip="carvin" aria-label="Where do I find the VIN?">i</button></span><span class="edit"><input type="text" id="car-vin" maxlength="23" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="17 characters"><button id="car-pair-btn" class="smallbtn" onclick="carPair()">Pair</button></span></div>
@@ -1239,6 +1245,20 @@ function carProgressText(c) {
     }
     return c.job === 'charge' ? 'Sending the command to the car…' : c.job === 'wake' ? 'Waking the car… this can take about 20 seconds.' : 'Reading the car…';
 }
+/** What the Connect through box says. Pure. `c` is telemetry `car`; Bluetooth is the default and says nothing. */
+function linkView(c) {
+    const m = c && c.mode, a = c && c.account;
+    const api = !!(m && m.link === 'api');
+    if (!api) return { api: false, connected: false, text: '', warn: false };
+    if (!a || !a.connected) return { api: true, connected: false, text: 'Not signed in to a Tesla account yet. Sign in once with the tool on your computer.', warn: true };
+    if (a.state === 'needs_sign_in') return { api: true, connected: true, text: 'Tesla no longer accepts the saved sign-in. Sign in again on your computer.', warn: true };
+    if (a.state === 'offline') return { api: true, connected: true, text: "Can't reach Tesla right now" + (a.error ? ': ' + a.error : '.'), warn: true };
+    const need = [];
+    if (!a.hasVin) need.push('the car');
+    if (!a.hasKey) need.push('a signing key');
+    if (need.length) return { api: true, connected: true, text: 'Signed in, but this board still needs ' + need.join(' and ') + '.', warn: true };
+    return { api: true, connected: true, text: 'Connected to your Tesla account' + (a.client ? ' (app ' + a.client + ')' : '') + '.', warn: false };
+}
 function renderCar(data) {
     const c = data.car || { supported: false };
     const supported = c.supported === true, paired = supported && c.paired === true;
@@ -1256,7 +1276,14 @@ function renderCar(data) {
         if (!mode.on) { el('car-hotspot-pw').hidden = true; el('car-hotspot-btn').hidden = false; }
         if (mode.needsClock) sendClockOnce();
     }
-    el('car-setup').hidden = !supported || paired || c.busy === true || !mode.on;
+    const link = linkView(c);
+    el('car-link-row').hidden = !supported || !mode.known || !mode.on;
+    if (document.activeElement !== el('car-link')) el('car-link').value = link.api ? 'api' : 'ble';
+    el('car-link').disabled = mode.pending;
+    el('car-account').hidden = !supported || !mode.on || !link.api;
+    setText('car-account-state', link.text || '\u00a0', link.warn ? 'warn' : '');
+    el('car-account-off-row').hidden = !link.connected;
+    el('car-setup').hidden = !supported || paired || c.busy === true || !mode.on || link.api;   // the account route has no pairing here
     el('car-paired').hidden = !paired;
     el('car-controls').hidden = !mode.on;
     el('carcard').hidden = !paired || !mode.on;
@@ -1357,6 +1384,22 @@ async function carForget() {
     if (!confirm('Forget ' + carName() + '? This deletes the key and the VIN from the controller. The key stays in the car until you remove it there (Controls > Locks).')) return;
     const result = await post('/api/car/forget');
     if (result.ok) { toast('Car forgotten', 'ok'); refresh(); } else toast("Couldn't forget the car", 'err', result.text);
+}
+async function carLink(select) {
+    const want = select.value, was = want === 'api' ? 'ble' : 'api';
+    const text = want === 'api'
+        ? 'Connect through your Tesla account? The board will restart, stop using Bluetooth, and talk to Tesla over the internet instead (needs home Wi-Fi). Tesla may bill the app per request. You can switch back here at any time.'
+        : 'Connect through Bluetooth? The board will restart and stop using the Tesla account.';
+    if (!confirm(text)) { select.value = was; return; }
+    const result = await post('/api/car/link?mode=' + want + '&confirm=yes');
+    if (!result.ok) { select.value = was; toast("Couldn't switch", 'err', result.text); return; }
+    toast('Restarting…', 'ok', result.text);
+    refresh();
+}
+async function carDisconnect() {
+    if (!confirm('Remove the Tesla account from this board? It deletes the saved sign-in. The app stays listed in your Tesla account until you remove it there (Security > Third-party apps).')) return;
+    const result = await post('/api/car/fleet/disconnect');
+    if (result.ok) { toast('Tesla account removed', 'ok'); refresh(); } else toast("Couldn't remove it", 'err', result.text);
 }
 async function carThrough(select) {
     const want = select.value, was = want === 'car' ? 'charger' : 'car';

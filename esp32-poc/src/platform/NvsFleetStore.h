@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fleet/FleetAuth.h"
+#include "tesla/Proto.h"
 
 namespace device {
 
@@ -14,6 +15,10 @@ public:
     bool load(solar::fleet::FleetCredentials& out) override;
     void save(const solar::fleet::FleetCredentials& in) override;
     void clear() override;
+
+    /** The app's signing key (32 bytes), kept apart from the Bluetooth key so that connecting an account never replaces a Bluetooth pairing. */
+    bool loadKey(solar::tesla::Bytes& out);
+    void saveKey(const solar::tesla::Bytes& key);
 };
 
 }  // namespace device

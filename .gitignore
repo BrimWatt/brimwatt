@@ -47,3 +47,4 @@ solar-charger-state*.json*
 
 # Your global ignore file hides every *.md; the docs of this project must be tracked
 !*.md
+__pycache__/

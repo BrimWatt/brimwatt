@@ -51,3 +51,4 @@ python3 docs/demo-src/make_demo.py        # pictures, GIF and MP4 (or: guide | d
 python3 docs/demo-src/make_neighbor_demo.py   # the Tesla pitch video (uses docs/demo-src/car_standin.py, a stand-in board with a paired car; same Chrome/ffmpeg needs)
 python3 docs/pdf-src/user_guide_pdf.py    # the PDF
 ```
+- `tesla-fleet-api.md`: the Tesla account link (Fleet API) as the second way for Tesla mode to reach the car: design, set-up, what is assumed and untested.

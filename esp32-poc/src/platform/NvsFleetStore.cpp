@@ -27,6 +27,23 @@ void NvsFleetStore::save(const solar::fleet::FleetCredentials& in) {
     prefs.end();
 }
 
+bool NvsFleetStore::loadKey(solar::tesla::Bytes& out) {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return false;
+    out.assign(32, 0);
+    const bool ok = prefs.getBytes("fkey", out.data(), 32) == 32;
+    prefs.end();
+    if (!ok) out.clear();
+    return ok;
+}
+
+void NvsFleetStore::saveKey(const solar::tesla::Bytes& key) {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return;
+    prefs.putBytes("fkey", key.data(), key.size());
+    prefs.end();
+}
+
 void NvsFleetStore::clear() {
     Preferences prefs;
     if (!prefs.begin(kNamespace, /*readOnly=*/false)) return;

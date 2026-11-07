@@ -1274,3 +1274,29 @@ test('the waiting lines say what is needed or what will happen, in words that ne
         assert.ok(l.length <= 80, 'short: ' + l);
     });
 });
+
+
+test('Connect through: Bluetooth says nothing, the Tesla account says where things stand', () => {
+    const quiet = JSON.stringify({ api: false, connected: false, text: '', warn: false });   // (objects from the page's own context: compare as text)
+    assert.equal(JSON.stringify(page.linkView({ mode: { link: 'ble' } })), quiet);
+    assert.equal(JSON.stringify(page.linkView(undefined)), quiet);
+    const base = { mode: { link: 'api' } };
+    assert.match(page.linkView(base).text, /Not signed in/);
+    assert.match(page.linkView({ ...base, account: { connected: false } }).text, /Not signed in/);
+    assert.match(page.linkView({ ...base, account: { connected: true, state: 'needs_sign_in' } }).text, /Sign in again/);
+    assert.match(page.linkView({ ...base, account: { connected: true, state: 'offline', error: 'Could not reach Tesla (no internet?).' } }).text, /Can't reach Tesla right now: Could not reach/);
+    assert.match(page.linkView({ ...base, account: { connected: true, state: 'ok', hasVin: false, hasKey: true } }).text, /still needs the car\./);
+    assert.match(page.linkView({ ...base, account: { connected: true, state: 'ok', hasVin: true, hasKey: false } }).text, /still needs a signing key\./);
+    const ok = page.linkView({ ...base, account: { connected: true, state: 'ok', hasVin: true, hasKey: true, client: 'ab12...f9' } });
+    assert.equal(ok.warn, false);
+    assert.match(ok.text, /Connected to your Tesla account \(app ab12\.\.\.f9\)\./);
+});
+
+test('the Connect through control asks first, posts to the link route, and the pairing box is hidden on the account route', () => {
+    assert.ok(html.includes('id="car-link"') && html.includes('<option value="api">Tesla account</option>'));
+    const fn = html.slice(html.indexOf('async function carLink'), html.indexOf('async function carDisconnect'));
+    assert.ok(fn.includes('confirm(') && fn.includes("'/api/car/link?mode=' + want + '&confirm=yes'"));
+    assert.ok(/car-setup'\)\.hidden = [^;]*link\.api/.test(html), 'no VIN pairing box while the account is the link');
+    assert.ok(html.includes("'/api/car/fleet/disconnect'") && html.includes('confirm(\'Remove the Tesla account'));
+    assert.ok(!/refreshToken|client_secret|clientSecret/.test(html), 'the page never handles the token or a secret');
+});

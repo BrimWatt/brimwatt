@@ -99,6 +99,8 @@ private:
     FleetExecutor& executor_;
 
     mutable std::mutex m_;
+    mutable tesla::Bytes fingerprintFor_;
+    mutable std::string fingerprint_;
     std::atomic<bool> running_{false};
     std::string job_;
     Result result_;

@@ -185,6 +185,18 @@ Never echo the typed pair line. Details, code map and the results table: `docs/t
 
 One switch (Settings > Tesla, `POST /api/car/mode?enabled=&confirm=yes`, console `tesla mode on|off`, restarts the board). Off: `BleGate` false, Bluetooth is never initialised (memory stays free), every car route except mode/forget answers 400 "Tesla mode is off", the Tesla tile and controls are hidden, `ChargeRouter::enforceMode(false)` keeps the charger in command. On: Bluetooth works, the board also opens its own Wi-Fi **`wattsync-tesla`** (AP+STA, per-board password in NVS `tesla`/`appw`, read on request with `GET /api/car/hotspot`, never in telemetry or logs; page at 192.168.4.1), the paired car is put in command by `enforceMode(true)` and "Control through: Charger" is refused. Away from home: start-up waits 25 s for the home Wi-Fi then carries on, retries only when idle (a join attempt interrupts the hotspot), the dashboard posts the phone's clock (`POST /api/clock?epoch=`, only when the board has no time). Setup network beats the hotspot while open. **Tesla mode and charger mode are two separate setups** (decided at boot, `device::Profile`, `solar::profileNamespace/profileFile`): own NVS namespace (`solar` vs `solar-tesla`: mode, current, allowance, hours, prices, goal, messages, charger state) and own history files (`/history*.tsv` vs `/tesla-history*.tsv`: samples, activity, sessions, savings); the first Tesla-mode start begins from defaults. Shared: Wi-Fi/meter/update credentials, the Tesla key and pairing, the hotspot password, diagnostics counters, the phone's display units. Code: `car/TeslaMode.h`, `src/net/TeslaMode.*`, `src/ble/BleGate.h`. Details and the unverified list: `docs/tesla-car-control.md`; tests G1-G12 in `docs/tesla-test-plan.md`.
 
+### Tesla account link, Fleet API (branch `tesla-fleet-api`, 2026-11-07; host-tested, flashed with the link on Bluetooth, never tried on a real account or car)
+
+Settings > Tesla > **Connect through: Bluetooth | Tesla account** (needs Tesla mode on; changing it restarts the board; `POST /api/car/link?mode=ble|api&confirm=yes`).
+`car/CarLinkSwitch` forwards the one `CarControl` to `CarService` (Bluetooth) or `fleet/FleetCar` (account); `main.cpp` selects it from `teslaMode.apiLink()` at
+start-up and with the account link `BleGate` stays off. `fleet/` is portable (`FleetAuth` single-use refresh tokens saved at once, `FleetApi`, `FleetCar`,
+`FleetManager`); reads use REST `vehicle_data` (never wakes), charge commands send the same signed Bluetooth messages through `signed_command` (format ASSUMED).
+Board: `net/EspFleetHttp` (TLS pinned to the DigiCert roots in `net/FleetRoots.h`), `net/EspFleetExecutor` (one job task), `platform/NvsFleetStore` (NVS `fleet`:
+client id, region, refresh token, app key `fkey`, kept apart from the Bluetooth key), `platform/TeslaIdentity`. Routes `POST /api/car/fleet/connect` (client id,
+refresh token, region, VIN, app key in the BODY, never echoed) and `/disconnect`, both registered in `WebServerAdapter`; telemetry `car.mode.link`, `car.account`
+(masked client id and a state, no secrets). The sign-in is done on a computer with `tools/tesla_fleet/tesla_fleet.py` (register, login --board). Never print a token or
+key. Prices and billing: pay-per-use, see `docs/tesla-fleet-api.md`. The Pi answers "needs the ESP32 board".
+
 ### Control through: Car (built 2026-10-27, not yet tried on a real car; default Charger)
 
 The planner talks to a `ChargeDevice` (`wallbox/ChargeDevice.h`): `WallboxController` (OCPP) or `car/CarCommander` (Bluetooth), picked by `car/ChargeRouter` (one in command; `main.cpp` passes the router to
@@ -207,6 +219,7 @@ Tests: `test/test_car_commander` (39), wake in `test/test_tesla_protocol`, API t
 | Scenarios to try on the real house | `docs/test-scenarios.pdf` |
 | The owner's user guide (PDF) and the demo GIF | `docs/user-guide.pdf`, `docs/demo/` (MP4 + GIF; rebuild with `docs/demo-src/make_demo.py` then `docs/pdf-src/user_guide_pdf.py`; sample data, see `docs/README.md`) |
 | Tesla car control: decisions and the range test | `docs/tesla-car-control.md` |
+| Tesla account link (Fleet API): design, set-up, what is untested | `docs/tesla-fleet-api.md` |
 | Tesla tests to run at the car (checklist; tick as results come in) | `docs/tesla-test-plan.md` |
 | Index of all of the above | `docs/README.md` |
 

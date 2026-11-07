@@ -53,10 +53,18 @@ CarSnapshot FleetCar::snapshot() const {
     if (s.paired) {
         s.vin = tesla::maskVin(identity_.vin());
         Bytes priv, pub;
-        if (identity_.privateKey(priv) && crypto_.publicKeyFor(priv, pub)) {
-            static const char* hex = "0123456789abcdef";
-            const Bytes h = crypto_.sha256(pub);
-            for (int i = 0; i < 4 && i < static_cast<int>(h.size()); i++) { s.key += hex[h[i] >> 4]; s.key += hex[h[i] & 15]; }
+        if (identity_.privateKey(priv)) {
+            std::lock_guard<std::mutex> lock(m_);
+            if (priv != fingerprintFor_) {   // deriving the public key is slow on the board: only when the key changed
+                fingerprintFor_ = priv;
+                fingerprint_.clear();
+                if (crypto_.publicKeyFor(priv, pub)) {
+                    static const char* hex = "0123456789abcdef";
+                    const Bytes h = crypto_.sha256(pub);
+                    for (int i = 0; i < 4 && i < static_cast<int>(h.size()); i++) { fingerprint_ += hex[h[i] >> 4]; fingerprint_ += hex[h[i] & 15]; }
+                }
+            }
+            s.key = fingerprint_;
         }
     }
     s.busy = running_.load();

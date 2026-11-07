@@ -429,7 +429,6 @@ void test_manager_saves_account_vin_and_key_and_masks_the_client() {
     TEST_ASSERT_TRUE(r.id.key == priv);
     r.manager.disconnect();
     TEST_ASSERT_FALSE(r.manager.status().connected);
-    TEST_ASSERT_TRUE(r.manager.status().hasKey);   // the key and car stay: Bluetooth uses them too
 }
 
 void test_the_link_switch_sends_everything_to_the_chosen_link_only() {

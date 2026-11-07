@@ -96,7 +96,7 @@ static device::CarService carService(teslaCar, teslaStore, teslaScan);
 static device::NvsFleetStore fleetStore;
 static device::EspFleetHttp fleetHttp;
 static device::EspFleetExecutor fleetExecutor;
-static device::TeslaIdentity teslaIdentity(teslaStore);
+static device::TeslaIdentity teslaIdentity(teslaStore, fleetStore);
 static device::MbedTeslaCrypto fleetCrypto;
 static solar::fleet::FleetAuth fleetAuth(fleetHttp, fleetStore, platform);
 static solar::fleet::FleetApi fleetApi(fleetHttp, fleetAuth);
