@@ -3,6 +3,9 @@
 #include "../support/OpenSslCrypto.h"
 #include "../support/TestSupport.h"
 
+#include "fleet/Base64.h"
+#include "fleet/FleetApi.h"
+#include "fleet/FleetCar.h"
 #include "tesla/TeslaFlows.h"
 #include "tesla/TeslaSelfTest.h"
 
@@ -850,9 +853,117 @@ void test_a_wake_ignores_broadcasts() {
     TEST_ASSERT_FALSE(flow.finished());
 }
 
+// ---- the same messages over the Fleet API's signed_command endpoint ---------------------------------------------------------
+
+namespace {
+/** Tesla's cloud as far as WattSync uses it, with the pretend car behind signed_command. */
+class PretendFleet : public solar::fleet::FleetHttp {
+public:
+    FakeCar& car;
+    int signedCalls = 0;
+    explicit PretendFleet(FakeCar& c) : car(c) {}
+    solar::fleet::FleetHttpResponse send(const solar::fleet::FleetHttpRequest& r) override {
+        solar::fleet::FleetHttpResponse out;
+        out.sent = true;
+        out.status = 200;
+        if (r.url.find("/oauth2/v3/token") != std::string::npos) {
+            out.body = "{\"access_token\":\"a\",\"refresh_token\":\"r2\",\"expires_in\":28800}";
+        } else if (r.url.find("/signed_command") != std::string::npos) {
+            signedCalls++;
+            const std::string tag = "\"routable_message\":\"";
+            size_t at = r.body.find(tag);
+            size_t end = at == std::string::npos ? at : r.body.find('"', at + tag.size());
+            Bytes message;
+            if (at == std::string::npos || end == std::string::npos || !solar::fleet::base64Decode(r.body.substr(at + tag.size(), end - at - tag.size()), message)) {
+                out.status = 400;
+                return out;
+            }
+            out.body = "{\"response\":\"" + solar::fleet::base64Encode(car.answer(message)) + "\"}";
+        } else {
+            out.status = 404;
+        }
+        return out;
+    }
+};
+class StoredCreds : public solar::fleet::FleetCredentialStore {
+public:
+    solar::fleet::FleetCredentials c;
+    bool load(solar::fleet::FleetCredentials& o) override { o = c; return c.complete(); }
+    void save(const solar::fleet::FleetCredentials& i) override { c = i; }
+    void clear() override { c = solar::fleet::FleetCredentials(); }
+};
+class InlineRun : public solar::fleet::FleetExecutor {
+public:
+    bool start(std::function<void()> job) override { job(); return true; }
+    void sleepMs(uint32_t) override {}
+};
+class KeyAndVin : public solar::fleet::FleetIdentity {
+public:
+    Bytes key;
+    std::string v;
+    std::string vin() override { return v; }
+    bool privateKey(Bytes& o) override { o = key; return !key.empty(); }
+};
+}  // namespace
+
+void test_charge_commands_also_work_through_signed_command() {
+    FakeCar car;
+    car.chargeState = 7;
+    Bytes pub;
+    KeyAndVin id;
+    crypto.generateKeyPair(id.key, pub);
+    id.v = car.vin;
+    PretendFleet net(car);
+    StoredCreds store;
+    store.c.clientId = "c";
+    store.c.refreshToken = "r";
+    testing::FakePlatform platform;
+    solar::fleet::FleetAuth auth(net, store, platform);
+    solar::fleet::FleetApi api(net, auth);
+    InlineRun run;
+    solar::fleet::FleetCar fleetCar(api, auth, id, crypto, platform, run);
+    TEST_ASSERT_TRUE(fleetCar.startStart().ok);
+    solar::CarSnapshot s = fleetCar.snapshot();
+    TEST_ASSERT_TRUE_MESSAGE(s.resultOk, joined(s.resultLines).c_str());
+    TEST_ASSERT_EQUAL(1, car.chargeCommandsSeen);
+    TEST_ASSERT_EQUAL(5, car.chargeState);
+    TEST_ASSERT_TRUE(net.signedCalls >= 3);   // the status look, the session handshake, the command (and the read-back)
+    TEST_ASSERT_TRUE(s.hasReading);
+
+    TEST_ASSERT_TRUE(fleetCar.startSetAmps(12).ok);
+    s = fleetCar.snapshot();
+    TEST_ASSERT_TRUE_MESSAGE(s.resultOk, joined(s.resultLines).c_str());
+    TEST_ASSERT_EQUAL(12, car.currentRequest);
+    TEST_ASSERT_EQUAL(12, s.charge.currentRequest);
+}
+
+void test_a_car_that_does_not_know_our_key_is_reported_over_signed_command_too() {
+    FakeCar car;
+    car.knowsKey = false;
+    Bytes pub;
+    KeyAndVin id;
+    crypto.generateKeyPair(id.key, pub);
+    id.v = car.vin;
+    PretendFleet net(car);
+    StoredCreds store;
+    store.c.clientId = "c";
+    store.c.refreshToken = "r";
+    testing::FakePlatform platform;
+    solar::fleet::FleetAuth auth(net, store, platform);
+    solar::fleet::FleetApi api(net, auth);
+    InlineRun run;
+    solar::fleet::FleetCar fleetCar(api, auth, id, crypto, platform, run);
+    fleetCar.startStop();
+    const solar::CarSnapshot s = fleetCar.snapshot();
+    TEST_ASSERT_FALSE(s.resultOk);
+    TEST_ASSERT_EQUAL(0, car.chargeCommandsSeen);
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_the_wake_command_has_the_published_layout);
+    RUN_TEST(test_charge_commands_also_work_through_signed_command);
+    RUN_TEST(test_a_car_that_does_not_know_our_key_is_reported_over_signed_command_too);
     RUN_TEST(test_a_sleeping_car_is_woken_and_confirmed_awake);
     RUN_TEST(test_an_awake_car_is_left_alone);
     RUN_TEST(test_a_car_that_stays_asleep_is_reported_after_a_few_looks);
