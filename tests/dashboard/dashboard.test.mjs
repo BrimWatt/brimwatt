@@ -1322,3 +1322,9 @@ test('the Connect through control asks first, posts to the link route, and the p
     assert.ok(html.includes("'/api/car/fleet/disconnect'") && html.includes('confirm(\'Remove the Tesla account'));
     assert.ok(!/refreshToken|client_secret|clientSecret/.test(html), 'the page never handles the token or a secret');
 });
+
+
+test('a failed read of the car says why under the Tesla settings; a good read stays quiet', () => {
+    assert.ok(html.includes("(c.result.job !== 'status' || !c.result.ok) && c.result.ageSeconds < 900"));
+    assert.ok(!html.includes('tools/tesla_fleet</code>'), 'no developer folder names in the page text');
+});

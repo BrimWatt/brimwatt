@@ -710,7 +710,7 @@
                     <p class="hint" id="car-signin-note" hidden></p>
                     <div class="field" id="car-fvin-row" hidden><span><label for="car-fvin">Car VIN</label></span><span class="edit"><input type="text" id="car-fvin" maxlength="23" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="17 characters"><button type="button" id="car-fvin-btn" class="smallbtn" onclick="carSetVin()">Save</button></span></div>
                     <p class="hint" id="car-keylink" hidden>Last step: on the phone that is the car's key, open <a id="car-keylink-a" href="#" target="_blank" rel="noopener">the key link</a> and approve the app's key in the car. Commands only work after that.</p>
-                    <p class="hint">Needs internet at home. The board asks Tesla for the car's state and sends the same signed charging commands. Tesla may bill the app per request, so reads are less frequent. Set the app up once with the tool in <code>tools/tesla_fleet</code> on your computer; after that anyone can sign in here.</p>
+                    <p class="hint">Needs internet at home. The board asks Tesla for the car's state and sends the same signed charging commands. Tesla may bill the app per request, so reads are less frequent. The Tesla app is set up on this board once from a computer (see docs/tesla-fleet-api.md); after that anyone can sign in here.</p>
                     <div class="field" id="car-account-off-row" hidden><label for="car-account-off">Remove this Tesla account</label><button type="button" id="car-account-off" class="smallbtn danger" onclick="carDisconnect()">Disconnect</button></div>
                 </div>
             </div>
@@ -1344,7 +1344,7 @@ function renderCar(data) {
     const restore = c.restoreAmps || 0;
     el('car-restore-row').hidden = restore === 0;
     if (restore) el('car-restore-label').textContent = 'Put the setting back to ' + restore + ' A';
-    const shown = c.result && c.result.job !== 'status' && c.result.ageSeconds < 900 ? c.result : null;
+    const shown = c.result && (c.result.job !== 'status' || !c.result.ok) && c.result.ageSeconds < 900 ? c.result : null;   // a read that worked just updates the tile; one that failed says why
     el('car-result').textContent = shown ? (shown.ok ? '' : "Didn't work: ") + shown.lines.join('\n') : '';
 }
 let clockSentAt = 0;
