@@ -30,6 +30,8 @@ public:
     virtual ~FleetIdentity() = default;
     virtual std::string vin() = 0;                       // empty when not set
     virtual bool privateKey(tesla::Bytes& out) = 0;      // false when there is none
+    virtual void saveVin(const std::string& vin) = 0;
+    virtual void saveKey(const tesla::Bytes& privateKey) = 0;
 };
 
 /**

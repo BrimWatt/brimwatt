@@ -495,7 +495,7 @@ HttpResponse ApiHandler::updatePause(const Params& query) {
 
 namespace {
 
-void addCarToTelemetry(JsonObject root, const CarControl* car, const ChargeRouter* router, TeslaModeControl* mode, bool clockSet) {
+void addCarToTelemetry(JsonObject root, const CarControl* car, const ChargeRouter* router, TeslaModeControl* mode, const fleet::FleetControl* fleet, bool clockSet) {
     JsonObject out = root["car"].to<JsonObject>();
     if (!car) {
         out["supported"] = false;
@@ -509,10 +509,24 @@ void addCarToTelemetry(JsonObject root, const CarControl* car, const ChargeRoute
         m["enabled"] = mode->enabled();
         m["restartPending"] = mode->restartPending();
         m["clockSet"] = clockSet;
+        m["link"] = mode->apiLink() ? "api" : "ble";   // Connect through: Bluetooth or the Tesla account
         m["hotspot"] = kTeslaHotspotName;
         const HotspotInfo h = mode->hotspot();
         m["hotspotUp"] = h.up;
         m["hotspotClients"] = h.clients;
+    }
+    if (fleet) {
+        const fleet::FleetStatus f = fleet->status();
+        if (f.supported) {
+            JsonObject account = out["account"].to<JsonObject>();   // never a token or a full id
+            account["connected"] = f.connected;
+            account["state"] = f.state;
+            account["error"] = f.error;
+            account["region"] = f.region;
+            account["client"] = f.client;
+            account["hasVin"] = f.hasVin;
+            account["hasKey"] = f.hasKey;
+        }
     }
     out["paired"] = s.paired;
     out["vin"] = s.vin;                 // masked
@@ -626,6 +640,40 @@ HttpResponse ApiHandler::car(const std::string& path, const Params& query) {
         if (r.ok) return text(200, ok);
         return text(r.busy ? 409 : 400, r.message);
     };
+
+    if (path == "/api/car/link") {
+        if (!mode_) return text(400, "Choosing the link needs the ESP32 board.");
+        const std::string* value = find(query, "mode");
+        if (!value || (*value != "ble" && *value != "api")) return text(400, "mode must be ble or api");
+        const std::string* confirm = find(query, "confirm");
+        if (!confirm || *confirm != "yes") return text(400, "Changing the link restarts the board and needs confirm=yes.");
+        const bool account = *value == "api";
+        if (account == mode_->apiLink()) return text(200, account ? "Already connected through the Tesla account" : "Already connected through Bluetooth");
+        if (mode_->restartPending()) return text(409, "The board is already restarting.");
+        mode_->setApiLink(account);
+        return text(200, account ? "Connecting through the Tesla account. The board is restarting." : "Connecting through Bluetooth. The board is restarting.");
+    }
+    if (path == "/api/car/fleet/connect") {
+        if (!fleet_) return text(400, "The Tesla account link needs the ESP32 board.");
+        const std::string* client = find(query, "clientId");
+        const std::string* token = find(query, "refreshToken");
+        const std::string* region = find(query, "region");
+        const std::string* vin = find(query, "vin");
+        const std::string* key = find(query, "key");
+        fleet::FleetCredentials creds;
+        creds.clientId = client ? *client : "";
+        creds.refreshToken = token ? *token : "";
+        creds.region = region ? *region : "na";
+        // Nothing here is echoed back, not even in an error: the token and the key are secrets and the VIN is private.
+        const std::string error = fleet_->connect(creds, vin ? *vin : "", key ? *key : "");
+        if (!error.empty()) return text(400, error);
+        return text(200, "Saved. Choose Tesla account under Connect through to use it.");
+    }
+    if (path == "/api/car/fleet/disconnect") {
+        if (!fleet_) return text(400, "The Tesla account link needs the ESP32 board.");
+        fleet_->disconnect();
+        return text(200, "Tesla account removed from this board");
+    }
 
     if (path == "/api/car/pair") {
         const std::string* raw = find(query, "vin");
@@ -795,7 +843,7 @@ HttpResponse ApiHandler::telemetry() {
                                                               state.peakStartHour(), state.peakEndHour(), state.peakWeekends());
     ctl["failSafe"] = state.failSafe();
     ctl["pollSeconds"] = config::kPollIntervalSeconds;
-    addCarToTelemetry(doc.as<JsonObject>(), car_, router_, mode_, platform_.epochSeconds() > 1700000000);
+    addCarToTelemetry(doc.as<JsonObject>(), car_, router_, mode_, fleet_, platform_.epochSeconds() > 1700000000);
 
     HttpResponse response;
     response.contentType = "application/json";

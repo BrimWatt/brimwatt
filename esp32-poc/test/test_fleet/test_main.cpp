@@ -6,7 +6,9 @@
 #include "fleet/Base64.h"
 #include "fleet/FleetApi.h"
 #include "fleet/FleetAuth.h"
+#include "car/CarLinkSwitch.h"
 #include "fleet/FleetCar.h"
+#include "fleet/FleetControl.h"
 
 using namespace solar;
 using namespace solar::fleet;
@@ -76,6 +78,8 @@ public:
     tesla::Bytes key;
     std::string vin() override { return v; }
     bool privateKey(tesla::Bytes& out) override { if (key.empty()) return false; out = key; return true; }
+    void saveVin(const std::string& vin) override { v = vin; }
+    void saveKey(const tesla::Bytes& k) override { key = k; }
 };
 
 const char* kCharging =
@@ -384,6 +388,77 @@ void test_the_watch_is_off_by_default_and_reads_rarely_when_on() {
     TEST_ASSERT_EQUAL(first, r.net.seen.size());   // the commander reads while it is in command
 }
 
+// ---- the account manager (what the API saves) -----------------------------------------------------------------------------
+
+struct ManagerRig {
+    FakePlatform p; FakeTesla net; MemoryStore store; FakeIdentity id; testing::OpenSslCrypto crypto;
+    FleetAuth auth; FleetManager manager;
+    ManagerRig() : auth(net, store, p), manager(auth, id, crypto) { id.v = ""; }
+    static FleetCredentials good() { FleetCredentials c; c.clientId = "abcd1234-ef56"; c.refreshToken = "a-very-long-refresh-token-value-123456"; c.region = "na"; return c; }
+};
+
+void test_manager_saves_only_after_everything_checks_out() {
+    ManagerRig r;
+    FleetCredentials c = ManagerRig::good();
+    c.refreshToken = "short";
+    TEST_ASSERT_TRUE(r.manager.connect(c, "", "").find("refresh token") != std::string::npos);
+    c = ManagerRig::good(); c.region = "mars";
+    TEST_ASSERT_TRUE(r.manager.connect(c, "", "").find("region") != std::string::npos);
+    c = ManagerRig::good(); c.clientId = "has space";
+    TEST_ASSERT_FALSE(r.manager.connect(c, "", "").empty());
+    c = ManagerRig::good(); c.refreshToken += " x";
+    TEST_ASSERT_FALSE(r.manager.connect(c, "", "").empty());
+    TEST_ASSERT_TRUE(r.manager.connect(ManagerRig::good(), "NOTAVIN", "").find("VIN") != std::string::npos);
+    TEST_ASSERT_TRUE(r.manager.connect(ManagerRig::good(), "", "zz").find("hex") != std::string::npos);
+    TEST_ASSERT_EQUAL(0, r.store.saves);   // nothing saved by any refused attempt
+    TEST_ASSERT_FALSE(r.manager.status().connected);
+}
+
+void test_manager_saves_account_vin_and_key_and_masks_the_client() {
+    ManagerRig r;
+    tesla::Bytes priv, pub;
+    r.crypto.generateKeyPair(priv, pub);
+    std::string hex;
+    for (uint8_t b : priv) { static const char* d = "0123456789abcdef"; hex += d[b >> 4]; hex += d[b & 15]; }
+    TEST_ASSERT_EQUAL_STRING("", r.manager.connect(ManagerRig::good(), " 5yj3-0123 456789abc ", hex).c_str());
+    const FleetStatus s = r.manager.status();
+    TEST_ASSERT_TRUE(s.supported && s.connected && s.hasVin && s.hasKey);
+    TEST_ASSERT_EQUAL_STRING("ok", s.state.c_str());
+    TEST_ASSERT_EQUAL_STRING("abcd...56", s.client.c_str());
+    TEST_ASSERT_EQUAL_STRING("5YJ30123456789ABC", r.id.v.c_str());
+    TEST_ASSERT_TRUE(r.id.key == priv);
+    r.manager.disconnect();
+    TEST_ASSERT_FALSE(r.manager.status().connected);
+    TEST_ASSERT_TRUE(r.manager.status().hasKey);   // the key and car stay: Bluetooth uses them too
+}
+
+void test_the_link_switch_sends_everything_to_the_chosen_link_only() {
+    struct Tagged : CarControl {
+        std::string name; int calls = 0;
+        explicit Tagged(const char* n) : name(n) {}
+        CarSnapshot snapshot() const override { CarSnapshot s; s.vin = name; return s; }
+        CarResult startPair(const std::string&) override { calls++; return CarResult(); }
+        CarResult startRefresh() override { calls++; return CarResult(); }
+        CarResult startStart() override { calls++; return CarResult(); }
+        CarResult startStop() override { calls++; return CarResult(); }
+        CarResult startSetAmps(int) override { calls++; return CarResult(); }
+        void cancel() override {}
+        void setWatch(bool) override {}
+        void forget() override { calls++; }
+    };
+    Tagged ble("ble"), api("api");
+    CarLinkSwitch link(ble, api);
+    TEST_ASSERT_EQUAL_STRING("ble", link.snapshot().vin.c_str());
+    link.startStart(); link.startSetAmps(10); link.forget();
+    TEST_ASSERT_EQUAL(3, ble.calls);
+    TEST_ASSERT_EQUAL(0, api.calls);
+    link.select(true);
+    TEST_ASSERT_EQUAL_STRING("api", link.snapshot().vin.c_str());
+    link.startStop(); link.startRefresh();
+    TEST_ASSERT_EQUAL(2, api.calls);
+    TEST_ASSERT_EQUAL(3, ble.calls);
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_base64_matches_the_standard_examples);
@@ -409,5 +484,8 @@ int main() {
     RUN_TEST(test_pairing_is_refused_here_and_bad_amps_never_leave_the_board);
     RUN_TEST(test_forget_deletes_the_account_link_and_the_readings);
     RUN_TEST(test_the_watch_is_off_by_default_and_reads_rarely_when_on);
+    RUN_TEST(test_manager_saves_only_after_everything_checks_out);
+    RUN_TEST(test_manager_saves_account_vin_and_key_and_masks_the_client);
+    RUN_TEST(test_the_link_switch_sends_everything_to_the_chosen_link_only);
     return UNITY_END();
 }

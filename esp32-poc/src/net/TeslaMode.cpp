@@ -13,13 +13,15 @@ namespace device {
 
 void TeslaMode::begin() {
     on_ = store_.loadTeslaMode();
-    BleGate::on() = on_;
+    api_ = on_ && store_.loadApiLink();
+    BleGate::on() = on_ && !api_;   // the Tesla account link never starts Bluetooth, so its memory stays free
     Profile::tesla() = on_;   // which settings and history this run uses (before any store is opened)
     if (!on_) {
         LOG_INFO("Tesla mode: off. Bluetooth stays off.");
         return;
     }
-    LOG_WARN("Tesla mode: ON. Bluetooth is available and the board opens its own Wi-Fi \"%s\".", solar::kTeslaHotspotName);
+    if (api_) LOG_WARN("Tesla mode: ON, connected through the Tesla account (internet). Bluetooth stays off. The board opens its own Wi-Fi \"%s\".", solar::kTeslaHotspotName);
+    else LOG_WARN("Tesla mode: ON. Bluetooth is available and the board opens its own Wi-Fi \"%s\".", solar::kTeslaHotspotName);
     startHotspot();
 }
 
@@ -57,6 +59,13 @@ void TeslaMode::setEnabled(bool on) {
     if (on) hotspotPassword();   // made now, so it can be read on the dashboard before the first restart is over
     LOG_WARN("Tesla mode: switched %s; restarting.", on ? "ON" : "OFF");
     restartAt_ = millis() + 1500;   // the reply reaches the phone first
+}
+
+void TeslaMode::setApiLink(bool on) {
+    if (on == api_ || restartAt_ != 0) return;
+    store_.saveApiLink(on);
+    LOG_WARN("Tesla mode: link switched to %s; restarting.", on ? "the Tesla account" : "Bluetooth");
+    restartAt_ = millis() + 1500;
 }
 
 bool TeslaMode::setClock(int64_t epochSeconds) {

@@ -40,6 +40,21 @@ void NvsTeslaStore::saveVin(const std::string& vin) {
     prefs.end();
 }
 
+bool NvsTeslaStore::loadApiLink() {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return false;
+    bool on = prefs.getBool("api", false);
+    prefs.end();
+    return on;
+}
+
+void NvsTeslaStore::saveApiLink(bool on) {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, /*readOnly=*/false)) return;
+    prefs.putBool("api", on);
+    prefs.end();
+}
+
 bool NvsTeslaStore::loadWatch() {
     Preferences prefs;
     if (!prefs.begin(kNamespace, /*readOnly=*/false)) return true;

@@ -995,7 +995,102 @@ public:
     HotspotInfo hotspot() const override { return {on, on ? 1 : 0}; }
     std::string hotspotPassword() override { return "secret1234"; }
     bool setClock(int64_t epoch) override { clockWasSet = true; clockValue = epoch; return acceptsClock; }
+    bool api = false;
+    bool apiLink() const override { return api; }
+    void setApiLink(bool v) override { api = v; restarting = true; }
 };
+
+class FakeFleet : public fleet::FleetControl {
+public:
+    int connects = 0, disconnects = 0;
+    fleet::FleetCredentials lastCreds;
+    std::string lastVin, lastKey, refuse;
+    fleet::FleetStatus st;
+    FakeFleet() { st.supported = true; st.state = "not_connected"; }
+    fleet::FleetStatus status() const override { return st; }
+    std::string connect(const fleet::FleetCredentials& c, const std::string& vin, const std::string& key) override {
+        if (!refuse.empty()) return refuse;
+        connects++; lastCreds = c; lastVin = vin; lastKey = key;
+        st.connected = true; st.state = "ok"; st.client = "ab12...f9";
+        return "";
+    }
+    void disconnect() override { disconnects++; st.connected = false; st.state = "not_connected"; }
+};
+
+void test_the_account_link_saves_what_a_computer_collected_and_never_echoes_secrets() {
+    Rig r;
+    FakeCar car; FakeMode mode; FakeFleet fleet;
+    mode.on = true;
+    r.api.setCar(&car); r.api.setTeslaMode(&mode); r.api.setFleet(&fleet);
+    const std::string token = "a-very-long-refresh-token-value-123456";
+    HttpResponse ok = r.post("/api/car/fleet/connect", {{"clientId", "client-1"}, {"refreshToken", token}, {"region", "eu"}, {"vin", "5YJ3E1EA8KF000001"}, {"key", std::string(64, 'a')}});
+    TEST_ASSERT_EQUAL(200, ok.status);
+    TEST_ASSERT_EQUAL(1, fleet.connects);
+    testing::check("client-1", fleet.lastCreds.clientId);
+    testing::check(token, fleet.lastCreds.refreshToken);
+    testing::check("eu", fleet.lastCreds.region);
+    TEST_ASSERT_TRUE(ok.body.find(token) == std::string::npos && ok.body.find("5YJ3E1EA8KF000001") == std::string::npos);
+    r.post("/api/car/fleet/connect", {{"clientId", "client-1"}, {"refreshToken", token}});
+    testing::check("na", fleet.lastCreds.region);   // the Americas unless said otherwise
+    fleet.refuse = "The refresh token looks wrong (too short or too long).";
+    HttpResponse bad = r.post("/api/car/fleet/connect", {{"clientId", "client-1"}, {"refreshToken", "short"}});
+    TEST_ASSERT_EQUAL(400, bad.status);
+    TEST_ASSERT_TRUE(bad.body.find("short") == std::string::npos || bad.body.find("looks wrong") != std::string::npos);
+    TEST_ASSERT_EQUAL(403, r.api.handle("POST", "/api/car/fleet/connect", {{"clientId", "c"}, {"refreshToken", token}}, false).status);   // needs the safe header
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/fleet/disconnect").status);
+    TEST_ASSERT_EQUAL(1, fleet.disconnects);
+}
+
+void test_the_account_routes_need_tesla_mode_and_a_board_that_has_the_link() {
+    Rig r;
+    FakeCar car; FakeMode mode; FakeFleet fleet;
+    r.api.setCar(&car); r.api.setTeslaMode(&mode); r.api.setFleet(&fleet);
+    HttpResponse off = r.post("/api/car/fleet/connect", {{"clientId", "c"}, {"refreshToken", "a-very-long-refresh-token-value-123456"}});
+    TEST_ASSERT_EQUAL(400, off.status);
+    TEST_ASSERT_TRUE(off.body.find("Tesla mode is off") != std::string::npos);
+    TEST_ASSERT_EQUAL(0, fleet.connects);
+    Rig pi;
+    FakeCar car2;
+    pi.api.setCar(&car2);   // no fleet object (the Pi)
+    TEST_ASSERT_EQUAL(400, pi.post("/api/car/fleet/connect", {{"clientId", "c"}, {"refreshToken", "x"}}).status);
+    TEST_ASSERT_EQUAL(400, pi.post("/api/car/link", {{"mode", "api"}, {"confirm", "yes"}}).status);
+}
+
+void test_connect_through_needs_confirmation_then_saves_and_restarts() {
+    Rig r;
+    FakeCar car; FakeMode mode;
+    mode.on = true;
+    r.api.setCar(&car); r.api.setTeslaMode(&mode);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/link", {{"mode", "api"}}).status);                       // no confirmation
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/link", {{"mode", "wifi"}, {"confirm", "yes"}}).status);
+    TEST_ASSERT_EQUAL(400, r.post("/api/car/link", {{"confirm", "yes"}}).status);
+    TEST_ASSERT_FALSE(mode.api);
+    TEST_ASSERT_EQUAL(403, r.api.handle("POST", "/api/car/link", {{"mode", "api"}, {"confirm", "yes"}}, false).status);
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/link", {{"mode", "ble"}, {"confirm", "yes"}}).status);   // already Bluetooth: nothing to do
+    TEST_ASSERT_FALSE(mode.restarting);
+    TEST_ASSERT_EQUAL(200, r.post("/api/car/link", {{"mode", "api"}, {"confirm", "yes"}}).status);
+    TEST_ASSERT_TRUE(mode.api);
+    TEST_ASSERT_TRUE(mode.restarting);
+    TEST_ASSERT_EQUAL(409, r.post("/api/car/link", {{"mode", "ble"}, {"confirm", "yes"}}).status);   // already restarting
+    testing::check("api", r.telemetry()["car"]["mode"]["link"] | "");
+}
+
+void test_telemetry_shows_the_account_state_without_secrets() {
+    Rig r;
+    FakeCar car; FakeMode mode; FakeFleet fleet;
+    mode.on = true;
+    r.api.setCar(&car); r.api.setTeslaMode(&mode); r.api.setFleet(&fleet);
+    fleet.st.connected = true; fleet.st.state = "needs_sign_in"; fleet.st.error = "Tesla no longer accepts the saved sign-in. Sign in again."; fleet.st.client = "ab12...f9"; fleet.st.hasVin = true;
+    JsonDocument t = r.telemetry();
+    testing::check("ble", t["car"]["mode"]["link"] | "");
+    TEST_ASSERT_TRUE(t["car"]["account"]["connected"].as<bool>());
+    testing::check("needs_sign_in", t["car"]["account"]["state"] | "");
+    testing::check("ab12...f9", t["car"]["account"]["client"] | "");
+    std::string all;
+    serializeJson(t, all);
+    TEST_ASSERT_TRUE(all.find("refresh") == std::string::npos || all.find("Sign in again") != std::string::npos);
+    TEST_ASSERT_TRUE(all.find("rtok") == std::string::npos);
+}
 
 void test_telemetry_says_whether_a_solar_meter_is_linked() {
     Rig r;
@@ -1248,6 +1343,10 @@ int main() {
     RUN_TEST(test_telemetry_says_whether_a_solar_meter_is_linked);
     RUN_TEST(test_with_tesla_mode_off_nothing_talks_to_the_car_but_the_key_can_be_forgotten);
     RUN_TEST(test_tesla_mode_needs_confirmation_then_saves_and_restarts);
+    RUN_TEST(test_the_account_link_saves_what_a_computer_collected_and_never_echoes_secrets);
+    RUN_TEST(test_the_account_routes_need_tesla_mode_and_a_board_that_has_the_link);
+    RUN_TEST(test_connect_through_needs_confirmation_then_saves_and_restarts);
+    RUN_TEST(test_telemetry_shows_the_account_state_without_secrets);
     RUN_TEST(test_in_tesla_mode_the_charger_cannot_be_chosen_back);
     RUN_TEST(test_the_hotspot_password_is_only_given_on_request_and_never_in_telemetry);
     RUN_TEST(test_the_phone_can_set_the_clock_only_when_the_board_has_none);

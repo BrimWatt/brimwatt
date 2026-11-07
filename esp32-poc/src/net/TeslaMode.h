@@ -30,6 +30,8 @@ public:
     bool enabled() const override { return on_; }
     bool restartPending() const override { return restartAt_ != 0; }
     void setEnabled(bool on) override;
+    bool apiLink() const override { return api_; }
+    void setApiLink(bool on) override;
     solar::HotspotInfo hotspot() const override;
     std::string hotspotPassword() override;
     bool setClock(int64_t epochSeconds) override;
@@ -41,6 +43,7 @@ private:
     SetupPortal& portal_;
     std::function<void()> beforeRestart_;
     bool on_ = false;
+    bool api_ = false;   // connect through the Tesla account instead of Bluetooth (read at start-up)
     uint32_t restartAt_ = 0;
     uint32_t lastCheck_ = 0;
 };

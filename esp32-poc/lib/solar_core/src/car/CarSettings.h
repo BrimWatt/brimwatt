@@ -17,6 +17,8 @@ public:
     // Tesla mode (off unless the owner switches it on) and its hotspot password; the defaults suit stores that do not keep them.
     virtual bool loadTeslaMode() { return false; }
     virtual void saveTeslaMode(bool) {}
+    virtual bool loadApiLink() { return false; }     // connect through the Tesla account (Fleet API) instead of Bluetooth
+    virtual void saveApiLink(bool) {}
     virtual std::string loadHotspotPassword() { return ""; }
     virtual void saveHotspotPassword(const std::string&) {}
 };

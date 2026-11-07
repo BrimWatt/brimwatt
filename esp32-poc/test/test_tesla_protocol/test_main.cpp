@@ -903,6 +903,8 @@ public:
     std::string v;
     std::string vin() override { return v; }
     bool privateKey(Bytes& o) override { o = key; return !key.empty(); }
+    void saveVin(const std::string& vin) override { v = vin; }
+    void saveKey(const Bytes& k) override { key = k; }
 };
 }  // namespace
 

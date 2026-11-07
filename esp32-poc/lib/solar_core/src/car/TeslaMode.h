@@ -30,6 +30,10 @@ public:
     virtual std::string hotspotPassword() = 0;
     /** Sets the board's clock (seconds since 1970) when it has none, e.g. away from home with no internet. False if it already has one. */
     virtual bool setClock(int64_t epochSeconds) = 0;
+    /** "Connect through": false = Bluetooth (the default), true = the owner's Tesla account over the internet (Fleet API). Read once at start-up. */
+    virtual bool apiLink() const { return false; }
+    /** Saves the choice and restarts the board soon (Bluetooth is only started when it is chosen). */
+    virtual void setApiLink(bool) {}
 };
 
 /** Ten characters without look-alikes (no 0/O, 1/l/i): easy to type on a phone, far more than WPA2 needs. */

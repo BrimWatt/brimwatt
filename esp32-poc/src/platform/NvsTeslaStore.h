@@ -30,6 +30,8 @@ public:
     bool loadAllowWake() override;
     void saveAllowWake(bool on) override;
     // Tesla mode (default off) and its hotspot password
+    bool loadApiLink() override;
+    void saveApiLink(bool on) override;
     bool loadTeslaMode() override;
     void saveTeslaMode(bool on) override;
     std::string loadHotspotPassword() override;

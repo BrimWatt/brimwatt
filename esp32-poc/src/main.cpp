@@ -17,6 +17,7 @@
 
 #include "ble/CarService.h"
 #include "car/CarCommander.h"
+#include "car/CarLinkSwitch.h"
 #include "car/ChargeRouter.h"
 #include "ble/TeslaCar.h"
 #include "ble/TeslaScan.h"
@@ -30,6 +31,14 @@
 #include "daylight/DaylightWindow.h"
 #include "enphase/EnphaseClient.h"
 #include "enphase/MeterPoller.h"
+#include "fleet/FleetApi.h"
+#include "fleet/FleetAuth.h"
+#include "fleet/FleetCar.h"
+#include "fleet/FleetControl.h"
+#include "net/EspFleetExecutor.h"
+#include "net/EspFleetHttp.h"
+#include "platform/NvsFleetStore.h"
+#include "platform/TeslaIdentity.h"
 #include "net/Mdns.h"
 #include "net/EspNotifySender.h"
 #include "net/Ota.h"
@@ -82,9 +91,21 @@ static device::TeslaScan teslaScan;
 static device::NvsTeslaStore teslaStore;
 static device::TeslaCar teslaCar(teslaStore);
 static device::CarService carService(teslaCar, teslaStore, teslaScan);
-// Who is in command of the charge: the OCPP wallbox (default) or, if the owner chose it, the car over Bluetooth.
-static solar::CarCommander carCommander(platform, carService);
-static solar::ChargeRouter chargeRouter(wallbox, carCommander, carService);
+// The Tesla account link (Fleet API): the same car control over the internet. Which of the two links is used is chosen at start-up
+// (carLink.select, from the saved "Connect through" choice); the other one is never started.
+static device::NvsFleetStore fleetStore;
+static device::EspFleetHttp fleetHttp;
+static device::EspFleetExecutor fleetExecutor;
+static device::TeslaIdentity teslaIdentity(teslaStore);
+static device::MbedTeslaCrypto fleetCrypto;
+static solar::fleet::FleetAuth fleetAuth(fleetHttp, fleetStore, platform);
+static solar::fleet::FleetApi fleetApi(fleetHttp, fleetAuth);
+static solar::fleet::FleetCar fleetCar(fleetApi, fleetAuth, teslaIdentity, fleetCrypto, platform, fleetExecutor);
+static solar::fleet::FleetManager fleetManager(fleetAuth, teslaIdentity, fleetCrypto);
+static solar::CarLinkSwitch carLink(carService, fleetCar);
+// Who is in command of the charge: the OCPP wallbox (default) or, if the owner chose it, the car (over Bluetooth or the Tesla account).
+static solar::CarCommander carCommander(platform, carLink);
+static solar::ChargeRouter chargeRouter(wallbox, carCommander, carLink);
 static SolarController controller(platform, state, chargeRouter, daylight, settingsStore);
 
 static device::EspDiagnostics diagnostics(__DATE__ " " __TIME__);
@@ -262,7 +283,10 @@ void setup() {
     siteSettings.begin();   // where the panels are: the daylight window and the clock start from it (restart after a change)
     daylight.setLocation(siteSettings.current().latitude, siteSettings.current().longitude);
     if (auto rule = solar::timezones::posixFor(siteSettings.current().timezone)) siteClockRule = *rule;
-    teslaMode.begin();   // off unless the owner turned it on: Bluetooth stays off, and the board's own Wi-Fi opens only when it is on
+    teslaMode.begin();
+    carLink.select(teslaMode.apiLink());   // Connect through: Bluetooth (default) or the Tesla account
+    fleetAuth.reload();                    // the flash could not be read yet when the objects were built
+    // Tesla mode: off unless the owner turned it on: Bluetooth stays off, and the board's own Wi-Fi opens only when it is on
     webServer.begin();
     bringUpNetwork();
     envoy.configure(credentials.enphaseToken, credentials.envoyIp);
@@ -294,7 +318,8 @@ void setup() {
     api.setNotifier(&notifier);
     api.setHistory(&history);
     api.setDiagnostics(&diagnostics);
-    api.setCar(&carService);
+    api.setCar(&carLink);
+    api.setFleet(&fleetManager);
     api.setRouter(&chargeRouter);
     api.setTeslaMode(&teslaMode);
     api.setSite(&siteSettings);
@@ -338,6 +363,7 @@ void loop() {
     console.poll();
     teslaScan.loop();
     carService.loop();
+    fleetCar.loop();
     carCommander.loop();
     followTeslaMode();
     // Home Wi-Fi lost while running: rejoin by ourselves. Tesla mode has its own slower retry (followTeslaMode), and the setup network

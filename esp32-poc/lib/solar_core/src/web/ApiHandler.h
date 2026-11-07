@@ -11,6 +11,7 @@
 #include "common/Platform.h"
 #include "control/SolarController.h"
 #include "daylight/DaylightSchedule.h"
+#include "fleet/FleetControl.h"
 #include "web/Diagnostics.h"
 #include "history/HistoryService.h"
 #include "wallbox/ChargeDevice.h"
@@ -82,6 +83,8 @@ public:
     /** Tesla mode. Without it the car endpoints always work (the Pi, the tests). */
     void setTeslaMode(TeslaModeControl* mode) { mode_ = mode; }
     void setSite(SiteControl* site) { site_ = site; }
+    /** The Tesla account link (Fleet API). Without it the account routes answer "needs the ESP32 board". */
+    void setFleet(fleet::FleetControl* fleet) { fleet_ = fleet; }
     /** Whether a solar meter has been set up at all (telemetry `meterLinked`); true unless told otherwise. */
     void setMeterLinked(bool linked) { meterLinked_ = linked; }
 
@@ -118,6 +121,7 @@ private:
     CarControl* car_ = nullptr;
     ChargeRouter* router_ = nullptr;
     TeslaModeControl* mode_ = nullptr;
+    fleet::FleetControl* fleet_ = nullptr;
     SiteControl* site_ = nullptr;
     bool meterLinked_ = true;
 };
