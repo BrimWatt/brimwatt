@@ -69,6 +69,20 @@ std::string formatLimitLine(const LimitLine& l) {
     return l.prefix + " " + std::to_string(l.count) + " times, now " + std::to_string(l.amps) + " A" + (l.reason.empty() ? "" : ": " + l.reason);
 }
 
+/**
+ * Folds a limit-change line at time `t` into `last` when `last` is one too (same kind, less than an hour earlier). A plain line adds one to
+ * the count; a line that is already a merged run (a saved file, or a journal that overlaps it) replaces the older snapshot of the same run.
+ */
+bool mergeLimit(HistoryEvent& last, int64_t t, const std::string& text) {
+    if (t < last.t || t - last.t >= kLimitMergeSeconds) return false;
+    const LimitLine previous = parseLimitLine(last.text), next = parseLimitLine(text);
+    if (!previous.ok || !next.ok || previous.prefix != next.prefix) return false;
+    LimitLine merged = next;
+    merged.count = next.count > 1 ? next.count : previous.count + 1;
+    last = {static_cast<uint32_t>(t), formatLimitLine(merged)};
+    return true;
+}
+
 int16_t clampWatts(double w) { return static_cast<int16_t>(std::max(-32000.0, std::min(32000.0, std::round(w)))); }
 
 std::vector<std::string> split(const std::string& line, char sep) {
@@ -307,16 +321,10 @@ void HistoryService::addEvent(const std::string& text) {
     pruneOld(now);
     if (!events_.empty() && now - events_.back().t < kEventRepeatSeconds && events_.back().text == text) return;
     // A run of limit changes (the planner moves the current a few times an hour) is one line that counts them and shows the latest.
-    if (!events_.empty() && now - events_.back().t < kLimitMergeSeconds) {
-        const LimitLine previous = parseLimitLine(events_.back().text), next = parseLimitLine(text);
-        if (previous.ok && next.ok && previous.prefix == next.prefix) {
-            LimitLine merged = next;
-            merged.count = previous.count + 1;
-            events_.back() = {static_cast<uint32_t>(now), formatLimitLine(merged)};
-            dirty_ = journalDirty_ = true;
-            if (eventListener_) eventListener_(text);   // the notifier still sees every real change
-            return;
-        }
+    if (!events_.empty() && mergeLimit(events_.back(), now, text)) {
+        dirty_ = journalDirty_ = true;
+        if (eventListener_) eventListener_(text);   // the notifier still sees every real change
+        return;
     }
     events_.push_back({static_cast<uint32_t>(now), text});
     while (events_.size() > kMaxEvents) events_.pop_front();
@@ -535,7 +543,8 @@ void HistoryService::loadLine(const std::string& line) {
                 // The text is everything after the second tab (it holds no tabs itself).
                 uint32_t at = static_cast<uint32_t>(std::strtoul(p[1].c_str(), nullptr, 10));
                 for (const auto& known : events_) if (known.t == at && known.text == p[2]) return;
-                events_.push_back({static_cast<uint32_t>(std::strtoul(p[1].c_str(), nullptr, 10)), p[2]});
+                if (!events_.empty() && mergeLimit(events_.back(), at, p[2])) break;   // saved lines from before the merge existed collapse too
+                events_.push_back({at, p[2]});
                 while (events_.size() > kMaxEvents) events_.pop_front();
             }
             break;

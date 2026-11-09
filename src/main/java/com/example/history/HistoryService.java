@@ -341,6 +341,24 @@ public class HistoryService {
     /** Told about every new activity line (not the repeats that are dropped); must not block. */
     public void setEventListener(java.util.function.Consumer<String> listener) { this.eventListener = listener; }
 
+    /**
+     * Folds a limit-change line at time {@code t} into {@code last} when {@code last} is one too (same kind, less than an hour earlier), or
+     * returns null. A plain line adds one to the count; a line that is already a merged run (a saved file, or a journal that overlaps it)
+     * replaces the older snapshot of the same run.
+     */
+    private static Event mergeLimit(Event last, long t, String text) {
+        if (t < last.t() || t - last.t() >= LIMIT_MERGE_SECONDS) return null;
+        var previous = LIMIT_LINE.matcher(last.text());
+        var next = LIMIT_LINE.matcher(text);
+        if (!previous.matches() || !next.matches() || !previous.group(1).equals(next.group(1))) return null;
+        int previousCount = previous.group(3) != null ? Integer.parseInt(previous.group(3)) : 1;
+        int nextCount = next.group(3) != null ? Integer.parseInt(next.group(3)) : 1;
+        int count = nextCount > 1 ? nextCount : previousCount + 1;
+        int amps = Integer.parseInt(next.group(2) != null ? next.group(2) : next.group(4));
+        String reason = next.group(5);
+        return new Event(t, next.group(1) + " " + count + " times, now " + amps + " A" + (reason == null || reason.isEmpty() ? "" : ": " + reason));
+    }
+
     public synchronized void addEvent(String text) {
         long now = nowSeconds();
         if (now <= 0) return;
@@ -350,21 +368,14 @@ public class HistoryService {
         Event last = events.peekLast();
         if (last != null && now - last.t() < EVENT_REPEAT_SECONDS && last.text().equals(text)) return;
         // A run of limit changes (the planner moves the current a few times an hour) is one line that counts them and shows the latest.
-        if (last != null && now - last.t() < LIMIT_MERGE_SECONDS) {
-            var previous = LIMIT_LINE.matcher(last.text());
-            var next = LIMIT_LINE.matcher(text);
-            if (previous.matches() && next.matches() && previous.group(1).equals(next.group(1))) {
-                int count = previous.group(3) != null ? Integer.parseInt(previous.group(3)) : 1;
-                int amps = Integer.parseInt(next.group(2) != null ? next.group(2) : next.group(4));
-                String reason = next.group(5);
-                String merged = next.group(1) + " " + (count + 1) + " times, now " + amps + " A" + (reason == null || reason.isEmpty() ? "" : ": " + reason);
-                events.pollLast();
-                events.addLast(new Event(now, merged));
-                java.util.function.Consumer<String> listener = eventListener;
-                if (listener != null) listener.accept(text);   // the notifier still sees every real change
-                dirty = journalDirty = true;
-                return;
-            }
+        Event merged = last == null ? null : mergeLimit(last, now, text);
+        if (merged != null) {
+            events.pollLast();
+            events.addLast(merged);
+            java.util.function.Consumer<String> listener = eventListener;
+            if (listener != null) listener.accept(text);   // the notifier still sees every real change
+            dirty = journalDirty = true;
+            return;
         }
         events.addLast(new Event(now, text));
         java.util.function.Consumer<String> listener = eventListener;
@@ -572,6 +583,8 @@ public class HistoryService {
                     if (p.length < 3) return;
                     long at = Long.parseLong(p[1]);
                     for (Event known : events) if (known.t() == at && known.text().equals(p[2])) return;
+                    Event folded = events.isEmpty() ? null : mergeLimit(events.peekLast(), at, p[2]);   // saved lines from before the merge existed collapse too
+                    if (folded != null) { events.pollLast(); events.addLast(folded); return; }
                     events.addLast(new Event(at, p[2]));
                     while (events.size() > MAX_EVENTS) events.pollFirst();
                 }

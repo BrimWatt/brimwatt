@@ -642,4 +642,24 @@ class HistoryServiceTest {
         clock.addAndGet(60_000); fresh.addEvent("Changed limit to 8 A: less solar left");      // and the run carries on after a restart
         assertEquals("Changed limit 3 times, now 8 A: less solar left", fresh.recentEvents(1).get(0).text());
     }
+
+    @Test
+    void savedLimitLinesFromBeforeTheMergeCollapseOnLoadAndAnOverlappingJournalDoesNotDoubleThem() {
+        minute(1000, 0, 0);
+        long t = clock.get() / 1000;
+        HistoryService a = new HistoryService(LA, clock::get);
+        for (int i = 0; i < 4; i++) a.loadLine("E\t" + (t + i * 300) + "\tChanged limit to " + (9 + i) + " A: more solar");   // an old file: four plain lines
+        a.loadLine("E\t" + (t + 1500) + "\tCar plugged in");
+        var events = a.recentEvents(10);
+        assertEquals(2, events.size());
+        assertEquals("Changed limit 4 times, now 12 A: more solar", events.get(1).text());
+        clock.addAndGet(5_000_000);
+        HistoryService b = new HistoryService(LA, clock::get);
+        b.loadLine("E\t" + t + "\tChanged limit 2 times, now 10 A: more solar");
+        b.loadLine("E\t" + (t + 400) + "\tChanged limit 3 times, now 8 A: less solar left");     // the journal's newer snapshot of the same run
+        assertEquals(1, b.eventCount());
+        assertEquals("Changed limit 3 times, now 8 A: less solar left", b.recentEvents(1).get(0).text());
+        b.loadLine("E\t" + (t + 400) + "\tChanged limit 3 times, now 8 A: less solar left");   // the very same line twice
+        assertEquals(1, b.eventCount());
+    }
 }

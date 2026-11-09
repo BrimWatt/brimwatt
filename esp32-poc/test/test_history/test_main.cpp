@@ -661,6 +661,27 @@ void test_a_merged_limit_line_survives_saving_and_loading() {
     testing::check("Changed limit 3 times, now 8 A: less solar left", b.history.recentEvents(1)[0].text);
 }
 
+void test_saved_limit_lines_from_before_the_merge_collapse_on_load_and_an_overlapping_journal_does_not_double_them() {
+    Rig a;
+    a.minute(1000, 0, 0);
+    const int64_t t = a.platform.epoch;
+    for (int i = 0; i < 4; i++)
+        a.history.loadLine("E\t" + std::to_string(t + i * 300) + "\tChanged limit to " + std::to_string(9 + i) + " A: more solar");   // an old file: four plain lines
+    a.history.loadLine("E\t" + std::to_string(t + 1500) + "\tCar plugged in");
+    auto events = a.history.recentEvents(10);
+    TEST_ASSERT_EQUAL(2, events.size());
+    testing::check("Changed limit 4 times, now 12 A: more solar", events[1].text);
+    // a full save holds the run as it was; a later journal holds the same run grown by one change: the newer snapshot replaces it
+    Rig b;
+    b.platform.epoch = t + 5000;
+    b.history.loadLine("E\t" + std::to_string(t) + "\tChanged limit 2 times, now 10 A: more solar");
+    b.history.loadLine("E\t" + std::to_string(t + 400) + "\tChanged limit 3 times, now 8 A: less solar left");
+    TEST_ASSERT_EQUAL(1, b.history.eventCount());
+    testing::check("Changed limit 3 times, now 8 A: less solar left", b.history.recentEvents(1)[0].text);
+    b.history.loadLine("E\t" + std::to_string(t + 400) + "\tChanged limit 3 times, now 8 A: less solar left");   // the very same line twice
+    TEST_ASSERT_EQUAL(1, b.history.eventCount());
+}
+
 void test_a_year_of_days_is_kept() {
     TEST_ASSERT_TRUE(HistoryService::kMaxDays >= 366);
 }
@@ -810,6 +831,7 @@ int main() {
     RUN_TEST(test_anything_else_in_between_or_a_gap_of_an_hour_starts_a_new_line);
     RUN_TEST(test_the_wallbox_and_the_car_limit_lines_never_merge_and_a_missing_reason_is_fine);
     RUN_TEST(test_a_merged_limit_line_survives_saving_and_loading);
+    RUN_TEST(test_saved_limit_lines_from_before_the_merge_collapse_on_load_and_an_overlapping_journal_does_not_double_them);
     RUN_TEST(test_a_year_of_days_is_kept);
     RUN_TEST(test_the_journal_on_top_of_the_full_save_restores_everything);
     RUN_TEST(test_a_session_that_ended_after_the_full_save_is_not_left_open);
