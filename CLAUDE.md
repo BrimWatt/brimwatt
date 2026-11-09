@@ -237,6 +237,7 @@ before-setup-network            branch: the code as it was before the ESP32 setu
 snapshot-before-setup-network   tag on that same commit (a fixed marker; a branch can move, a tag does not)
 before-tesla-car-control        tag on main as it was before the Tesla work was merged (2026-10-29, fast-forward; roll back with git checkout before-tesla-car-control)
 before-idtag-forecast-location  tag on main as it was before the ID tag fingerprint, the Tomorrow forecast, the location onboarding and the score wheel were merged (2026-11-01, fast-forward; the branches idtag-hash, forecast and site-location are kept)
+before-tesla-fleet-api         tag on main as it was before the Tesla account link (Fleet API), the either-or Tesla mode, the on-board Tesla sign-in and the 24 h / 30 day retention were merged (2026-11-09, fast-forward; the branch tesla-fleet-api is kept)
 before-cheapest-hours-and-impact  tag on main as it was before Cheapest hours, the memory diagnostics, goal and plug-in recording, the plan picker and the Impact card were merged (2026-10-31, fast-forward; the branches cheapest-hours, impact-score and memory-diagnostics are kept)
 ```
 
