@@ -77,9 +77,9 @@ void test_a_damaged_or_old_tag_column_is_ignored() {
     FakePlatform platform;
     platform.epoch = 1760000000;
     HistoryService h{platform};
-    h.loadLine("T\t100\t200\t-1.0\t-1.0\t300.0\t250.0\tRemote\t0.00\t0\t0\t0\tNOT-HEX-AT-ALL!");
+    h.loadLine("T\t1759999000\t1759999100\t-1.0\t-1.0\t300.0\t250.0\tRemote\t0.00\t0\t0\t0\tNOT-HEX-AT-ALL!");
     TEST_ASSERT_TRUE(h.recentSessions(1)[0].tag.empty());
-    h.loadLine("T\t300\t400\t-1.0\t-1.0\t300.0\t250.0\tRemote\t0.00\t0\t0\t0");   // a file from before the column existed
+    h.loadLine("T\t1759999200\t1759999300\t-1.0\t-1.0\t300.0\t250.0\tRemote\t0.00\t0\t0\t0");   // a file from before the column existed
     TEST_ASSERT_TRUE(h.recentSessions(2)[0].tag.empty());
 }
 

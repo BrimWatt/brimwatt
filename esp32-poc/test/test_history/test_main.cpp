@@ -184,7 +184,7 @@ void test_money_saved_uses_the_price_of_the_hour_and_survives_saving() {
 
     Rig old;                                                                  // files written before the money column
     old.history.loadLine("D\t" + std::to_string(old.today()) + "\t1000.0\t500.0\t400.0\t100.0\t200.0");
-    old.history.loadLine("T\t100\t200\t-1.0\t-1.0\t300.0\t250.0\tRemote");
+    old.history.loadLine("T\t" + std::to_string(old.platform.epoch - 1000) + "\t" + std::to_string(old.platform.epoch - 900) + "\t-1.0\t-1.0\t300.0\t250.0\tRemote");   // (a session from the last 30 days)
     TEST_ASSERT_EQUAL(0, old.history.totalsForDay(old.today()).savedCents);
     TEST_ASSERT_EQUAL(1, old.history.recentSessions(5).size());
     TEST_ASSERT_EQUAL(0, old.history.recentSessions(5)[0].savedCents);
@@ -483,6 +483,104 @@ void test_only_the_latest_four_hundred_sessions_are_kept() {
     TEST_ASSERT_EQUAL(HistoryService::kMaxSessions, r.history.recentSessions(1000).size());
 }
 
+// ---- retention by age: activity one day, finished sessions 30 days; the graph's data is never touched ---------------------------
+
+void test_activity_lines_older_than_a_day_leave_the_list_at_once_and_are_purged_later() {
+    Rig r;
+    r.minute(1000, 0, 0);
+    const int64_t t0 = r.platform.epoch;
+    r.history.addEvent("old");
+    r.platform.epoch = t0 + 3 * 3600;
+    r.history.addEvent("middle");
+    r.platform.epoch = t0 + 23 * 3600;
+    r.history.addEvent("recent");
+    TEST_ASSERT_EQUAL(3, r.history.eventCount());
+    r.platform.epoch = t0 + 25 * 3600;                       // "old" is now 25 hours old; nothing has been recorded since
+    TEST_ASSERT_EQUAL(2, r.history.eventCount());
+    auto shown = r.history.recentEvents(10);
+    TEST_ASSERT_EQUAL(2, shown.size());
+    testing::check("recent", shown[0].text);
+    testing::check("middle", shown[1].text);
+    TEST_ASSERT_EQUAL(1, r.history.recentEvents(10, 1).size());   // paging counts only what is shown
+    r.minute(1000, 0, 0);                                    // the once-a-minute purge removes it for good
+    int lines = 0;
+    r.history.forEachLine([&](const std::string& l) { if (l.rfind("E\t", 0) == 0) lines++; });
+    TEST_ASSERT_EQUAL(2, lines);
+    r.platform.epoch = t0 + 60 * 3600;
+    r.minute(1000, 0, 0);
+    TEST_ASSERT_EQUAL(0, r.history.eventCount());
+}
+
+void test_finished_sessions_older_than_thirty_days_are_dropped() {
+    Rig r;
+    r.minute(1000, 0, 0);
+    r.history.sessionStarted(0);
+    r.minute(1000, 0, 500);
+    r.history.sessionStopped(0, "Remote");                   // an old charge
+    const int64_t t0 = r.platform.epoch;
+    r.platform.epoch = t0 + 20 * 86400;
+    r.minute(1000, 0, 0);
+    r.history.sessionStarted(0);
+    r.minute(1000, 0, 500);
+    r.history.sessionStopped(0, "Remote");                   // a newer one
+    TEST_ASSERT_EQUAL(2, r.history.sessionCount());
+    r.platform.epoch = t0 + 31 * 86400;                      // the first one is now older than 30 days
+    TEST_ASSERT_EQUAL(1, r.history.sessionCount());
+    TEST_ASSERT_EQUAL(1, r.history.recentSessions(10).size());
+    r.minute(1000, 0, 0);
+    int lines = 0;
+    r.history.forEachLine([&](const std::string& l) { if (l.rfind("T\t", 0) == 0) lines++; });
+    TEST_ASSERT_EQUAL(1, lines);
+    r.platform.epoch = t0 + 60 * 86400;
+    r.minute(1000, 0, 0);
+    TEST_ASSERT_EQUAL(0, r.history.sessionCount());
+}
+
+void test_without_a_valid_clock_nothing_is_purged() {
+    Rig r;
+    r.minute(1000, 0, 0);
+    r.history.addEvent("kept");
+    r.platform.epoch = 1000;                                 // clock lost: everything looks 'old' but must not vanish
+    TEST_ASSERT_EQUAL(1, r.history.eventCount());
+    TEST_ASSERT_EQUAL(1, r.history.recentEvents(10).size());
+}
+
+void test_purging_never_touches_the_graph_data() {
+    // Two identical runs of 45 days; one also logs events and sessions all along. Their graph data must be identical.
+    Rig a, b;
+    for (int step = 0; step < 45 * 288; step++) {
+        const double sun = (step % 288) > 80 && (step % 288) < 220 ? 4000 : 0;
+        a.platform.epoch += 300; b.platform.epoch += 300;
+        a.history.recordSample(sun, -500, sun > 0 ? 2000 : 0, ChargingMode::Eco, false);
+        b.history.recordSample(sun, -500, sun > 0 ? 2000 : 0, ChargingMode::Eco, false);
+        if (step % 20 == 0) a.history.addEvent("event " + std::to_string(step));
+        if (step % 288 == 100) { a.history.sessionStarted(0); }
+        if (step % 288 == 200) { a.history.sessionStopped(0, "Remote"); }
+    }
+    TEST_ASSERT_TRUE(a.history.eventCount() < 20);           // only about the last day of activity is left
+    TEST_ASSERT_TRUE(a.history.sessionCount() <= 31);        // only about the last 30 days of charges
+    TEST_ASSERT_TRUE(b.history.sessionCount() == 0 && b.history.eventCount() == 0);
+    TEST_ASSERT_EQUAL(b.history.allDays().size(), a.history.allDays().size());
+    for (const auto& kv : b.history.allDays()) {
+        const auto& x = kv.second;
+        const auto& y = a.history.allDays().at(kv.first);
+        TEST_ASSERT_FLOAT_WITHIN(0.01, x.solarWh, y.solarWh);
+        TEST_ASSERT_FLOAT_WITHIN(0.01, x.carWh, y.carWh);
+        TEST_ASSERT_FLOAT_WITHIN(0.01, x.importWh, y.importWh);
+        TEST_ASSERT_FLOAT_WITHIN(0.01, x.exportWh, y.exportWh);
+    }
+    for (int stepSeconds : {60, 300, 3600}) {
+        auto sa = a.history.series(0, stepSeconds), sb = b.history.series(0, stepSeconds);
+        TEST_ASSERT_EQUAL(sb.size(), sa.size());
+        for (size_t i = 0; i < sa.size(); i++) {
+            TEST_ASSERT_EQUAL(sb[i].t, sa[i].t);
+            TEST_ASSERT_FLOAT_WITHIN(0.01, sb[i].solar, sa[i].solar);
+            TEST_ASSERT_FLOAT_WITHIN(0.01, sb[i].car, sa[i].car);
+        }
+    }
+    TEST_ASSERT_EQUAL(b.history.minuteSampleCount(), a.history.minuteSampleCount());
+}
+
 void test_a_year_of_days_is_kept() {
     TEST_ASSERT_TRUE(HistoryService::kMaxDays >= 366);
 }
@@ -624,6 +722,10 @@ int main() {
     RUN_TEST(test_finished_sessions_survive_being_saved_and_loaded);
     RUN_TEST(test_a_stop_without_a_start_is_ignored_and_a_new_start_closes_a_lost_one);
     RUN_TEST(test_only_the_latest_four_hundred_sessions_are_kept);
+    RUN_TEST(test_activity_lines_older_than_a_day_leave_the_list_at_once_and_are_purged_later);
+    RUN_TEST(test_finished_sessions_older_than_thirty_days_are_dropped);
+    RUN_TEST(test_without_a_valid_clock_nothing_is_purged);
+    RUN_TEST(test_purging_never_touches_the_graph_data);
     RUN_TEST(test_a_year_of_days_is_kept);
     RUN_TEST(test_the_journal_on_top_of_the_full_save_restores_everything);
     RUN_TEST(test_a_session_that_ended_after_the_full_save_is_not_left_open);

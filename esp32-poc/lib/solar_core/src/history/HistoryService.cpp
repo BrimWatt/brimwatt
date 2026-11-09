@@ -40,9 +40,43 @@ int64_t HistoryService::startOfLocalDay(int64_t epoch) const {
     return day * 86400 - platform_.utcOffsetSeconds(epoch);
 }
 
+void HistoryService::pruneOld(int64_t now) {
+    if (now < kMinValidEpoch) return;
+    const int64_t eventLimit = now - kEventMaxAgeSeconds, sessionLimit = now - kSessionMaxAgeSeconds;
+    bool changed = false;
+    while (!events_.empty() && events_.front().t < eventLimit) { events_.pop_front(); changed = true; }
+    while (!sessions_.empty() && sessions_.front().end < sessionLimit) { sessions_.pop_front(); changed = true; }
+    if (changed) dirty_ = true;
+}
+
+int64_t HistoryService::eventCutoff() const {
+    const int64_t now = platform_.epochSeconds();
+    return now < kMinValidEpoch ? 0 : now - kEventMaxAgeSeconds;
+}
+
+int64_t HistoryService::sessionCutoff() const {
+    const int64_t now = platform_.epochSeconds();
+    return now < kMinValidEpoch ? 0 : now - kSessionMaxAgeSeconds;
+}
+
+size_t HistoryService::eventCount() const {
+    const int64_t cutoff = eventCutoff();
+    size_t n = 0;
+    for (const auto& e : events_) if (e.t >= cutoff) n++;
+    return n;
+}
+
+size_t HistoryService::sessionCount() const {
+    const int64_t cutoff = sessionCutoff();
+    size_t n = 0;
+    for (const auto& x : sessions_) if (x.end >= cutoff) n++;
+    return n;
+}
+
 void HistoryService::recordSample(double solarWatts, double gridWatts, double carWatts, ChargingMode mode, bool paused) {
     int64_t now = platform_.epochSeconds();
     if (now < kMinValidEpoch) return;
+    pruneOld(now);   // once a minute is plenty: old lines also leave while nothing new happens
     solarWatts = std::max(0.0, solarWatts);
     carWatts = std::max(0.0, carWatts);
     double homeWatts = std::max(0.0, solarWatts + gridWatts - carWatts);
@@ -185,6 +219,7 @@ void HistoryService::sessionStopped(double meterStopWh, const std::string& reaso
     done.reason = clean;
     sessions_.push_back(done);
     while (sessions_.size() > kMaxSessions) sessions_.pop_front();
+    pruneOld(now);
     dirty_ = journalDirty_ = true;
 
     double kwh = done.energyWh() / 1000;
@@ -201,7 +236,9 @@ void HistoryService::sessionStopped(double meterStopWh, const std::string& reaso
 std::vector<HistorySession> HistoryService::recentSessions(size_t limit, size_t offset) const {
     std::vector<HistorySession> out;
     size_t skipped = 0;
+    const int64_t cutoff = sessionCutoff();
     for (auto it = sessions_.rbegin(); it != sessions_.rend() && out.size() < limit; ++it) {
+        if (it->end < cutoff) continue;   // older than 30 days: gone from the list even before it is purged
         if (skipped++ < offset) continue;
         out.push_back(*it);
     }
@@ -213,6 +250,7 @@ void HistoryService::addEvent(const std::string& text) {
     if (now < kMinValidEpoch) return;
     // Only an identical line right after the previous one is dropped (a flapping status). The same line after a different
     // one is real, such as switching Eco, Custom, Eco: dropping it would leave the log contradicting the state.
+    pruneOld(now);
     if (!events_.empty() && now - events_.back().t < kEventRepeatSeconds && events_.back().text == text) return;
     events_.push_back({static_cast<uint32_t>(now), text});
     while (events_.size() > kMaxEvents) events_.pop_front();
@@ -270,7 +308,9 @@ DayTotals HistoryService::totalsForDay(int64_t epochDay) const {
 std::vector<HistoryEvent> HistoryService::recentEvents(size_t limit, size_t offset) const {
     std::vector<HistoryEvent> out;
     size_t skipped = 0;
+    const int64_t cutoff = eventCutoff();
     for (auto it = events_.rbegin(); it != events_.rend() && out.size() < limit; ++it) {
+        if (it->t < cutoff) continue;   // older than a day: gone from the list even before it is purged
         if (skipped++ < offset) continue;
         out.push_back(*it);
     }

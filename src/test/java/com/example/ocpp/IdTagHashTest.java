@@ -58,9 +58,9 @@ class IdTagHashTest {
     void aDamagedOrOldTagColumnIsIgnored() {
         long[] now = {1_760_000_000_000L};
         HistoryService h = new HistoryService(ZoneId.of("America/Los_Angeles"), () -> now[0]);
-        h.loadLine("T\t100\t200\t-1.0\t-1.0\t300.0\t250.0\tRemote\t0.00\t0\t0\t0\tNOT-HEX-AT-ALL!");
+        h.loadLine("T\t1759999000\t1759999100\t-1.0\t-1.0\t300.0\t250.0\tRemote\t0.00\t0\t0\t0\tNOT-HEX-AT-ALL!");
         assertEquals("", h.recentSessions(1).get(0).tag);
-        h.loadLine("T\t300\t400\t-1.0\t-1.0\t300.0\t250.0\tRemote\t0.00\t0\t0\t0");            // a file from before the column existed
+        h.loadLine("T\t1759999200\t1759999300\t-1.0\t-1.0\t300.0\t250.0\tRemote\t0.00\t0\t0\t0");            // a file from before the column existed
         assertEquals("", h.recentSessions(2).get(0).tag);
     }
 }

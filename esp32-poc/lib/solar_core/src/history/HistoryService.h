@@ -92,6 +92,9 @@ public:
     static constexpr size_t kMaxEvents = 50;
     static constexpr size_t kMaxDays = 400;
     static constexpr size_t kMaxSessions = 400;
+    /** Old lines are dropped by age as well as by count: activity keeps one day, finished sessions keep 30 days. */
+    static constexpr int64_t kEventMaxAgeSeconds = 24 * 3600;
+    static constexpr int64_t kSessionMaxAgeSeconds = 30 * 24 * 3600;
 
     explicit HistoryService(const Platform& platform) : platform_(platform), fiveMin_(kMaxFiveMinute), hourly_(kMaxHourly) {}
 
@@ -122,7 +125,7 @@ public:
 
     /** Finished sessions, newest first. */
     std::vector<HistorySession> recentSessions(size_t limit, size_t offset = 0) const;
-    size_t sessionCount() const { return sessions_.size(); }
+    size_t sessionCount() const;   // only sessions inside the 30 days
 
     /** Adds a line to the activity log. The same text within two minutes is ignored. */
     void addEvent(const std::string& text);
@@ -152,7 +155,7 @@ public:
 
     /** Newest first. */
     std::vector<HistoryEvent> recentEvents(size_t limit, size_t offset = 0) const;
-    size_t eventCount() const { return events_.size(); }
+    size_t eventCount() const;     // only events inside the last day
 
     /** Midnight (epoch seconds) at the start of the local day containing `epoch`. */
     int64_t startOfLocalDay(int64_t epoch) const;
@@ -209,6 +212,11 @@ private:
     Ring<HistorySample> hourly_;
     Accum acc5_, acc60_;
     size_t pendingFiveMin_ = 0, pendingHourly_ = 0;
+    /** Drops events older than a day and sessions older than 30 days (nothing while the clock is not set). */
+    void pruneOld(int64_t now);
+    /** The oldest time still shown, or 0 while the clock is not set. */
+    int64_t eventCutoff() const;
+    int64_t sessionCutoff() const;
     std::deque<HistoryEvent> events_;
     std::map<int64_t, DayTotals> days_;
     std::map<int64_t, GoalResult> goals_;   // one per local day a goal deadline was judged

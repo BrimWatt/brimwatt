@@ -415,7 +415,8 @@ class HistoryServiceTest {
 
         HistoryService old = new HistoryService(LA, clock::get);
         old.loadLine("D\t" + today().toEpochDay() + "\t1000.0\t500.0\t400.0\t100.0\t200.0");          // seven columns: before the money column
-        old.loadLine("T\t100\t200\t-1.0\t-1.0\t300.0\t250.0\tRemote");                                 // a session without it
+        long nowS = clock.get() / 1000;
+        old.loadLine("T\t" + (nowS - 1000) + "\t" + (nowS - 900) + "\t-1.0\t-1.0\t300.0\t250.0\tRemote");   // a session without it (from the last 30 days)
         assertEquals(0, old.totalsForDay(today()).savedCents);
         assertEquals(1, old.recentSessions(5).size());
         assertEquals(0, old.recentSessions(5).get(0).savedCents);
@@ -492,5 +493,90 @@ class HistoryServiceTest {
         List<String> lines = new ArrayList<>();
         history.forEachJournalLine(lines::add);
         assertTrue(lines.stream().anyMatch(l -> l.startsWith("G\t")));
+    }
+
+    private long countLines(String prefix) {
+        List<String> lines = new ArrayList<>();
+        history.forEachLine(lines::add);
+        return lines.stream().filter(l -> l.startsWith(prefix)).count();
+    }
+
+    @Test
+    void activityLinesOlderThanADayLeaveTheListAtOnceAndAreRemovedLater() {
+        minute(1000, 0, 0);
+        long t0 = clock.get();
+        history.addEvent("old");
+        clock.set(t0 + 3 * 3_600_000L);
+        history.addEvent("middle");
+        clock.set(t0 + 23 * 3_600_000L);
+        history.addEvent("recent");
+        assertEquals(3, history.eventCount());
+        clock.set(t0 + 25 * 3_600_000L);                       // "old" is 25 hours old; nothing recorded since
+        assertEquals(2, history.eventCount());
+        assertEquals(2, history.recentEvents(10).size());
+        assertEquals("recent", history.recentEvents(10).get(0).text());
+        assertEquals(1, history.recentEvents(10, 1).size());   // paging counts only what is shown
+        minute(1000, 0, 0);                                    // the once-a-minute purge removes it for good
+        long lines = countLines("E\t");
+        assertEquals(2, lines);
+        clock.set(t0 + 60 * 3_600_000L);
+        minute(1000, 0, 0);
+        assertEquals(0, history.eventCount());
+    }
+
+    @Test
+    void finishedSessionsOlderThanThirtyDaysAreDropped() {
+        minute(1000, 0, 0);
+        history.sessionStarted(0);
+        minute(1000, 0, 500);
+        history.sessionStopped(0, "Remote");
+        long t0 = clock.get();
+        clock.set(t0 + 20 * 86_400_000L);
+        minute(1000, 0, 0);
+        history.sessionStarted(0);
+        minute(1000, 0, 500);
+        history.sessionStopped(0, "Remote");
+        assertEquals(2, history.sessionCount());
+        clock.set(t0 + 31 * 86_400_000L);
+        assertEquals(1, history.sessionCount());
+        assertEquals(1, history.recentSessions(10).size());
+        minute(1000, 0, 0);
+        assertEquals(1, countLines("T\t"));
+        clock.set(t0 + 60 * 86_400_000L);
+        minute(1000, 0, 0);
+        assertEquals(0, history.sessionCount());
+    }
+
+    @Test
+    void purgingNeverTouchesTheGraphData() {
+        // Two identical runs of 45 days; one also logs events and sessions all along. Their graph data must be identical.
+        HistoryService withLog = history;
+        AtomicLong otherClock = new AtomicLong(clock.get());
+        HistoryService plain = new HistoryService(LA, otherClock::get);
+        for (int step = 0; step < 45 * 288; step++) {
+            double sun = (step % 288) > 80 && (step % 288) < 220 ? 4000 : 0;
+            clock.addAndGet(300_000); otherClock.addAndGet(300_000);
+            withLog.recordSample(sun, -500, sun > 0 ? 2000 : 0, ChargingMode.ECO, false);
+            plain.recordSample(sun, -500, sun > 0 ? 2000 : 0, ChargingMode.ECO, false);
+            if (step % 20 == 0) withLog.addEvent("event " + step);
+            if (step % 288 == 100) withLog.sessionStarted(0);
+            if (step % 288 == 200) withLog.sessionStopped(0, "Remote");
+        }
+        assertTrue(withLog.eventCount() < 20);
+        assertTrue(withLog.sessionCount() <= 31);
+        assertEquals(0, plain.sessionCount());
+        assertEquals(plain.allDays().size(), withLog.allDays().size());
+        for (var e : plain.allDays().entrySet()) {
+            var a = e.getValue(); var b = withLog.allDays().get(e.getKey());
+            assertEquals(a.solarWh, b.solarWh, 0.01);
+            assertEquals(a.carWh, b.carWh, 0.01);
+            assertEquals(a.importWh, b.importWh, 0.01);
+            assertEquals(a.exportWh, b.exportWh, 0.01);
+        }
+        for (int step : new int[] {60, 300, 3600}) {
+            var a = plain.series(0, step); var b = withLog.series(0, step);
+            assertEquals(a.size(), b.size());
+            for (int i = 0; i < a.size(); i++) assertEquals(a.get(i).solar(), b.get(i).solar(), 0.01);
+        }
     }
 }

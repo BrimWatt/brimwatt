@@ -30,6 +30,9 @@ public class HistoryService {
     public static final int MAX_EVENTS = 50;
     public static final int MAX_DAYS = 400;
     public static final int MAX_SESSIONS = 400;
+    /** Old lines are dropped by age as well as by count: activity keeps one day, finished sessions keep 30 days. */
+    public static final long EVENT_MAX_AGE_SECONDS = 24 * 3600L;
+    public static final long SESSION_MAX_AGE_SECONDS = 30 * 24 * 3600L;
     public static final int FLAG_CHARGING = 1;
     public static final int FLAG_PAUSED = 2;
 
@@ -148,10 +151,24 @@ public class HistoryService {
     }
 
     /** Records the latest readings; {@code carWatts} is what the charger draws (measured, or assumed from its limit). */
+    /** Drops events older than a day and sessions older than 30 days (nothing while the clock is not set). */
+    private void pruneOld(long now) {
+        if (now <= 0) return;
+        boolean changed = false;
+        while (!events.isEmpty() && events.peekFirst().t() < now - EVENT_MAX_AGE_SECONDS) { events.pollFirst(); changed = true; }
+        while (!sessions.isEmpty() && sessions.peekFirst().end < now - SESSION_MAX_AGE_SECONDS) { sessions.pollFirst(); changed = true; }
+        if (changed) dirty = true;
+    }
+
+    /** The oldest time still shown, or 0 while the clock is not set. */
+    private long eventCutoff() { long now = nowSeconds(); return now <= 0 ? 0 : now - EVENT_MAX_AGE_SECONDS; }
+    private long sessionCutoff() { long now = nowSeconds(); return now <= 0 ? 0 : now - SESSION_MAX_AGE_SECONDS; }
+
     public synchronized void recordSample(double solarWatts, double gridWatts, double carWatts, ChargingMode mode,
                                           boolean paused) {
         long now = nowSeconds();
         if (now <= 0) return;
+        pruneOld(now);   // once a minute is plenty: old lines also leave while nothing new happens
         solarWatts = Math.max(0, solarWatts);
         carWatts = Math.max(0, carWatts);
         double homeWatts = Math.max(0, solarWatts + gridWatts - carWatts);
@@ -274,6 +291,7 @@ public class HistoryService {
         done.reason = reason == null ? "" : reason.replaceAll("[\\t\\r\\n]", " ");
         sessions.addLast(done);
         while (sessions.size() > MAX_SESSIONS) sessions.pollFirst();
+        pruneOld(now);
         dirty = journalDirty = true;
 
         double kwh = done.energyWh() / 1000;
@@ -296,15 +314,22 @@ public class HistoryService {
         List<Session> out = new ArrayList<>();
         var it = sessions.descendingIterator();
         int skipped = 0;
+        long cutoff = sessionCutoff();
         while (it.hasNext() && out.size() < limit) {
             Session x = it.next();
+            if (x.end < cutoff) continue;   // older than 30 days: gone from the list even before it is purged
             if (skipped++ < offset) continue;
             out.add(x.copy());
         }
         return out;
     }
 
-    public synchronized int sessionCount() { return sessions.size(); }
+    public synchronized int sessionCount() {
+        long cutoff = sessionCutoff();
+        int n = 0;
+        for (Session x : sessions) if (x.end >= cutoff) n++;
+        return n;
+    }
 
     /** Adds a line to the activity log. The same text within two minutes is ignored. */
     private volatile java.util.function.Consumer<String> eventListener;
@@ -317,6 +342,7 @@ public class HistoryService {
         if (now <= 0) return;
         // Only an identical line right after the previous one is dropped (a flapping status). The same line after a
         // different one is real, such as switching Eco, Custom, Eco: dropping it would leave the log contradicting the state.
+        pruneOld(now);
         Event last = events.peekLast();
         if (last != null && now - last.t() < EVENT_REPEAT_SECONDS && last.text().equals(text)) return;
         events.addLast(new Event(now, text));
@@ -398,15 +424,22 @@ public class HistoryService {
         List<Event> out = new ArrayList<>();
         var it = events.descendingIterator();
         int skipped = 0;
+        long cutoff = eventCutoff();
         while (it.hasNext() && out.size() < limit) {
             Event e = it.next();
+            if (e.t() < cutoff) continue;   // older than a day: gone from the list even before it is purged
             if (skipped++ < offset) continue;
             out.add(e);
         }
         return out;
     }
 
-    public synchronized int eventCount() { return events.size(); }
+    public synchronized int eventCount() {
+        long cutoff = eventCutoff();
+        int n = 0;
+        for (Event e : events) if (e.t() >= cutoff) n++;
+        return n;
+    }
 
     // ---------------------------------------------------------------- saving
 
