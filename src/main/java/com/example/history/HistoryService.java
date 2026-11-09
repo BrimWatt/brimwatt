@@ -32,6 +32,10 @@ public class HistoryService {
     public static final int MAX_SESSIONS = 400;
     /** Old lines are dropped by age as well as by count: activity keeps one day, finished sessions keep 30 days. */
     public static final long EVENT_MAX_AGE_SECONDS = 24 * 3600L;
+    /** Limit changes less than an hour apart, with nothing else logged between them, become one line. */
+    private static final long LIMIT_MERGE_SECONDS = 3600;
+    private static final java.util.regex.Pattern LIMIT_LINE = java.util.regex.Pattern.compile(
+        "^(Changed limit|Car: changed limit)(?: to (\\d{1,5})| (\\d{1,5}) times, now (\\d{1,5})) A(?:: (.*))?$", java.util.regex.Pattern.DOTALL);
     public static final long SESSION_MAX_AGE_SECONDS = 30 * 24 * 3600L;
     public static final int FLAG_CHARGING = 1;
     public static final int FLAG_PAUSED = 2;
@@ -345,6 +349,23 @@ public class HistoryService {
         pruneOld(now);
         Event last = events.peekLast();
         if (last != null && now - last.t() < EVENT_REPEAT_SECONDS && last.text().equals(text)) return;
+        // A run of limit changes (the planner moves the current a few times an hour) is one line that counts them and shows the latest.
+        if (last != null && now - last.t() < LIMIT_MERGE_SECONDS) {
+            var previous = LIMIT_LINE.matcher(last.text());
+            var next = LIMIT_LINE.matcher(text);
+            if (previous.matches() && next.matches() && previous.group(1).equals(next.group(1))) {
+                int count = previous.group(3) != null ? Integer.parseInt(previous.group(3)) : 1;
+                int amps = Integer.parseInt(next.group(2) != null ? next.group(2) : next.group(4));
+                String reason = next.group(5);
+                String merged = next.group(1) + " " + (count + 1) + " times, now " + amps + " A" + (reason == null || reason.isEmpty() ? "" : ": " + reason);
+                events.pollLast();
+                events.addLast(new Event(now, merged));
+                java.util.function.Consumer<String> listener = eventListener;
+                if (listener != null) listener.accept(text);   // the notifier still sees every real change
+                dirty = journalDirty = true;
+                return;
+            }
+        }
         events.addLast(new Event(now, text));
         java.util.function.Consumer<String> listener = eventListener;
         if (listener != null) listener.accept(text);

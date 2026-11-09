@@ -579,4 +579,67 @@ class HistoryServiceTest {
             for (int i = 0; i < a.size(); i++) assertEquals(a.get(i).solar(), b.get(i).solar(), 0.01);
         }
     }
+
+    @Test
+    void repeatedLimitChangesBecomeOneLineThatCountsThemAndShowsTheLatest() {
+        minute(1000, 0, 0);
+        List<String> heard = new ArrayList<>();
+        history.setEventListener(heard::add);
+        history.addEvent("Changed limit to 9 A: less solar left");
+        assertEquals("Changed limit to 9 A: less solar left", history.recentEvents(1).get(0).text());   // one change stays as it is
+        for (String s : new String[] {"Changed limit to 10 A: more solar", "Changed limit to 8 A: less solar left", "Changed limit to 13 A: more solar"}) {
+            clock.addAndGet(600_000);
+            history.addEvent(s);
+        }
+        assertEquals(1, history.eventCount());
+        assertEquals("Changed limit 4 times, now 13 A: more solar", history.recentEvents(5).get(0).text());
+        assertEquals(clock.get() / 1000, history.recentEvents(1).get(0).t());       // the time of the latest change
+        assertEquals(4, heard.size());                                            // the messages feature still hears every real change
+        assertEquals("Changed limit to 13 A: more solar", heard.get(3));
+    }
+
+    @Test
+    void anythingElseInBetweenOrAGapOfAnHourStartsANewLine() {
+        minute(1000, 0, 0);
+        history.addEvent("Changed limit to 9 A: more solar");
+        clock.addAndGet(60_000); history.addEvent("Changed limit to 10 A: more solar");
+        clock.addAndGet(60_000); history.addEvent("Car plugged in");
+        clock.addAndGet(60_000); history.addEvent("Changed limit to 11 A: more solar");
+        clock.addAndGet(3_600_000); history.addEvent("Changed limit to 12 A: more solar");
+        var events = history.recentEvents(10);
+        assertEquals(4, events.size());
+        assertEquals("Changed limit to 12 A: more solar", events.get(0).text());
+        assertEquals("Changed limit to 11 A: more solar", events.get(1).text());
+        assertEquals("Car plugged in", events.get(2).text());
+        assertEquals("Changed limit 2 times, now 10 A: more solar", events.get(3).text());
+    }
+
+    @Test
+    void theWallboxAndTheCarLimitLinesNeverMergeAndAMissingReasonIsFine() {
+        minute(1000, 0, 0);
+        history.addEvent("Changed limit to 9 A");
+        clock.addAndGet(60_000); history.addEvent("Car: changed limit to 10 A: more solar");
+        clock.addAndGet(60_000); history.addEvent("Car: changed limit to 11 A: more solar");
+        clock.addAndGet(60_000); history.addEvent("Car: changed limit to 12 A");
+        var events = history.recentEvents(10);
+        assertEquals(2, events.size());
+        assertEquals("Car: changed limit 3 times, now 12 A", events.get(0).text());
+        assertEquals("Changed limit to 9 A", events.get(1).text());
+        clock.addAndGet(60_000); history.addEvent("Changed limit to abc A: odd");               // an unreadable line is just a line
+        assertEquals(3, history.eventCount());
+    }
+
+    @Test
+    void aMergedLimitLineSurvivesSavingAndLoading() {
+        minute(1000, 0, 0);
+        history.addEvent("Changed limit to 9 A: more solar");
+        clock.addAndGet(60_000); history.addEvent("Changed limit to 10 A: more solar");
+        List<String> lines = new ArrayList<>();
+        history.forEachLine(lines::add);
+        HistoryService fresh = new HistoryService(LA, clock::get);
+        lines.forEach(fresh::loadLine);
+        assertEquals("Changed limit 2 times, now 10 A: more solar", fresh.recentEvents(1).get(0).text());
+        clock.addAndGet(60_000); fresh.addEvent("Changed limit to 8 A: less solar left");      // and the run carries on after a restart
+        assertEquals("Changed limit 3 times, now 8 A: less solar left", fresh.recentEvents(1).get(0).text());
+    }
 }

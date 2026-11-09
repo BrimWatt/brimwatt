@@ -581,6 +581,86 @@ void test_purging_never_touches_the_graph_data() {
     TEST_ASSERT_EQUAL(b.history.minuteSampleCount(), a.history.minuteSampleCount());
 }
 
+// ---- a run of limit changes is one line ----------------------------------------------------------------------------------------
+
+void test_repeated_limit_changes_become_one_line_that_counts_them_and_shows_the_latest() {
+    Rig r;
+    r.minute(1000, 0, 0);
+    std::vector<std::string> heard;
+    r.history.setEventListener([&](const std::string& t) { heard.push_back(t); });
+    r.history.addEvent("Changed limit to 9 A: less solar left");
+    TEST_ASSERT_EQUAL(1, r.history.eventCount());
+    testing::check("Changed limit to 9 A: less solar left", r.history.recentEvents(1)[0].text);   // one change stays as it is
+    r.platform.epoch += 600;
+    r.history.addEvent("Changed limit to 10 A: more solar");
+    r.platform.epoch += 600;
+    r.history.addEvent("Changed limit to 8 A: less solar left");
+    r.platform.epoch += 600;
+    r.history.addEvent("Changed limit to 13 A: more solar");
+    TEST_ASSERT_EQUAL(1, r.history.eventCount());
+    auto e = r.history.recentEvents(5)[0];
+    testing::check("Changed limit 4 times, now 13 A: more solar", e.text);
+    TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(r.platform.epoch), e.t);   // the time of the latest change
+    TEST_ASSERT_EQUAL(4, heard.size());                                      // the messages feature still hears every real change
+    testing::check("Changed limit to 13 A: more solar", heard.back());
+}
+
+void test_anything_else_in_between_or_a_gap_of_an_hour_starts_a_new_line() {
+    Rig r;
+    r.minute(1000, 0, 0);
+    r.history.addEvent("Changed limit to 9 A: more solar");
+    r.platform.epoch += 60;
+    r.history.addEvent("Changed limit to 10 A: more solar");
+    r.platform.epoch += 60;
+    r.history.addEvent("Car plugged in");                                    // another kind of line breaks the run
+    r.platform.epoch += 60;
+    r.history.addEvent("Changed limit to 11 A: more solar");
+    r.platform.epoch += 3600;                                                // an hour later: a new run
+    r.history.addEvent("Changed limit to 12 A: more solar");
+    auto events = r.history.recentEvents(10);
+    TEST_ASSERT_EQUAL(4, events.size());
+    testing::check("Changed limit to 12 A: more solar", events[0].text);
+    testing::check("Changed limit to 11 A: more solar", events[1].text);
+    testing::check("Car plugged in", events[2].text);
+    testing::check("Changed limit 2 times, now 10 A: more solar", events[3].text);
+}
+
+void test_the_wallbox_and_the_car_limit_lines_never_merge_and_a_missing_reason_is_fine() {
+    Rig r;
+    r.minute(1000, 0, 0);
+    r.history.addEvent("Changed limit to 9 A");
+    r.platform.epoch += 60;
+    r.history.addEvent("Car: changed limit to 10 A: more solar");             // the car's own commands
+    r.platform.epoch += 60;
+    r.history.addEvent("Car: changed limit to 11 A: more solar");
+    r.platform.epoch += 60;
+    r.history.addEvent("Car: changed limit to 12 A");
+    auto events = r.history.recentEvents(10);
+    TEST_ASSERT_EQUAL(2, events.size());
+    testing::check("Car: changed limit 3 times, now 12 A", events[0].text);
+    testing::check("Changed limit to 9 A", events[1].text);
+    r.platform.epoch += 60;
+    r.history.addEvent("Changed limit to abc A: odd");                        // an unreadable line is just a line
+    TEST_ASSERT_EQUAL(3, r.history.eventCount());
+}
+
+void test_a_merged_limit_line_survives_saving_and_loading() {
+    Rig a;
+    a.minute(1000, 0, 0);
+    a.history.addEvent("Changed limit to 9 A: more solar");
+    a.platform.epoch += 60;
+    a.history.addEvent("Changed limit to 10 A: more solar");
+    std::vector<std::string> lines;
+    a.history.forEachLine([&](const std::string& l) { lines.push_back(l); });
+    Rig b;
+    b.platform.epoch = a.platform.epoch;
+    for (const auto& l : lines) b.history.loadLine(l);
+    testing::check("Changed limit 2 times, now 10 A: more solar", b.history.recentEvents(1)[0].text);
+    b.platform.epoch += 60;
+    b.history.addEvent("Changed limit to 8 A: less solar left");               // and the run carries on after a restart
+    testing::check("Changed limit 3 times, now 8 A: less solar left", b.history.recentEvents(1)[0].text);
+}
+
 void test_a_year_of_days_is_kept() {
     TEST_ASSERT_TRUE(HistoryService::kMaxDays >= 366);
 }
@@ -726,6 +806,10 @@ int main() {
     RUN_TEST(test_finished_sessions_older_than_thirty_days_are_dropped);
     RUN_TEST(test_without_a_valid_clock_nothing_is_purged);
     RUN_TEST(test_purging_never_touches_the_graph_data);
+    RUN_TEST(test_repeated_limit_changes_become_one_line_that_counts_them_and_shows_the_latest);
+    RUN_TEST(test_anything_else_in_between_or_a_gap_of_an_hour_starts_a_new_line);
+    RUN_TEST(test_the_wallbox_and_the_car_limit_lines_never_merge_and_a_missing_reason_is_fine);
+    RUN_TEST(test_a_merged_limit_line_survives_saving_and_loading);
     RUN_TEST(test_a_year_of_days_is_kept);
     RUN_TEST(test_the_journal_on_top_of_the_full_save_restores_everything);
     RUN_TEST(test_a_session_that_ended_after_the_full_save_is_not_left_open);

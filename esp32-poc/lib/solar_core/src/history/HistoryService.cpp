@@ -1,5 +1,7 @@
 #include "history/HistoryService.h"
 
+#include <cctype>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -14,6 +16,58 @@ namespace {
 
 constexpr uint32_t kMaxGapSeconds = 300;   // longer gaps (no readings) are not counted as energy
 constexpr uint32_t kEventRepeatSeconds = 120;
+constexpr int64_t kLimitMergeSeconds = 3600;   // limit changes less than an hour apart, with nothing else logged between them, become one line
+
+/** "Changed limit to 13 A: more solar" (wallbox), "Car: changed limit to 13 A: more solar" (car), and their merged form "Changed limit 5 times, now 13 A: more solar". */
+struct LimitLine {
+    bool ok = false;
+    std::string prefix;
+    int count = 1;
+    int amps = 0;
+    std::string reason;
+};
+
+LimitLine parseLimitLine(const std::string& text) {
+    LimitLine out;
+    for (const char* p : {"Changed limit", "Car: changed limit"}) {
+        const std::string prefix = p;
+        if (text.compare(0, prefix.size(), prefix) != 0) continue;
+        size_t at = prefix.size();
+        auto number = [&](int& value) {
+            const size_t start = at;
+            value = 0;
+            while (at < text.size() && std::isdigit(static_cast<unsigned char>(text[at])) && at - start < 5) value = value * 10 + (text[at++] - '0');
+            return at > start;
+        };
+        if (text.compare(at, 4, " to ") == 0) {
+            at += 4;
+            if (!number(out.amps)) return out;
+        } else if (at < text.size() && text[at] == ' ') {
+            at++;
+            int n = 0;
+            if (!number(n) || text.compare(at, 12, " times, now ") != 0) return out;
+            at += 12;
+            out.count = n;
+            if (!number(out.amps)) return out;
+        } else {
+            return out;
+        }
+        if (text.compare(at, 2, " A") != 0) return out;
+        at += 2;
+        if (at < text.size()) {
+            if (text.compare(at, 2, ": ") != 0) return out;
+            out.reason = text.substr(at + 2);
+        }
+        out.prefix = prefix;
+        out.ok = true;
+        return out;
+    }
+    return out;
+}
+
+std::string formatLimitLine(const LimitLine& l) {
+    return l.prefix + " " + std::to_string(l.count) + " times, now " + std::to_string(l.amps) + " A" + (l.reason.empty() ? "" : ": " + l.reason);
+}
 
 int16_t clampWatts(double w) { return static_cast<int16_t>(std::max(-32000.0, std::min(32000.0, std::round(w)))); }
 
@@ -252,6 +306,18 @@ void HistoryService::addEvent(const std::string& text) {
     // one is real, such as switching Eco, Custom, Eco: dropping it would leave the log contradicting the state.
     pruneOld(now);
     if (!events_.empty() && now - events_.back().t < kEventRepeatSeconds && events_.back().text == text) return;
+    // A run of limit changes (the planner moves the current a few times an hour) is one line that counts them and shows the latest.
+    if (!events_.empty() && now - events_.back().t < kLimitMergeSeconds) {
+        const LimitLine previous = parseLimitLine(events_.back().text), next = parseLimitLine(text);
+        if (previous.ok && next.ok && previous.prefix == next.prefix) {
+            LimitLine merged = next;
+            merged.count = previous.count + 1;
+            events_.back() = {static_cast<uint32_t>(now), formatLimitLine(merged)};
+            dirty_ = journalDirty_ = true;
+            if (eventListener_) eventListener_(text);   // the notifier still sees every real change
+            return;
+        }
+    }
     events_.push_back({static_cast<uint32_t>(now), text});
     while (events_.size() > kMaxEvents) events_.pop_front();
     dirty_ = journalDirty_ = true;
