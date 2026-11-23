@@ -41,8 +41,8 @@ build/
 ### WattSync ###
 # Secrets and per-machine files must never be committed
 **/secrets.h
-esp32-poc/logs/
-esp32-poc/src/web/favicon.png
+esp32/logs/
+esp32/src/web/favicon.png
 solar-charger-state*.json*
 
 # Your global ignore file hides every *.md; the docs of this project must be tracked

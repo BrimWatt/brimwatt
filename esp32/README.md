@@ -45,7 +45,7 @@ This mirrors the Java app's packages (`ocpp`, `wallbox`, `charging`, `daylight`,
 PlatformIO is installed in a folder inside the project, so nothing is added to your system:
 
 ```bash
-cd esp32-poc
+cd esp32
 python3 -m venv .venv
 .venv/bin/pip install platformio
 ```

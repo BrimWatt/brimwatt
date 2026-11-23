@@ -5,7 +5,7 @@ decides how fast a wallbox should charge the car, and talks to the wallbox over 
 share one dashboard page. Only one of them can be connected to the wallbox at a time.
 
 - **Pi**: Java 17 / Javalin app (this folder). Host `wattsyncpi`, dashboard and OCPP both on port 8080.
-- **ESP32-S3**: C++ firmware in `esp32-poc/` (PlatformIO, Arduino). Host `wattsync`, dashboard on port 80,
+- **ESP32-S3**: C++ firmware in `esp32/` (PlatformIO, Arduino). Host `wattsync`, dashboard on port 80,
   OCPP on port 8080: owners enter `ws://wattsync.local:8080/pair` (the wallbox appends its id; `/ocpp/wallbox/<id>` still works), OTA on 3232. Board: ESP32-S3 N16R8 (16 MB flash, 8 MB octal PSRAM).
 - Site: Lathrop, CA (37.8412, -121.2691, America/Los_Angeles). The array faces south-east (118 degrees), no shade.
 - Wallbox charger id: `mywallbox/wattsyncpi`. It needs RemoteStartTransaction to start; SetChargingProfile only changes
@@ -19,14 +19,14 @@ src/main/java/com/example/   Pi app: charging (planner), daylight, enphase, hist
 src/main/resources/dashboard.html   THE dashboard, one file, served by the Pi and embedded in the firmware
 src/main/resources/favicon.png      served at /favicon.ico (both apps)
 src/test/java/...            JUnit 5 tests
-esp32-poc/lib/solar_core/    portable C++17 core (no hardware): planner, daylight, control, wallbox, ocpp, history, setup, web/ApiHandler
-esp32-poc/src/               hardware glue: platform (clock, NVS, LittleFS, diagnostics), net (Wi-Fi, setup network, mDNS, NTP, OTA),
+esp32/lib/solar_core/    portable C++17 core (no hardware): planner, daylight, control, wallbox, ocpp, history, setup, web/ApiHandler
+esp32/src/               hardware glue: platform (clock, NVS, LittleFS, diagnostics), net (Wi-Fi, setup network, mDNS, NTP, OTA),
                              enphase (client, poller), ocpp_server, web (WebServerAdapter), console (serial commands)
-esp32-poc/test/              host tests (Unity): test_core, planner, daylight, control, api, persistence, history
-esp32-poc/scripts/           copy_dashboard.py (pre-build), ota_auth.py (post-build, OTA env only)
+esp32/test/              host tests (Unity): test_core, planner, daylight, control, api, persistence, history
+esp32/scripts/           copy_dashboard.py (pre-build), ota_auth.py (post-build, OTA env only)
 docs/pdf-src/*.py            generate docs/*.pdf (deploy guide, test scenarios, user guide)
 docs/demo-src/make_demo.py   screenshots (docs/guide) and demo GIF (docs/demo) from the real dashboard on sample data
-README.md, esp32-poc/README.md   user-facing docs (keep them current)
+README.md, esp32/README.md   user-facing docs (keep them current)
 docs/README.md               index of everything under docs/
 docs/setup-network.md        the ESP32 setup network: diagrams, UI mocks, endpoints, safety (start here for that feature)
 docs/diagrams/*.svg          drawn by docs/diagram-src/make_diagrams.py (edit the script, not the SVGs)
@@ -44,7 +44,7 @@ sudo systemctl restart solar-charger    # on the Pi; a clean stop/restart saves 
 Run locally for UI work: `ENPHASE_TOKEN=local-test STATE_FILE=... HISTORY_FILE=... java -jar target/solar-charger-1.0-SNAPSHOT.jar`
 (port 8080). Stop it with `pkill -f solar-charger-1.0-SNAPSHOT.jar` when done.
 
-ESP32 (from `esp32-poc/`, using its `.venv`):
+ESP32 (from `esp32/`, using its `.venv`):
 ```bash
 env -u CPLUS_INCLUDE_PATH .venv/bin/pio run -e esp32s3                  # build firmware (the env var breaks it on this Mac)
 env -u CPLUS_INCLUDE_PATH .venv/bin/pio run -e esp32s3 -t upload        # flash by cable (UART/COM port, default env)
@@ -102,13 +102,13 @@ Docs: `python3 docs/pdf-src/test_scenarios_pdf.py` and `python3 docs/pdf-src/dep
 `GET /api/events?n=1-20&offset=0-1000` (paged, with total), `GET /api/sessions?n=1-100&offset=` (paged, with total and the open one),
 `GET /api/diagnostics`, `GET /api/export.csv`, `GET /favicon.ico`. Bad input gets a 400 and changes nothing.
 **Every POST needs the header `X-WattSync: 1`** (cross-site protection; 403 without). The dashboard's `post()` adds it; use
-`curl -H 'X-WattSync: 1'`. When adding a POST route on the ESP, also register it in `esp32-poc/src/web/WebServerAdapter.cpp` (maxamps was
+`curl -H 'X-WattSync: 1'`. When adding a POST route on the ESP, also register it in `esp32/src/web/WebServerAdapter.cpp` (maxamps was
 once forgotten there).
-The portable handler is `esp32-poc/lib/solar_core/src/web/ApiHandler.*`; the Pi's is `web/ApiRoutes.java`.
+The portable handler is `esp32/lib/solar_core/src/web/ApiHandler.*`; the Pi's is `web/ApiRoutes.java`.
 
 ## Dashboard (`src/main/resources/dashboard.html`)
 
-One file, mobile-first, no build step. The ESP build copies it (and `favicon.png`) into `esp32-poc/src/web/` (git-ignored).
+One file, mobile-first, no build step. The ESP build copies it (and `favicon.png`) into `esp32/src/web/` (git-ignored).
 After editing it, rebuild **both** the jar and the firmware, and `cmp` the two copies.
 - Layout: phone = one column (headline, flow, value and graph card, modes, activity, sessions; the order is set by `order:` on the ids). Wide screens (>=900 px): the headline across the top, then the savings and graph card on the left (it spans the flow, modes and Tesla grid rows) level with the power flow and the modes on the right, then activity and sessions below (grid placement by id on `.dash`, `.stack` is `display: contents`; tile bottom margins instead of row gaps so a hidden Tesla tile leaves no gap). The flow row is `minmax(0, 1fr)` and the flow card's two arrow rows are `minmax(40px, 1fr)`, so any height difference is taken up by longer arrows, never by empty space inside a card. Aim: the card ends inside an 800 px screen at 1280 px wide. Check wide screens with real-length lists (five wrapped rows each), not empty ones: empty lists hid this once.
 - Gear icon (top right) opens the Settings sheet: ONE scrolling page of cards (`section.sc`: Solar hours, Ready by, Limits, Money, Messages, Tesla `#sec-tesla`, Display + a collapsed Diagnostics) under a sticky jump bar (`#set-nav`, chips Charging/Money/Messages/Tesla/More scroll to `#sec-*`, the one in view is highlighted); two columns from 900 px. All checkboxes are drawn as switches (`.check`). **Ready by** (`#goal-toggle`, `goalSwitch`) and **Higher price at certain hours** (`#peak-toggle`, `peakSwitch`) are switches over optional boxes (`#goal-fields`, `#peak-fields`): on = show the boxes prefilled (last goal or 10 kWh; last peak price or 1.5 x the price) and wait for the check mark (`goalPending`/`peakPending`); off = send goal 0 / peak price 0 at once. The server state is still just `goal.kwh > 0` and `peakRateCents > 0` (API unchanged).
@@ -146,13 +146,13 @@ After editing it, rebuild **both** the jar and the firmware, and `cmp` the two c
 - Savings = the sun's share of the car's energy times the price (cents/kWh, default 30). Sessions come from OCPP Start/StopTransaction.
 - ESP diagnostics (NVS `diag`): restarts, crashes (panic, watchdog, brownout), last crash with time. Boot banner prints `Last restart`;
   a `Memory:` line prints every minute. Serial logs are NOT stored on the board. `solar::MemoryWatch` (portable, `common/MemoryWatch.h`; `EspDiagnostics::service()` every 5 s from `loop()`) keeps 24 h of 5-minute memory samples in PSRAM and the lowest free heap with when; `GET /api/diagnostics` shows `memory.psramFreeKb`, `memory.lowest`, and `?memory=1` adds `memorySamples` (written straight into the text). First readings (2026-10-31): internal heap about 148 KB free, lowest 130 KB reached about 35 s after boot, PSRAM about 7.9 of 8 MB free. Spinning arc on the hero icon is only for short waits (`rest` flag on night and expensive-hours waits).
-- OTA: ArduinoOTA, password `OTA_PASSWORD` in `esp32-poc/src/secrets.h` (git-ignored; also holds Wi-Fi, Enphase token, Envoy IP).
+- OTA: ArduinoOTA, password `OTA_PASSWORD` in `esp32/src/secrets.h` (git-ignored; also holds Wi-Fi, Enphase token, Envoy IP).
   **Never print secrets.** espota's `--debug` echoes the password; `scripts/ota_auth.py` strips it. The board needs one cable flash
   of OTA-capable firmware first. No automatic roll-back.
 
 ## Setup network (ESP32 only)
 
-The board can open its own Wi-Fi `WattSync-Setup` (password `wattsync`, fixed for now) with a page at `http://192.168.4.1/setup` (`esp32-poc/src/web/setup.html`,
+The board can open its own Wi-Fi `WattSync-Setup` (password `wattsync`, fixed for now) with a page at `http://192.168.4.1/setup` (`esp32/src/web/setup.html`,
 embedded like the dashboard; it is a tracked file, not copied from the Java app). From a phone: pick the home Wi-Fi from a scanned list, paste the Enphase token,
 the Envoy address and the update (OTA) password. Wi-Fi name and password, token, Envoy address and OTA password are no longer compile-time only: they live in NVS
 namespace `net` (`NvsCredentialStore`) and **win over `secrets.h` field by field** (`solar::setup::effective`); an Envoy address saved as `"auto"` means "find it as envoy.local".
@@ -215,7 +215,7 @@ Tests: `test/test_car_commander` (39), wake in `test/test_tesla_protocol`, API t
 | For | Read |
 |---|---|
 | What the app does, modes, settings, endpoints (Pi) | `README.md` |
-| ESP32 firmware: set-up, flashing, console, checks on the real wallbox | `esp32-poc/README.md` |
+| ESP32 firmware: set-up, flashing, console, checks on the real wallbox | `esp32/README.md` |
 | The ESP32 setup network | `docs/setup-network.md` (with `docs/diagrams/` and `docs/ui/`) |
 | Running the Pi app as a service, token, logs | `docs/deploy-to-raspberry-pi.pdf` |
 | Scenarios to try on the real house | `docs/test-scenarios.pdf` |
@@ -250,9 +250,9 @@ The `tesla-car-control` branch (Tesla pairing, status, charge commands, Tesla mo
 - Roll back: `git checkout before-setup-network` to look at the old code (`git checkout main` to return), or `git revert <setup network commit>` to remove the
   feature and keep later work. Compare: `git diff before-setup-network main --stat`.
 - The firmware already on a board is not touched by any of this: flash the old code (`git checkout before-setup-network`, then `pio run -e esp32s3-ota -t upload`).
-- **Never commit secrets.** `esp32-poc/src/secrets.h` is ignored (root `.gitignore` `**/secrets.h` and `esp32-poc/.gitignore`); only `secrets.example.h` is tracked.
+- **Never commit secrets.** `esp32/src/secrets.h` is ignored (root `.gitignore` `**/secrets.h` and `esp32/.gitignore`); only `secrets.example.h` is tracked.
   When the repository was created, the commit history was scanned for the real Wi-Fi name, Wi-Fi password, Enphase token and update password: none appeared.
-  `esp32-poc/logs/` (serial monitor logs), the copied `favicon.png`, build output and per-machine state files are ignored too.
+  `esp32/logs/` (serial monitor logs), the copied `favicon.png`, build output and per-machine state files are ignored too.
 - **The global git ignore file on this machine hides every `*.md`**, which silently left `CLAUDE.md` and the READMEs out of the first snapshot. The repository's
   `.gitignore` ends with `!*.md` to override it. After adding a new kind of file, check `git status` really lists it (`git check-ignore -v <file>` says why not).
   `*.log`, `*.patch` and `.idea` are also hidden by that global file; `git add -f` if one of those ever has to be tracked.
@@ -262,7 +262,7 @@ The `tesla-car-control` branch (Tesla pairing, status, charge commands, Tesla mo
 
 ## Conventions and preferences
 
-- Keep `README.md`, `esp32-poc/README.md`, the PDFs in `docs/` and the memory notes updated whenever a feature or rule changes,
+- Keep `README.md`, `esp32/README.md`, the PDFs in `docs/` and the memory notes updated whenever a feature or rule changes,
   without being asked, and mention it briefly in the summary.
 - When the user says "tell me before making the change", propose it (wording, a mockup) and wait. Otherwise implement.
 - Verify UI changes in the browser pane at about 402 px, 375 px, 320 px and several desktop widths (930, 1280, 1600), then reset

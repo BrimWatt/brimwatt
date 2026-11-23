@@ -8,7 +8,7 @@ There are two interchangeable implementations that share one dashboard page. **R
 
 | | **ESP32-S3 board** (recommended) | **Raspberry Pi** |
 |---|---|---|
-| What it is | C++ firmware in [`esp32-poc/`](esp32-poc/), a board that costs a few dollars | A single Java 17 jar (Javalin) in this folder |
+| What it is | C++ firmware in [`esp32/`](esp32/), a board that costs a few dollars | A single Java 17 jar (Javalin) in this folder |
 | Dashboard | `http://wattsync.local/` (port 80) | `http://<pi-address>:8080/` |
 | Wallbox points at | `ws://wattsync.local:8080/pair` | `ws://<pi-address>:8080/pair` |
 | Extras | Optional Tesla control (Bluetooth or your Tesla account), setup from a phone, updates over Wi-Fi | Same planner and API, no Tesla control |
@@ -33,7 +33,7 @@ There are two interchangeable implementations that share one dashboard page. **R
 
    ```bash
    git clone https://github.com/ny2sfo/wattsync.git wattsync
-   cd wattsync/esp32-poc
+   cd wattsync/esp32
    python3 -m venv .venv
    .venv/bin/pip install platformio
    ```
@@ -73,7 +73,7 @@ There are two interchangeable implementations that share one dashboard page. **R
 
    It takes about 30 seconds, uses `OTA_PASSWORD` from `src/secrets.h` without printing it, and keeps the last charging limit running while it restarts. If `wattsync.local` does not resolve, put the board's IP in `upload_port` in `platformio.ini`.
 
-More on the ESP32 route (console commands, what to check on a real charger, troubleshooting): [`esp32-poc/README.md`](esp32-poc/README.md).
+More on the ESP32 route (console commands, what to check on a real charger, troubleshooting): [`esp32/README.md`](esp32/README.md).
 
 ### B. Raspberry Pi: build and run
 
@@ -103,7 +103,7 @@ No board, charger or car is needed for any of these.
 
 ```bash
 mvn -o test                                                                            # Java: planner, daylight, history, OCPP, API
-cd esp32-poc && CPLUS_INCLUDE_PATH=$(xcrun --show-sdk-path)/usr/include/c++/v1 \
+cd esp32 && CPLUS_INCLUDE_PATH=$(xcrun --show-sdk-path)/usr/include/c++/v1 \
   .venv/bin/pio test -e native                                                         # C++ core on your computer (macOS path shown)
 node --test tests/dashboard/dashboard.test.mjs                                         # the dashboard page (Node 18 or newer)
 ```
@@ -119,7 +119,7 @@ Besides controlling the charger, the board can control a Tesla itself, either ov
 - **`envoy.local` not found:** enter the gateway's IP address on the setup page (or in `ENVOY_IP`).
 - **Boot lines but nothing from the program:** you are probably on the board's other USB port; use the UART/COM port with the default build.
 - **Charger connects, then drops, or never starts a charge:** see [OCPP](#ocpp); this charger family needs a remote start, and the log shows each command sent.
-- More: the Troubleshooting section of [`esp32-poc/README.md`](esp32-poc/README.md).
+- More: the Troubleshooting section of [`esp32/README.md`](esp32/README.md).
 
 ## Modes
 
@@ -295,9 +295,9 @@ Deploy with `scp` of the jar to the Pi and `sudo systemctl restart solar-charger
 - The Enphase token is a long-lived JWT that must be renewed by hand when it expires.
 - No authentication on the dashboard or API.
 
-## ESP32-S3 firmware (in progress)
+## ESP32-S3 firmware
 
-[esp32-poc/](esp32-poc/README.md) is a port of this controller to an ESP32-S3 board: Envoy reader, OCPP 1.6J server, the ECO / Max solar / Custom planner with the same rules, the daylight window, the outage fail-safe and saved settings, and a **setup network** (`WattSync-Setup`) from which a phone can choose the Wi-Fi and paste the Enphase details. The logic lives in a portable core that is unit-tested on the computer (174 tests, including frame-for-frame checks against this app's OCPP output). It serves this app's dashboard page at `http://wattsync.local/` (the page is copied from `src/main/resources/dashboard.html` at build time, so there is one source), and can also be controlled from the serial monitor. Over-the-air updates over Wi-Fi are supported (see the board's README). The board announces itself as `wattsync`. Setup, flashing and the wallbox test plan are in its README. Only one of the Pi and the board can be connected to the wallbox at a time.
+[esp32/](esp32/README.md) is a port of this controller to an ESP32-S3 board: Envoy reader, OCPP 1.6J server, the ECO / Max solar / Custom planner with the same rules, the daylight window, the outage fail-safe and saved settings, and a **setup network** (`WattSync-Setup`) from which a phone can choose the Wi-Fi and paste the Enphase details. The logic lives in a portable core that is unit-tested on the computer (174 tests, including frame-for-frame checks against this app's OCPP output). It serves this app's dashboard page at `http://wattsync.local/` (the page is copied from `src/main/resources/dashboard.html` at build time, so there is one source), and can also be controlled from the serial monitor. Over-the-air updates over Wi-Fi are supported (see the board's README). The board announces itself as `wattsync`. Setup, flashing and the wallbox test plan are in its README. Only one of the Pi and the board can be connected to the wallbox at a time.
 
 ## Documentation
 

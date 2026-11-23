@@ -3,7 +3,7 @@
 | What | Where |
 |---|---|
 | Overview, modes, settings, endpoints (Pi app) | [../README.md](../README.md) |
-| ESP32 firmware: set-up, flashing, console, checks | [../esp32-poc/README.md](../esp32-poc/README.md) |
+| ESP32 firmware: set-up, flashing, console, checks | [../esp32/README.md](../esp32/README.md) |
 | **The ESP32 setup network** (diagrams, UI mocks, endpoints, safety) | [setup-network.md](setup-network.md) |
 | **Tesla car control** (decisions, research, what works on a real car, the dashboard UI) | [tesla-car-control.md](tesla-car-control.md) |
 | **Tesla test plan** (checklist to run at the car, with expected results and a result column) | [tesla-test-plan.md](tesla-test-plan.md) |
@@ -31,7 +31,7 @@ python3 docs/diagram-src/make_diagrams.py
 
 ## UI mocks (`ui/`)
 
-Screenshots of the setup page at phone width (402 px), one per state. They were taken from the real page served by a stand-in for the board's API, so the networks and values are made up. Retake them after changing `esp32-poc/src/web/setup.html`; the states are listed in [setup-network.md](setup-network.md).
+Screenshots of the setup page at phone width (402 px), one per state. They were taken from the real page served by a stand-in for the board's API, so the networks and values are made up. Retake them after changing `esp32/src/web/setup.html`; the states are listed in [setup-network.md](setup-network.md).
 
 ## PDFs
 

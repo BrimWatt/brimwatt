@@ -63,7 +63,7 @@ After a save with a different network (or a different password for the same one)
 </tr>
 </table>
 
-The page is one file, `esp32-poc/src/web/setup.html`, with 16 px inputs (so iOS does not zoom in), touch targets of at least 44 px, and no sideways scrolling from 320 to 1600 px wide.
+The page is one file, `esp32/src/web/setup.html`, with 16 px inputs (so iOS does not zoom in), touch targets of at least 44 px, and no sideways scrolling from 320 to 1600 px wide.
 
 ## What the form accepts
 
@@ -95,27 +95,27 @@ While the setup network is open, a phone joined to it that asks for `/` or any u
 
 | Piece | File |
 |---|---|
-| Rules: form validation, token cleaning, IPv4 check, scan list, the trial | `esp32-poc/lib/solar_core/src/setup/SetupLogic.*` |
-| The endpoints and the interface they need from the board | `esp32-poc/lib/solar_core/src/setup/SetupApi.*` |
-| Access point, DNS catch-all, scan, 15-minute limit, BOOT button, restart | `esp32-poc/src/net/SetupPortal.*` |
-| Saved values in flash | `esp32-poc/src/platform/NvsCredentialStore.*` |
-| Wi-Fi join with run-time name and password, and why it failed | `esp32-poc/src/net/WifiConnection.*` |
-| Token and Envoy address set at run time | `esp32-poc/src/enphase/EnphaseClient.*` |
-| Routes and the captive-portal redirect | `esp32-poc/src/web/WebServerAdapter.*` |
-| The page | `esp32-poc/src/web/setup.html` (embedded via `platformio.ini`) |
-| Start-up flow (`bringUpNetwork`) | `esp32-poc/src/main.cpp` |
-| Console commands `wifi`, `setup`, `setup clear` | `esp32-poc/src/console/SerialConsole.*` |
-| Timings and the BOOT pin | `esp32-poc/src/config/DeviceConfig.h` |
+| Rules: form validation, token cleaning, IPv4 check, scan list, the trial | `esp32/lib/solar_core/src/setup/SetupLogic.*` |
+| The endpoints and the interface they need from the board | `esp32/lib/solar_core/src/setup/SetupApi.*` |
+| Access point, DNS catch-all, scan, 15-minute limit, BOOT button, restart | `esp32/src/net/SetupPortal.*` |
+| Saved values in flash | `esp32/src/platform/NvsCredentialStore.*` |
+| Wi-Fi join with run-time name and password, and why it failed | `esp32/src/net/WifiConnection.*` |
+| Token and Envoy address set at run time | `esp32/src/enphase/EnphaseClient.*` |
+| Routes and the captive-portal redirect | `esp32/src/web/WebServerAdapter.*` |
+| The page | `esp32/src/web/setup.html` (embedded via `platformio.ini`) |
+| Start-up flow (`bringUpNetwork`) | `esp32/src/main.cpp` |
+| Console commands `wifi`, `setup`, `setup clear` | `esp32/src/console/SerialConsole.*` |
+| Timings and the BOOT pin | `esp32/src/config/DeviceConfig.h` |
 
 ## Tests
 
-`esp32-poc/test/test_setup` has 31 host tests (no board needed): every form rule, token and address cleaning, saved values winning over defaults, the scan list, the trial kept or undone (including "no previous network"), the endpoints being refused while setup is closed or without the header, a save that starts a trial or not, and that the status reply never contains a secret.
+`esp32/test/test_setup` has 31 host tests (no board needed): every form rule, token and address cleaning, saved values winning over defaults, the scan list, the trial kept or undone (including "no previous network"), the endpoints being refused while setup is closed or without the header, a save that starts a trial or not, and that the status reply never contains a secret.
 
 ```bash
-CPLUS_INCLUDE_PATH=$(xcrun --show-sdk-path)/usr/include/c++/v1 esp32-poc/.venv/bin/pio test -d esp32-poc -e native -f test_setup
+CPLUS_INCLUDE_PATH=$(xcrun --show-sdk-path)/usr/include/c++/v1 esp32/.venv/bin/pio test -d esp32 -e native -f test_setup
 ```
 
-**Checked on the computer only:** the logic, the endpoints, the page against a stand-in server, and that the firmware builds. **Confirmed on the board:** the setup network opens, an iPhone joins it and the page works. **Still to check on the board:** the trial and undo with a real wrong password, saving a real change, and setup with the router off at start-up. The list of checks is in section 4 of `esp32-poc/README.md`.
+**Checked on the computer only:** the logic, the endpoints, the page against a stand-in server, and that the firmware builds. **Confirmed on the board:** the setup network opens, an iPhone joins it and the page works. **Still to check on the board:** the trial and undo with a real wrong password, saving a real change, and setup with the router off at start-up. The list of checks is in section 4 of `esp32/README.md`.
 
 ## Safety and limits
 

@@ -83,7 +83,7 @@ Goal: prove the whole chain on one real car with the smallest, safest step, and 
 
 ## First connecting step: what was built (2026-10-27)
 
-Console commands on the ESP32 (see `esp32-poc/README.md`): `tesla pair <VIN>`, `tesla status`, `tesla charge start|stop|amps <6-40>`, `tesla key`, `tesla forget`, `tesla selftest`. `tesla pair` changes the car's key list (it needs the owner's key card); `tesla charge ...` (added later the same day, see below) is the only thing that changes how the car charges. `tesla status` changes nothing.
+Console commands on the ESP32 (see `esp32/README.md`): `tesla pair <VIN>`, `tesla status`, `tesla charge start|stop|amps <6-40>`, `tesla key`, `tesla forget`, `tesla selftest`. `tesla pair` changes the car's key list (it needs the owner's key card); `tesla charge ...` (added later the same day, see below) is the only thing that changes how the car charges. `tesla status` changes nothing.
 
 **Code map**
 
