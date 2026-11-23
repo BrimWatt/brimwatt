@@ -4,7 +4,122 @@
 
 Charges an EV from solar. It reads an Enphase Envoy gateway, works out how much current the car can take, and tells an OCPP 1.6J wallbox what to do. A web dashboard shows live power and lets you pick a mode.
 
-Runs as a single Java jar (Javalin) on a Raspberry Pi. See [docs/deploy-to-raspberry-pi.pdf](docs/deploy-to-raspberry-pi.pdf) for setup and [docs/test-scenarios.pdf](docs/test-scenarios.pdf) for what to check on the real house.
+There are two interchangeable implementations that share one dashboard page. **Run only one of them at a time against the same wallbox.**
+
+| | **ESP32-S3 board** (recommended) | **Raspberry Pi** |
+|---|---|---|
+| What it is | C++ firmware in [`esp32-poc/`](esp32-poc/), a board that costs a few dollars | A single Java 17 jar (Javalin) in this folder |
+| Dashboard | `http://wattsync.local/` (port 80) | `http://<pi-address>:8080/` |
+| Wallbox points at | `ws://wattsync.local:8080/pair` | `ws://<pi-address>:8080/pair` |
+| Extras | Optional Tesla control (Bluetooth or your Tesla account), setup from a phone, updates over Wi-Fi | Same planner and API, no Tesla control |
+
+**Contents:** [Quick start](#quick-start) · [Modes](#modes) · [Safety](#safety-and-recovery-behavior) · [Settings](#settings) · [Dashboard and HTTP API](#dashboard-and-http-api) · [OCPP](#ocpp) · [Documentation](#documentation) · [License](#license)
+
+## Quick start
+
+### What you need
+
+- A solar installation with an **Enphase IQ Gateway (Envoy)** on your network, and its **local access token** (a long JWT; Enphase's token service at `entrez.enphaseenergy.com` issues it for your gateway, check Enphase's current instructions).
+- An **EV charger that speaks OCPP 1.6J over WebSocket** and lets you enter a server address. The charger used while building this needs a remote start to begin a charge (see [OCPP](#ocpp)); other chargers are untested.
+- For the ESP32 route: an **ESP32-S3 board with 16 MB flash and 8 MB octal PSRAM** (ESP32-S3-DevKitC N16R8), a USB-C **data** cable, and a **2.4 GHz** Wi-Fi network (the chip cannot join 5 GHz).
+- For the Pi route: any Raspberry Pi that runs **Java 17**.
+- On the computer you build from: **Git**, and **Python 3** (ESP32) or **Java 17 and Maven** (Pi). Nothing is installed system-wide for the ESP32 build; PlatformIO lives in a folder inside the project.
+
+> **Safety first.** This software changes the charging current of real equipment. Read [Safety and recovery behavior](#safety-and-recovery-behavior) and the list of things not yet verified in `CLAUDE.md` before relying on it, try it with the car unplugged first, and keep the charger's own app or breaker within reach. It is provided without warranty (see [License](#license)).
+
+### A. ESP32-S3 board: build, flash and run
+
+1. **Get the code and the build tool.**
+
+   ```bash
+   git clone <repo-url> wattsync
+   cd wattsync/esp32-poc
+   python3 -m venv .venv
+   .venv/bin/pip install platformio
+   ```
+
+2. **Create your settings file.** `src/secrets.h` is git-ignored, so a fresh clone does not have it: copy the template and edit it.
+
+   ```bash
+   cp src/secrets.example.h src/secrets.h
+   open -e src/secrets.h        # or any editor
+   ```
+
+   Fill in `WIFI_SSID`, `WIFI_PASSWORD`, `ENPHASE_TOKEN`, optionally `ENVOY_IP` (leave empty to find the gateway as `envoy.local`), and a long random `OTA_PASSWORD` (it protects wireless updates). Never commit this file. These values are only defaults: anything you later save from the board's own setup page wins, so you can also flash the placeholders and enter everything from a phone.
+
+3. **Flash by cable (the first time).** Plug the USB-C data cable into the board's **UART/COM** port, then:
+
+   ```bash
+   ls /dev/cu.*                                   # the board shows up as /dev/cu.usbmodem...
+   .venv/bin/pio run -e esp32s3 -t upload
+   .venv/bin/pio device monitor -e esp32s3        # Ctrl+C to leave
+   ```
+
+   If the upload cannot connect, hold **BOOT**, tap **RESET**, release **BOOT**, and run it again. If a newly built tool complains about the C++ headers on macOS, run the build as `env -u CPLUS_INCLUDE_PATH .venv/bin/pio run -e esp32s3 -t upload`.
+
+   A healthy start prints the board name `wattsync`, `Wi-Fi: connected`, `Time: ...`, `mDNS: this board is wattsync.local` and `OCPP: listening on port 8080`.
+
+4. **If it cannot join Wi-Fi, use the setup network.** With no Wi-Fi saved (or when the join fails for 3 minutes) the board opens its own network **`WattSync-Setup`** (password `wattsync`). Join it on a phone; the page opens by itself, or go to `http://192.168.4.1/setup`. Pick your Wi-Fi from the list and paste the Enphase token, the Envoy address and the update password. You can open it again any time by holding **BOOT** for 5 seconds. Details: [`docs/setup-network.md`](docs/setup-network.md). The setup password is the same on every board, so use the setup network at home only.
+
+5. **Open the dashboard.** Browse to `http://wattsync.local/` (or the board's IP address, which the log prints). On the first visit, tap **Set your location** so sunrise and sunset, the daylight window and the forecast match where you live.
+
+6. **Point the charger at the board.** In the charger's OCPP settings enter the server address `ws://wattsync.local:8080/pair` (or `ws://<board-ip>:8080/pair`). The charger adds its own id. It should appear on the dashboard within a minute. The board starts in **ECO** mode, so with solar surplus and a car plugged in it starts charging by itself.
+
+7. **Update later over Wi-Fi (no cable).** After the first cable flash, with the board and the computer on the same network:
+
+   ```bash
+   env -u CPLUS_INCLUDE_PATH .venv/bin/pio run -e esp32s3-ota -t upload
+   ```
+
+   It takes about 30 seconds, uses `OTA_PASSWORD` from `src/secrets.h` without printing it, and keeps the last charging limit running while it restarts. If `wattsync.local` does not resolve, put the board's IP in `upload_port` in `platformio.ini`.
+
+More on the ESP32 route (console commands, what to check on a real charger, troubleshooting): [`esp32-poc/README.md`](esp32-poc/README.md).
+
+### B. Raspberry Pi: build and run
+
+1. **Build the jar** (Java 17 and Maven; the tests run as part of the build):
+
+   ```bash
+   git clone <repo-url> wattsync
+   cd wattsync
+   mvn clean package            # add -o to build offline if your Maven mirror is unreachable
+   ```
+
+   This produces `target/solar-charger-1.0-SNAPSHOT.jar` with all dependencies included.
+
+2. **Run it** with your Enphase token (the app refuses to start without it). On a US supply set 240 V:
+
+   ```bash
+   ENPHASE_TOKEN=<your-token> HOUSEHOLD_VOLTAGE=240 java -jar target/solar-charger-1.0-SNAPSHOT.jar
+   ```
+
+   The dashboard and the OCPP endpoint are both on port **8080**. Open `http://<pi-address>:8080/`, tap **Set your location**, and point the charger at `ws://<pi-address>:8080/pair`.
+
+3. **Keep it running as a service** (recommended). Copy the jar to the Pi, put the settings in `/etc/solar-charger.env` (one `NAME=value` per line, see [Settings](#settings)), and run the jar from a systemd unit that uses that file as its `EnvironmentFile`. Restart it with `sudo systemctl restart solar-charger` and read the log with `journalctl -u solar-charger -f`. A clean stop saves the history first. The step-by-step deploy guide, with the unit file, is [`docs/deploy-to-raspberry-pi.pdf`](docs/deploy-to-raspberry-pi.pdf).
+
+### Run the tests
+
+No board, charger or car is needed for any of these.
+
+```bash
+mvn -o test                                                                            # Java: planner, daylight, history, OCPP, API
+cd esp32-poc && CPLUS_INCLUDE_PATH=$(xcrun --show-sdk-path)/usr/include/c++/v1 \
+  .venv/bin/pio test -e native                                                         # C++ core on your computer (macOS path shown)
+node --test tests/dashboard/dashboard.test.mjs                                         # the dashboard page (Node 18 or newer)
+```
+
+### Optional: control a Tesla directly (ESP32 only)
+
+Besides controlling the charger, the board can control a Tesla itself, either over **Bluetooth** or through the owner's **Tesla account** (the Fleet API, which needs a Tesla developer app of your own and is billed per request by Tesla). It is off by default and **untested on a real car for the account route**. Read [`docs/tesla-car-control.md`](docs/tesla-car-control.md) and [`docs/tesla-fleet-api.md`](docs/tesla-fleet-api.md) first. Tesla mode and charger mode are separate setups: with Tesla mode on, the board does not talk to a wallbox at all.
+
+### If something does not work
+
+- **Dashboard does not load:** check the boot log for `Dashboard: http://wattsync.local/`, try the IP address, and make sure your computer is on the same network.
+- **Board cannot join Wi-Fi:** it must be a 2.4 GHz network; after 3 minutes the setup network opens so you can fix the details.
+- **`envoy.local` not found:** enter the gateway's IP address on the setup page (or in `ENVOY_IP`).
+- **Boot lines but nothing from the program:** you are probably on the board's other USB port; use the UART/COM port with the default build.
+- **Charger connects, then drops, or never starts a charge:** see [OCPP](#ocpp); this charger family needs a remote start, and the log shows each command sent.
+- More: the Troubleshooting section of [`esp32-poc/README.md`](esp32-poc/README.md).
 
 ## Modes
 
