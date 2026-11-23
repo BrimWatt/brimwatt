@@ -241,6 +241,8 @@ before-tesla-fleet-api         tag on main as it was before the Tesla account li
 before-cheapest-hours-and-impact  tag on main as it was before Cheapest hours, the memory diagnostics, goal and plug-in recording, the plan picker and the Impact card were merged (2026-10-31, fast-forward; the branches cheapest-hours, impact-score and memory-diagnostics are kept)
 ```
 
+**History rewritten 2026-11-22, before the first public push:** every commit's author and committer email is now the GitHub noreply address (repo-local `user.email`), the exact site coordinates in code, docs and tests were replaced by a nearby fictional point, and the deploy PDF (which embedded them) was regenerated. All commit hashes and the five tags changed. A private backup of the old history is outside the repo (`~/SmartEnergyApp-backup-before-rewrite.bundle`): keep it private, never push it.
+
 The `tesla-car-control` branch (Tesla pairing, status, charge commands, Tesla mode, Control through: Car, the profile isolation, the Settings redesign, dark theme, waiting headline, new day graph) was merged into `main` on 2026-10-29 after a review (secrets scan of the whole history, all three test suites, route registration check). Nothing has been pushed (there is no remote).
 
 - `before-setup-network` is a **reconstruction**. Nothing had been saved before the setup network was added, so the old code was rebuilt by undoing each of
