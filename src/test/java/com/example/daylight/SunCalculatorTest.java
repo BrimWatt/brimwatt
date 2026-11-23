@@ -40,7 +40,7 @@ class SunCalculatorTest {
 
     @Test
     void lathropMatchesPublishedTimesAroundTheSummerSolstice() {
-        // timeanddate.com lists 5:42 am and 8:29 pm for Lathrop on June 16, 2025; the 21st is a minute later at sunset.
+        // timeanddate.com lists 5:42 am and 8:29 pm for a northern California site on June 16, 2025; the 21st is a minute later at sunset.
         ZoneId zone = ZoneId.of("America/Los_Angeles");
         SunTimes sun = SunCalculator.calculate(LocalDate.of(2025, 6, 21), 37.8412, -121.2691, zone);
         assertTime("05:43", sun.sunrise(), zone, "sunrise");

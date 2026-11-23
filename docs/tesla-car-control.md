@@ -157,7 +157,7 @@ Not verified: all of it on a real car (the car's replies, whether the Charging M
 
 ### Dashboard UI (built 2026-10-26, checked in the browser on a stand-in, not yet on the board)
 
-- **Decisions (owner, 2026-10-26):** the paired car is read-only by default; "Control through: Car" will need a confirmation naming the car; test controls get UI too; one car slot (pair another and the first is replaced). Context: the paired car belongs to a friend, used for testing while the board keeps optimizing the owner's own wallbox.
+- **Decisions (owner, 2026-10-26):** the paired car is read-only by default; "Control through: Car" will need a confirmation naming the car; test controls get UI too; one car slot (pair another and the first is replaced). Context: the paired car belongs to someone else and is used for testing, while the board keeps optimizing the owner's own wallbox.
 - **Settings > Tesla:** VIN box + Pair (the VIN is cleaned and checked in the page, sent in a POST body, then the box is emptied), a progress box while pairing or reading (Stop button), then paired state: masked VIN, "Read the car every few minutes" (watch), Check now, Forget car, and **For testing** (Start, Stop, current + Set, "Put the setting back to N A" after a change). Every test button asks first.
 - **Tesla tile** (under the modes, only when paired): battery with the limit marked on a thin bar, charging state, amps and kW, "Read 2m ago" (amber after 15 min), "Not reachable" with the reason when the last read failed, "Asleep" when the car sleeps, and the charger's own amps for comparison.
 - **Pi:** the group says "Car control needs the ESP32 board."

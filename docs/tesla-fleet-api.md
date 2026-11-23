@@ -48,7 +48,7 @@ works from anywhere the board has internet (no Bluetooth range).
 5. The car's owner opens `https://tesla.com/_ak/<domain>` on the phone that is the car's key and approves the app's key in the car. Commands fail until then.
 
 Why the client secret is on the board: Tesla only exchanges a sign-in code for tokens with it. Use an app of your own that you can reset in the developer
-dashboard; anyone holding the board could read it from flash. The refresh token of whoever signs in (a friend's, say) is stored on the board until
+dashboard; anyone holding the board could read it from flash. The refresh token of whoever signs in (someone else's, say) is stored on the board until
 **Disconnect**, which removes the account but keeps the app and the key so the next person can sign in straight away.
 
 ## What Tesla's docs say (read 2026-11-07, not all pages were readable)
@@ -69,8 +69,8 @@ wake; request prices. Checklist: `docs/tesla-test-plan.md`, section H.
 
 Decided 2026-11-07. With Tesla mode on (either link) the board does NOT run the wallbox side at all: the OCPP server never starts (`main.cpp`,
 `startControl`), so no wallbox can connect and nothing can start, stop or limit one. The car is the only thing controlled. With Tesla mode off the board is a
-wallbox controller as before and the car link is never used (Bluetooth stays off, API routes answer "Tesla mode is off"). The demo plan this serves: a friend's car
-on his own garage charger, with the board at the owner's house reading the owner's solar. A car plugged into a wallbox that WattSync controls is wallbox mode.
+wallbox controller as before and the car link is never used (Bluetooth stays off, API routes answer "Tesla mode is off"). The use case this serves: a car on a charger that WattSync does not talk to
+(for example a demo at another house), with the board at the owner's house reading the owner's solar. A car plugged into a wallbox that WattSync controls is wallbox mode.
 
 ## Not built
 

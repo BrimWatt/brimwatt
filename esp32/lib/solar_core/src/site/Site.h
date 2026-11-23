@@ -14,7 +14,7 @@ struct Site {
     double latitude = config::kSiteLatitude;
     double longitude = config::kSiteLongitude;
     std::string timezone = config::kSiteTimezone;   // the IANA name, e.g. America/Los_Angeles
-    std::string name;                               // for display, e.g. "Lathrop, California" (may be empty)
+    std::string name;                               // for display, e.g. "Sacramento, California" (may be empty)
 };
 
 /** Where the site is kept. Changing it restarts the board so the clock and the daylight window start from it. */

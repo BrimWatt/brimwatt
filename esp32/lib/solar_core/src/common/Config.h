@@ -33,7 +33,7 @@ constexpr int kPollIntervalSeconds = 60;
 constexpr uint64_t kEnphaseFailsafeAfterMillis = 150000;   // stop charging after this long without readings
 constexpr uint64_t kEnphaseErrorLogIntervalMillis = 60000;
 
-// Daylight window (Lathrop, CA); ECO and MAX_SOLAR only run from sunrise + margin to sunset - margin.
+// Daylight window (default site: placeholder in northern California); ECO and MAX_SOLAR only run from sunrise + margin to sunset - margin.
 constexpr double kSiteLatitude = 37.8412;
 constexpr double kSiteLongitude = -121.2691;
 constexpr const char* kSiteTimezone = "America/Los_Angeles";   // used until the owner saves their own location

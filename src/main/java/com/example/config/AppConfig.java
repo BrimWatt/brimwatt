@@ -21,7 +21,7 @@ public final class AppConfig {
 
     // ---- Daylight window ----
     // Solar-following modes (ECO, MAX_SOLAR) only run between a little after sunrise and a little
-    // before sunset. Defaults are for Lathrop, CA; override with the SITE_* variables.
+    // before sunset. Defaults are a placeholder in northern California; override with the SITE_* variables.
     public static final String SITE_LATITUDE_ENV = "SITE_LATITUDE";
     public static final String SITE_LONGITUDE_ENV = "SITE_LONGITUDE";
     public static final String SITE_TIMEZONE_ENV = "SITE_TIMEZONE";

@@ -348,7 +348,7 @@ static void followTeslaMode() {
     chargeRouter.enforceMode(teslaMode.enabled());
     if (!teslaMode.enabled() || wifi.isConnected() || !credentials.hasWifi()) return;
 
-    // Tesla mode without the home Wi-Fi (e.g. next to a friend's car): look for it again now and then, but only when nobody is using the
+    // Tesla mode without the home Wi-Fi (e.g. next to the car being tested): look for it again now and then, but only when nobody is using the
     // hotspot and no Bluetooth job is running, because a join attempt blocks the board for a while and hops the radio's channel.
     static uint32_t lastTry = 0;
     if (millis() - lastTry < device::kTeslaRejoinMillis || WiFi.softAPgetStationNum() > 0) return;

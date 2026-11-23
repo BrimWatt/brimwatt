@@ -13,7 +13,7 @@ namespace device {
 /**
  * Tesla mode on the board: reads the saved switch at start-up (off unless the owner turned it on), lets Bluetooth start only if it is on
  * (BleGate), and keeps the board's own Wi-Fi "wattsync-tesla" open next to the home Wi-Fi so the dashboard can be reached anywhere, e.g. next
- * to a friend's car. The setup network ("WattSync-Setup") has priority while it is open; the Tesla hotspot comes back when it closes.
+ * to the car being tested. The setup network ("WattSync-Setup") has priority while it is open; the Tesla hotspot comes back when it closes.
  * Changing the switch restarts the board: that is when Bluetooth's memory is handed back or kept in reserve.
  */
 class TeslaMode : public solar::TeslaModeControl {

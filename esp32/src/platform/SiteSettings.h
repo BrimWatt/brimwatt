@@ -11,7 +11,7 @@ namespace device {
 /**
  * Where the panels are (latitude, longitude, time zone, a display name), kept in flash (NVS namespace `site`, shared by the charger and
  * Tesla setups: it belongs to the board). Read once at start-up so the clock and the daylight window start from it; saving a new one
- * restarts the board soon, the same way Tesla mode does. Until the owner saves one, the built-in default (Lathrop) is used.
+ * restarts the board soon, the same way Tesla mode does. Until the owner saves one, the built-in default site is used.
  */
 class SiteSettings : public solar::SiteControl {
 public:

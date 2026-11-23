@@ -139,7 +139,7 @@ story = [
     settings_table([
         ("ENPHASE_TOKEN", "required", "Enphase access token. The app will not start without it."),
         ("HOUSEHOLD_VOLTAGE", "230", "Volts used to turn watts into amps. Use 240 on a US supply."),
-        ("SITE_LATITUDE", "37.8412", "Latitude for sunrise and sunset (default is Lathrop, CA; a location saved from the dashboard wins)."),
+        ("SITE_LATITUDE", "37.8412", "Latitude for sunrise and sunset (default is a placeholder in northern California; a location saved from the dashboard wins)."),
         ("SITE_LONGITUDE", "-121.2691", "Longitude, negative for the western hemisphere."),
         ("SITE_TIMEZONE", "America/Los_Angeles", "Timezone used to show the daylight window."),
         ("STATE_FILE", "solar-charger-state.json", "Where the app saves its state, relative to its working directory."),

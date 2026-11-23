@@ -7,7 +7,7 @@ Status key: `[ ]` not run, `[x]` passed, `[!]` failed (say what happened), `[-]`
 
 ## Before you start
 
-- [ ] The car belongs to a friend: tell them what will happen (a key is already in the car under Controls > Locks; WattSync will change its charging current and may wake it).
+- [ ] The car belongs to someone else: tell its owner what will happen (a key is already in the car under Controls > Locks; WattSync will change its charging current and may wake it).
 - [ ] The car is near the board (Bluetooth), **plugged in and awake**. Open a door, or use the Tesla app, to wake it.
 - [ ] The board is on Wi-Fi and `http://wattsync.local/` loads. Tesla mode is **off by default**: switch it on in Settings > Tesla first (section G); sections A-F need it on. Settings > Tesla then shows the paired car (masked VIN).
 - [ ] Note the car's current setting now (Tesla screen, or Settings > Tesla > Check now): ______ A. Put it back at the end (H).
@@ -100,7 +100,7 @@ Back out at any time: Settings > Tesla > **Control through = Charger**. Pause is
 
 - [ ] The car's current is back to the value noted at the start.
 - [ ] Control through = Charger; "Allow WattSync to wake the car" off unless you want it.
-- [ ] Tell your friend the test is over. Decide: keep the key paired, or **Forget car** here **and** remove the key in the car (Controls > Locks).
+- [ ] Tell the car's owner the test is over. Decide: keep the key paired, or **Forget car** here **and** remove the key in the car (Controls > Locks).
 - [ ] Record the model, year and firmware of the car in the table in `docs/tesla-car-control.md`.
 
 ## What to paste back when something is off
