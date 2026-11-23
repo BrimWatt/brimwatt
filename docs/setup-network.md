@@ -109,7 +109,7 @@ While the setup network is open, a phone joined to it that asks for `/` or any u
 
 ## Tests
 
-`esp32/test/test_setup` has 31 host tests (no board needed): every form rule, token and address cleaning, saved values winning over defaults, the scan list, the trial kept or undone (including "no previous network"), the endpoints being refused while setup is closed or without the header, a save that starts a trial or not, and that the status reply never contains a secret.
+`esp32/test/test_setup` has host tests (no board needed): every form rule, token and address cleaning, saved values winning over defaults, the scan list, the trial kept or undone (including "no previous network"), the endpoints being refused while setup is closed or without the header, a save that starts a trial or not, and that the status reply never contains a secret.
 
 ```bash
 CPLUS_INCLUDE_PATH=$(xcrun --show-sdk-path)/usr/include/c++/v1 esp32/.venv/bin/pio test -d esp32 -e native -f test_setup

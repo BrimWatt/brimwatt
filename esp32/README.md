@@ -40,7 +40,7 @@ Board: ESP32-S3-DevKit N16R8 (16 MB flash, 8 MB octal PSRAM), Arduino framework,
 
 This mirrors the Java app's packages (`ocpp`, `wallbox`, `charging`, `daylight`, `enphase`), so code in one can be compared with the other.
 
-## 1. One-time setup (on the Mac)
+## 1. One-time setup (on your computer)
 
 PlatformIO is installed in a folder inside the project, so nothing is added to your system:
 
@@ -99,7 +99,7 @@ Leaving a secret field empty **keeps** what is saved: the page never shows a sav
 
 ## 2. Connect, flash, watch
 
-Plug a USB-C **data** cable from the Mac into the **UART/COM** port of the board. On the board this was tested with, that port appears as `/dev/cu.usbmodem...`; the name does not tell you which port you are on, so if you see the chip's boot lines but nothing from the program, you are on the wrong combination (see Troubleshooting).
+Plug a USB-C **data** cable from your computer into the **UART/COM** port of the board. On the board this was tested with, that port appears as `/dev/cu.usbmodem...`; the name does not tell you which port you are on, so if you see the chip's boot lines but nothing from the program, you are on the wrong combination (see Troubleshooting).
 
 ```bash
 ls /dev/cu.*
@@ -129,11 +129,11 @@ The OCPP server starts only after the network time is set, because OCPP replies 
 
 ## 2b. Updating over Wi-Fi (no cable)
 
-The board accepts a new firmware over Wi-Fi, so you can update it from the Mac without unplugging anything.
+The board accepts a new firmware over Wi-Fi, so you can update it from your computer without unplugging anything.
 
 1. **Once, by cable:** flash this version the normal way (section 2). Only firmware that already contains the update feature can be updated wirelessly.
 2. The password is `OTA_PASSWORD` in `src/secrets.h` (copy the line from `src/secrets.example.h` if your file lacks it, and pick a long random value).
-3. Then, any time, with the board on the same Wi-Fi as the Mac:
+3. Then, any time, with the board on the same Wi-Fi as your computer:
 
 ```bash
 env -u CPLUS_INCLUDE_PATH .venv/bin/pio run -e esp32s3-ota -t upload
@@ -146,7 +146,7 @@ What to know:
 - **Nothing recent is lost.** Just before the update starts the board saves its history to flash.
 - **A bad image does not take over.** The new firmware is checked before the board switches to it, and a failed or interrupted transfer leaves the current firmware running (`OTA: update failed: ...` in the log). There is no automatic roll-back if a verified image misbehaves after it starts; for that, flash by cable.
 - **The password is never printed or typed.** `scripts/ota_auth.py` reads it from `src/secrets.h` and passes it to the uploader.
-- If `wattsync.local` does not resolve from the Mac, put the board's IP address in `upload_port` in `platformio.ini`.
+- If `wattsync.local` does not resolve from your computer, put the board's IP address in `upload_port` in `platformio.ini`.
 
 ## 3. The dashboard
 
@@ -242,12 +242,24 @@ Anything different from what the Pi does is a bug in this port; send me the log.
 .venv/bin/pio test -e native
 ```
 
-250 tests in ten groups: `test_core` (OCPP frames checked character by character against the Java app's output, routing, handlers, the wallbox controller, reconnects), `test_planner` (smoothing and the ECO/BALANCED rules), `test_notify` (messages), `test_daylight` (sunrise and sunset against published values for London, New York, northern California, Sydney and the poles, plus the window), `test_control` (the poll cycle, fail-safe, night pause, mode switching and saved settings), `test_api` (the dashboard's telemetry JSON and POST endpoints, including every rejected input) `test_persistence` (saving and restoring a charger's state across a restart) `test_history` (samples, energy totals and savings split, the activity log, charging sessions, saving and loading) `test_tesla_protocol` (the Tesla message format, Tesla's published example values for key agreement and encryption, pairing and status against a pretend car) `test_tesla` (the VIN rule, the car's Bluetooth name checked against Tesla's published example, the signal verdict, the list of cars heard) and `test_setup` (what the setup form may contain, token and address cleaning, the Wi-Fi change that is tried and undone, the scan list, and the setup endpoints, including that no reply contains a secret).
+The suite has several hundred tests in 19 groups (the exact number changes as it grows; `pio test -e native` prints it):
 
-**On this Mac** the compiler cannot find the C++ standard library headers (a Command Line Tools install problem, unrelated to this project). If the tests fail with `'string' file not found`, run them like this (only for the tests; do not use it for the firmware build):
+| Group | Covers |
+|---|---|
+| `test_core` | OCPP frames checked character by character against the Java app's output, routing, handlers, the wallbox controller, reconnects |
+| `test_planner`, `test_goal_tracker`, `test_cheap_hours` | Smoothing and the ECO / Max solar rules, the departure goal, the Cheapest hours rule |
+| `test_control` | The poll cycle, fail-safe, night pause, mode switching and saved settings |
+| `test_daylight` | Sunrise and sunset against published values for several cities and the poles, plus the daylight window |
+| `test_api` | The dashboard API, including input validation and that secrets are never echoed |
+| `test_history`, `test_persistence` | The history tiers, sessions, activity log and saving and loading; saved charger and controller state |
+| `test_setup`, `test_site`, `test_wifi_watchdog` | The setup network's form rules and Wi-Fi trial, location settings, the Wi-Fi rejoin rules |
+| `test_notify`, `test_idtag_hash`, `test_memory_watch` | Messages, the ID-tag fingerprint and hash vectors, the memory tracker |
+| `test_tesla`, `test_tesla_protocol`, `test_car_commander`, `test_fleet` | The Tesla messages (against Tesla's published vectors), the car commander, and the Fleet API account link against a pretend Tesla |
+
+**On macOS** with only the Command Line Tools installed, the compiler may not find the C++ standard library headers. If the tests fail with `'string' file not found`, point it at the SDK's headers (for the tests only; do not use it for the firmware build):
 
 ```bash
-CPLUS_INCLUDE_PATH=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1 .venv/bin/pio test -e native
+CPLUS_INCLUDE_PATH=$(xcrun --show-sdk-path)/usr/include/c++/v1 .venv/bin/pio test -e native
 ```
 
 ## Behaviour worth knowing
@@ -262,7 +274,7 @@ CPLUS_INCLUDE_PATH=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/inclu
 
 ## Troubleshooting
 
-**Finding out why the board restarted.** With no cable attached, open the dashboard's gear, then *Diagnostics*: it shows the restarts and crashes counted, the last crash with its time, and free memory. On the serial monitor: The boot banner prints `Last restart: ...`. `power on`, `software restart` and `reset pin` are normal. A line starting with `!!!` (`CRASH`, a watchdog, or `BROWNOUT`) means it restarted on its own; a brownout points to the power supply or cable. A status line every minute also prints free memory (`Memory: ... heap free, largest block ...`), so a slow memory leak shows as the numbers falling. To keep a log overnight, run `.venv/bin/pio device monitor -e esp32s3 --filter esp32_exception_decoder --filter time --filter log2file` (it needs a real terminal, so it cannot be piped into `tee`); a crash then prints a `Backtrace:` with function names, saved in `platformio-device-monitor-*.log`. Keep the Mac awake with `caffeinate -dims`.
+**Finding out why the board restarted.** With no cable attached, open the dashboard's gear, then *Diagnostics*: it shows the restarts and crashes counted, the last crash with its time, and free memory. On the serial monitor: The boot banner prints `Last restart: ...`. `power on`, `software restart` and `reset pin` are normal. A line starting with `!!!` (`CRASH`, a watchdog, or `BROWNOUT`) means it restarted on its own; a brownout points to the power supply or cable. A status line every minute also prints free memory (`Memory: ... heap free, largest block ...`), so a slow memory leak shows as the numbers falling. To keep a log overnight, run `.venv/bin/pio device monitor -e esp32s3 --filter esp32_exception_decoder --filter time --filter log2file` (it needs a real terminal, so it cannot be piped into `tee`); a crash then prints a `Backtrace:` with function names, saved in `platformio-device-monitor-*.log`. On macOS, keep the computer awake with `caffeinate -dims`.
 
 - **Boot loop or `PSRAM ID read error`:** the board does not have octal PSRAM. In `platformio.ini` change `board_build.arduino.memory_type` to `qio_qspi` and remove `-DBOARD_HAS_PSRAM`.
 - **Boot lines only, nothing from the program:** the log goes to the UART/COM port with the default build (`esp32s3`). If the cable is in the other, native USB port, use `-e esp32s3-usb` for both upload and monitor.

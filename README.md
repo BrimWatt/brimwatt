@@ -50,7 +50,7 @@ There are two interchangeable implementations that share one dashboard page. **R
 3. **Flash by cable (the first time).** Plug the USB-C data cable into the board's **UART/COM** port, then:
 
    ```bash
-   ls /dev/cu.*                                   # the board shows up as /dev/cu.usbmodem...
+   ls /dev/cu.*                                   # macOS: the board shows up as /dev/cu.usbmodem... (Linux: /dev/ttyACM0 or ttyUSB0; Windows: a COM port)
    .venv/bin/pio run -e esp32s3 -t upload
    .venv/bin/pio device monitor -e esp32s3        # Ctrl+C to leave
    ```
