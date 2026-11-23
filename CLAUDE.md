@@ -15,7 +15,7 @@ share one dashboard page. Only one of them can be connected to the wallbox at a 
 ## Layout
 
 ```
-src/main/java/com/example/   Pi app: charging (planner), daylight, enphase, history, ocpp, persistence, state, wallbox, web
+src/main/java/com/wattsync/   Pi app: charging (planner), daylight, enphase, history, ocpp, persistence, state, wallbox, web
 src/main/resources/dashboard.html   THE dashboard, one file, served by the Pi and embedded in the firmware
 src/main/resources/favicon.png      served at /favicon.ico (both apps)
 src/test/java/...            JUnit 5 tests

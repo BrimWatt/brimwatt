@@ -9,6 +9,7 @@ namespace solar {
 /** The name of the board's own Wi-Fi while Tesla mode is on. */
 constexpr const char* kTeslaHotspotName = "wattsync-tesla";
 
+/** Whether the Tesla-mode hotspot is up and how many devices have joined it. */
 struct HotspotInfo {
     bool up = false;
     int clients = 0;

@@ -55,6 +55,7 @@ struct Routable {
 Bytes encodeRoutable(const Routable& r);
 bool decodeRoutable(const Bytes& bytes, Routable& r);
 
+/** What the car says about a secure session: its counter, public key, epoch and clock, and whether our key is accepted. */
 struct SessionInfo {
     uint32_t counter = 0;
     Bytes publicKey;
@@ -75,6 +76,7 @@ Bytes vcsecGetStatus();
 /** Asks whether our key is on the car's list (by the SHA-1 of the public key). */
 Bytes vcsecGetWhitelistEntry(const Bytes& publicKey65);
 
+/** A decoded answer from the car's security computer: command status, key-list information and vehicle status such as the lock state. */
 struct VcsecReply {
     bool isCommandStatus = false;
     int operationStatus = -1;         // 0 OK, 1 WAIT, 2 ERROR
@@ -102,6 +104,7 @@ Bytes carChargingStartStop(bool start);
 /** Action { vehicleAction { setChargingAmpsAction { charging_amps } } }: the current the car asks the charger for. */
 Bytes carSetChargingAmps(int amps);
 
+/** The car's charge state as read from it. Each value has a `has...` flag because the car only sends what it has. */
 struct ChargeState {
     bool valid = false;
     int chargingState = 0;            // 1 unknown, 2 disconnected, 3 no power, 4 starting, 5 charging, 6 complete, 7 stopped, 8 calibrating
@@ -120,6 +123,7 @@ struct ChargeState {
     bool hasVoltage = false;
     int voltage = 0;
 };
+/** A decoded answer from the car's infotainment computer: whether the action succeeded, why not, and the charge state if one came with it. */
 struct CarReply {
     bool ok = false;                  // the action's own status says OK
     std::string reasonText;

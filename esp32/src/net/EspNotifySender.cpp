@@ -33,6 +33,7 @@ std::string post(const std::string& url, const std::string& json, int timeoutMs)
     return "";
 }
 
+/** One notification to send from a background task: the address and the JSON body. */
 struct Job {
     std::string url, json;
 };

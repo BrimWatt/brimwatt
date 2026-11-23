@@ -40,6 +40,7 @@ struct CarSnapshot {
     int restoreAmps = 0;              // the car's setting before the last test change; 0 = nothing to restore
 };
 
+/** The answer to a request to start a car job: started, refused because another job is running (`busy`), or refused with a reason in plain words. */
 struct CarResult {
     bool ok = true;
     bool busy = false;                // refused only because another car job is running

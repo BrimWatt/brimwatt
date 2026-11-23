@@ -7,6 +7,7 @@
 namespace solar {
 namespace fleet {
 
+/** One HTTP request to send to Tesla. */
 struct FleetHttpRequest {
     std::string method;   // "GET" or "POST"
     std::string url;
@@ -14,6 +15,7 @@ struct FleetHttpRequest {
     std::vector<std::pair<std::string, std::string>> headers;
 };
 
+/** What came back from Tesla; `sent` is false when no connection could be made at all. */
 struct FleetHttpResponse {
     bool sent = false;    // false: no connection (no Wi-Fi, no internet, TLS failed, timed out)
     int status = 0;

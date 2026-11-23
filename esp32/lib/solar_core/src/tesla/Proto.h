@@ -55,6 +55,7 @@ struct Field {
     std::string str() const { return std::string(reinterpret_cast<const char*>(data), len); }
 };
 
+/** Reads protobuf fields out of bytes: the counterpart of `Writer`. */
 class Reader {
 public:
     Reader(const uint8_t* p, size_t n) : p_(p), end_(p + n) {}

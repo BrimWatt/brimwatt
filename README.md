@@ -186,7 +186,7 @@ Environment variables (set in `/etc/solar-charger.env` under systemd):
 | `STATE_FILE` | `solar-charger-state.json` | Where state is saved (relative to the working directory). |
 | `HISTORY_FILE` | `solar-charger-history.tsv` | Where the history is saved: this file holds the last two days by the minute, the activity log and the daily totals (fully rewritten every 30 minutes if changed, and on a normal stop); a second file next to it with `.long` added holds the 5-minute and hourly records and only ever grows at the end, and a third with `.journal` added is rewritten every minute with just what is new since the last full save and folded back in at the next start. A crash or power cut loses at most a minute. |
 
-Tunable constants live in [AppConfig.java](src/main/java/com/example/config/AppConfig.java): poll interval, amp limits, smoothing time constants, deadband, start and stop timers, allowance default and maximum, daylight margins, fail-safe delay, state refresh and age limits. Change them and rebuild.
+Tunable constants live in [AppConfig.java](src/main/java/com/wattsync/config/AppConfig.java): poll interval, amp limits, smoothing time constants, deadband, start and stop timers, allowance default and maximum, daylight margins, fail-safe delay, state refresh and age limits. Change them and rebuild.
 
 Dashboard-controlled, saved across restarts: mode, Custom current, grid allowance (0 to 1000 W), daylight window on/off.
 
@@ -258,7 +258,7 @@ Enter `ws://<host>:8080/pair` in the wallbox (it adds its own charger id, so `/p
 
 ## Code layout
 
-`src/main/java/com/example/`
+`src/main/java/com/wattsync/`
 
 | Package | Contents |
 |---|---|
@@ -277,15 +277,24 @@ The dashboard is `src/main/resources/dashboard.html`. Logging is configured in `
 
 - Stopping a charge needs the transaction id. If a charge was already running and the id was never learned (no saved state, and the charger sends no MeterValues with it), the app cannot stop or adjust it and logs a warning.
 - A charger that reports Charging while drawing no current is not detected as stalled. The `measured` current makes this visible but nothing acts on it yet.
-- The Envoy connection trusts any certificate (its certificate is self-signed). Acceptable on a home network.
+- **No authentication** on the dashboard or API. Keep it on a trusted home network and do not expose it to the internet. Changing requests carry a header that blocks cross-site requests, which is not a login.
+- The Envoy connection trusts any certificate (its certificate is self-signed). Notification messages over HTTPS do not check the server's certificate. Acceptable on a home network.
 - The Enphase token is a long-lived JWT that must be renewed by hand when it expires.
-- No authentication on the dashboard or API.
+- **Secrets on the ESP32 board** (Wi-Fi password, Enphase token, update password, Tesla keys and sign-in) are kept in unencrypted flash: anyone with physical access can read them.
+- The setup network (`WattSync-Setup`) uses one fixed password on every board, which this repository makes public: open it only at home. Deriving it from the chip is planned (see [`docs/setup-network.md`](docs/setup-network.md)).
+- Tesla control is experimental: Bluetooth control was tried on one car; the account link has not been tried on a real car. See [`docs/tesla-fleet-api.md`](docs/tesla-fleet-api.md).
 
 ## Documentation
 
 - [`esp32/README.md`](esp32/README.md): the ESP32-S3 firmware in depth: flashing, the console, checks on a real charger, troubleshooting.
 - [`docs/README.md`](docs/README.md): the index of everything under `docs/`: the setup network with diagrams and UI mocks ([`docs/setup-network.md`](docs/setup-network.md)), the Tesla notes ([`docs/tesla-car-control.md`](docs/tesla-car-control.md), [`docs/tesla-fleet-api.md`](docs/tesla-fleet-api.md)), the PDFs (deploy guide, test scenarios, user guide) and how they are rebuilt.
 - [`CLAUDE.md`](CLAUDE.md): the project rules, commands and git notes used when developing with Claude Code.
+
+## Disclaimer
+
+WattSync is an independent project. It is not affiliated with, endorsed by or sponsored by Tesla, Inc., Enphase Energy, Espressif, the Raspberry Pi
+Foundation or the maker of any charger it works with. Product and company names are trademarks of their owners and are used only to say what the
+software works with. It is not a safety device: use it at your own risk and keep your charger's own protections in place.
 
 ## License
 
@@ -301,5 +310,3 @@ Things to know before you build on it:
   Tesla bills the Fleet API per request; see `docs/tesla-fleet-api.md`. The forecast bubbles use Open-Meteo's free tier, which is for
   non-commercial use only; a commercial product needs their paid plan.
 - **Safety.** This controls real charging equipment and a real car. Read what is marked untested in `CLAUDE.md` and the test plans before relying on it.
-- **Known gap.** The setup network (`WattSync-Setup`) uses one fixed password on every board, which this repository makes public: only open it
-  at home, and see `docs/setup-network.md` for the plan to derive it from the chip.

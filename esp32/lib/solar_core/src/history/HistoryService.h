@@ -70,6 +70,7 @@ struct GoalResult {
     double doneWh = 0;
 };
 
+/** One line of the activity log: when it happened (epoch seconds) and the text. */
 struct HistoryEvent {
     uint32_t t = 0;
     std::string text;

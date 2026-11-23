@@ -5,6 +5,7 @@
 namespace solar {
 
 namespace {
+/** Maps a charger status to the name used on the wire and in the log. */
 struct Entry {
     ChargerStatus status;
     const char* name;

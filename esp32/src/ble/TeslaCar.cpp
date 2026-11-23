@@ -30,6 +30,7 @@ uint32_t heardNamed = 0;
 BLEAddress foundAddress("00:00:00:00:00:00");
 esp_ble_addr_type_t foundType = BLE_ADDR_TYPE_PUBLIC;
 
+/** Bluetooth scan callback: notes whether the car with the wanted name was heard. */
 class Finder : public BLEAdvertisedDeviceCallbacks {
     void onResult(BLEAdvertisedDevice device) override {
         heardAdverts++;
@@ -45,6 +46,7 @@ class Finder : public BLEAdvertisedDeviceCallbacks {
 };
 Finder finder;
 
+/** Bluetooth connection callback: records that the link dropped. */
 class LinkEvents : public BLEClientCallbacks {
     void onConnect(BLEClient*) override {}
     void onDisconnect(BLEClient*) override {

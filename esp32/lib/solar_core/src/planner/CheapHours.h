@@ -7,7 +7,7 @@ namespace solar {
 
 /**
  * "Cheapest hours": the expensive hours are the peak window from Settings (start hour to end hour, wrapping past midnight);
- * everything else is cheap. With weekends off the window only applies Monday to Friday. Mirrors com.example.charging.CheapHours.
+ * everything else is cheap. With weekends off the window only applies Monday to Friday. Mirrors com.wattsync.charging.CheapHours.
  */
 struct CheapHours {
     /** utcOffset gives the local offset in seconds at an instant (daylight saving included). */

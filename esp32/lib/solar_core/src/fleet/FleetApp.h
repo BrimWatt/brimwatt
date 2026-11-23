@@ -18,6 +18,7 @@ struct FleetApp {
     bool ready() const { return !clientId.empty() && !clientSecret.empty() && !domain.empty(); }
 };
 
+/** Where the board keeps the developer app's settings: flash on the board, a memory fake in the tests. */
 class FleetAppStore {
 public:
     virtual ~FleetAppStore() = default;

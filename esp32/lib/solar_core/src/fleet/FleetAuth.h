@@ -21,6 +21,7 @@ struct FleetCredentials {
     bool complete() const { return !clientId.empty() && !refreshToken.empty(); }
 };
 
+/** Where the board keeps the signed-in account: flash on the board, a memory fake in the tests. */
 class FleetCredentialStore {
 public:
     virtual ~FleetCredentialStore() = default;

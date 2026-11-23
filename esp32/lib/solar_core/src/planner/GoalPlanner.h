@@ -18,6 +18,7 @@ constexpr int64_t kWindowSeconds = 16 * 3600;
 /** Start this long before the last moment that would still work, as a margin for a slow car or a slow charger. */
 constexpr int64_t kMarginSeconds = 15 * 60;
 
+/** What the departure goal asks of the planner right now. */
 struct Decision {
     int forcedAmps = 0;        // 0 if the goal does not need to take over now
     double remainingWh = 0;    // what is still missing

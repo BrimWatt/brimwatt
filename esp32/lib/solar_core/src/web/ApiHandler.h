@@ -18,6 +18,7 @@
 
 namespace solar {
 
+/** What the API answers: status, content type, body, and an optional file name when the reply is a download. */
 struct HttpResponse {
     int status = 200;
     std::string contentType = "text/plain";

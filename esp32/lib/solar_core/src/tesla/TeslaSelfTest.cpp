@@ -27,6 +27,7 @@ const char* kNonce = "dbf79447fa156674dae1caed";
 const char* kCipher = "38038e8c0f2e";
 const char* kTag = "c228e0ff64991481db3a7bbc133696c5";
 
+/** Collects the checks that failed into one line of text. */
 struct Report {
     std::string text;
     bool ok = true;

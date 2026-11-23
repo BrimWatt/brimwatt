@@ -73,6 +73,7 @@ struct Form {
     std::string updatePassword;
 };
 
+/** The verdict on a submitted setup form: an error sentence for the user, or the settings to save. */
 struct Validation {
     std::string error;       // empty when the form is fine; otherwise a sentence for the user
     Credentials merged;      // what to save (everything, including the kept values)
@@ -88,6 +89,7 @@ std::string cleanToken(const std::string& pasted);
 /** Dotted decimal, four numbers from 0 to 255, no leading zeros, not 0.0.0.0. */
 bool isValidIpv4(const std::string& text);
 
+/** One Wi-Fi network from a scan. */
 struct ScanEntry {
     std::string ssid;
     int rssi = -100;
@@ -97,6 +99,7 @@ struct ScanEntry {
 /** Hidden networks (no name) dropped, repeats of one name merged into the strongest, strongest first. */
 std::vector<ScanEntry> tidyScan(std::vector<ScanEntry> raw);
 
+/** What the start-up attempt to join Wi-Fi meant for a Wi-Fi change that was being tried. */
 struct TrialOutcome {
     bool wasTrial = false;
     bool joined = false;

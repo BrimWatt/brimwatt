@@ -10,6 +10,7 @@
 namespace solar {
 namespace fleet {
 
+/** The result of reading the car's charge state through the Fleet API. */
 struct FleetRead {
     bool ok = false;          // the car answered with its charge state
     bool asleep = false;      // Tesla could not reach the car because it sleeps or is offline (a real answer, not a fault)
