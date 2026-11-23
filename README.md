@@ -32,7 +32,7 @@ There are two interchangeable implementations that share one dashboard page. **R
 1. **Get the code and the build tool.**
 
    ```bash
-   git clone <repo-url> wattsync
+   git clone https://github.com/ny2sfo/wattsync.git wattsync
    cd wattsync/esp32-poc
    python3 -m venv .venv
    .venv/bin/pip install platformio
@@ -80,7 +80,7 @@ More on the ESP32 route (console commands, what to check on a real charger, trou
 1. **Build the jar** (Java 17 and Maven; the tests run as part of the build):
 
    ```bash
-   git clone <repo-url> wattsync
+   git clone https://github.com/ny2sfo/wattsync.git wattsync
    cd wattsync
    mvn clean package            # add -o to build offline if your Maven mirror is unreachable
    ```
