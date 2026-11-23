@@ -197,3 +197,20 @@ The PDFs are built from scripts in `docs/pdf-src/` (needs Python with `reportlab
 python3 docs/pdf-src/deploy_pdf.py
 python3 docs/pdf-src/test_scenarios_pdf.py
 ```
+
+## License
+
+WattSync is free software under the **GNU Affero General Public License, version 3** (AGPL-3.0-only): see [`LICENSE`](LICENSE).
+Copyright (C) 2026 Deepak Sanem.
+
+In plain words: you may use, study, change and share it. If you change it and let other people use your version, including over a network
+(for example as a hosted service), you must offer them the source of your version under the same license. The dashboard page is part of
+the program, so a modified page served to others falls under this too. There is no warranty. This is not legal advice.
+
+Things to know before you build on it:
+- **Your own accounts.** The Tesla account link needs a Tesla developer app of your own (client id, secret, a public domain for the app's key) and
+  Tesla bills the Fleet API per request; see `docs/tesla-fleet-api.md`. The forecast bubbles use Open-Meteo's free tier, which is for
+  non-commercial use only; a commercial product needs their paid plan.
+- **Safety.** This controls real charging equipment and a real car. Read what is marked untested in `CLAUDE.md` and the test plans before relying on it.
+- **Known gap.** The setup network (`WattSync-Setup`) uses one fixed password on every board, which this repository makes public: only open it
+  at home, and see `docs/setup-network.md` for the plan to derive it from the chip.

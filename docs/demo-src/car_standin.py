@@ -78,7 +78,7 @@ class H(BaseHTTPRequestHandler):
             q = dict(urllib.parse.parse_qsl(u.query))
             return self.send(200, '<!doctype html><body style="margin:0;background:#fff"><iframe src="/?%s" width="402" height="%s" style="border:0;display:block"></iframe></body>' % (q.get('q', '').replace('"', ''), int(q.get('h', '800'))), 'text/html; charset=utf-8')
         if u.path == '/fake/car': return self.send(200, json.dumps(car()), 'application/json')
-        if u.path == '/api/car/hotspot': return self.send(200 if S['modeOn'] else 400, json.dumps(dict(ssid='wattsync-tesla', password='k3m9x7bq2p')) if S['modeOn'] else 'Tesla mode is off.', 'application/json')
+        if u.path == '/api/car/hotspot': return self.send(200 if S['modeOn'] else 400, json.dumps(dict(ssid='wattsync-tesla', password='demo-only-password')) if S['modeOn'] else 'Tesla mode is off.', 'application/json')
         if u.path == '/favicon.ico': return self.send(404, '')
         if u.path == '/fake/set':
             q = dict(urllib.parse.parse_qsl(u.query))
