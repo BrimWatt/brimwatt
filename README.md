@@ -253,7 +253,7 @@ Enter `ws://<host>:8080/pair` in the wallbox (it adds its own charger id, so `/p
 - **Handled from the charger:** BootNotification (heartbeat interval 60), Heartbeat, StatusNotification, Authorize, StartTransaction, StopTransaction, MeterValues. Anything else gets a `NotImplemented` error.
 - **Sent to the charger:** `RemoteStartTransaction` (with the profile inside), `SetChargingProfile` (TxProfile on connector 1), `RemoteStopTransaction`, `TriggerMessage` (StatusNotification and MeterValues).
 - **`SetChargingProfile` never starts a charge.** It only changes the current of a running transaction. Starting needs `RemoteStartTransaction`, sent when the charger is Preparing, SuspendedEV, SuspendedEVSE or Finishing (at most every 30 s).
-- **Reply layout.** Replies use `[3, id, action, payload]`, copied from the author's earlier working project, not the `[3, id, payload]` the specification shows. Change it in `OcppMessages.callResult` if a charger needs the standard form.
+- **Reply layout.** Replies use `[3, id, action, payload]`, deliberately, as the charger used during development expects, not the `[3, id, payload]` the specification shows. Change it in `OcppMessages.callResult` if a charger needs the standard form.
 - The charger's current limits are applied to every connected charger the same way. The design assumes one charger.
 
 ## Code layout
@@ -273,20 +273,6 @@ Enter `ws://<host>:8080/pair` in the wallbox (it adds its own charger id, so `/p
 
 The dashboard is `src/main/resources/dashboard.html`. Logging is configured in `logback.xml` (INFO for the app, warnings only for libraries).
 
-## Build, test, run
-
-```
-mvn clean package          # builds target/solar-charger-1.0-SNAPSHOT.jar (all dependencies included) and runs the tests
-mvn -o clean package       # same, offline, if the Maven mirror is unreachable
-ENPHASE_TOKEN=... java -jar target/solar-charger-1.0-SNAPSHOT.jar
-```
-
-Tests are JUnit 5 and use simulated clocks, so scenarios that take hours run in milliseconds. Pure logic (planner, sun calculator, daylight window) has no dependency on the web or OCPP layers.
-
-Dashboard tests (no browser needed): `/opt/homebrew/bin/node --test tests/dashboard/dashboard.test.mjs` (Node 18 or newer).
-
-Deploy with `scp` of the jar to the Pi and `sudo systemctl restart solar-charger`. Logs: `journalctl -u solar-charger -f`.
-
 ## Known limitations
 
 - Stopping a charge needs the transaction id. If a charge was already running and the id was never learned (no saved state, and the charger sends no MeterValues with it), the app cannot stop or adjust it and logs a warning.
@@ -295,23 +281,11 @@ Deploy with `scp` of the jar to the Pi and `sudo systemctl restart solar-charger
 - The Enphase token is a long-lived JWT that must be renewed by hand when it expires.
 - No authentication on the dashboard or API.
 
-## ESP32-S3 firmware
-
-[esp32/](esp32/README.md) is a port of this controller to an ESP32-S3 board: Envoy reader, OCPP 1.6J server, the ECO / Max solar / Custom planner with the same rules, the daylight window, the outage fail-safe and saved settings, and a **setup network** (`WattSync-Setup`) from which a phone can choose the Wi-Fi and paste the Enphase details. The logic lives in a portable core that is unit-tested on the computer (174 tests, including frame-for-frame checks against this app's OCPP output). It serves this app's dashboard page at `http://wattsync.local/` (the page is copied from `src/main/resources/dashboard.html` at build time, so there is one source), and can also be controlled from the serial monitor. Over-the-air updates over Wi-Fi are supported (see the board's README). The board announces itself as `wattsync`. Setup, flashing and the wallbox test plan are in its README. Only one of the Pi and the board can be connected to the wallbox at a time.
-
 ## Documentation
 
-[docs/README.md](docs/README.md) is the index: the ESP32 setup network with diagrams and UI mocks ([docs/setup-network.md](docs/setup-network.md)),
-the SVG diagrams, and the PDFs. `CLAUDE.md` holds the project rules, commands and the git and rollback notes.
-
-## Regenerating the PDFs
-
-The PDFs are built from scripts in `docs/pdf-src/` (needs Python with `reportlab`):
-
-```
-python3 docs/pdf-src/deploy_pdf.py
-python3 docs/pdf-src/test_scenarios_pdf.py
-```
+- [`esp32/README.md`](esp32/README.md): the ESP32-S3 firmware in depth: flashing, the console, checks on a real charger, troubleshooting.
+- [`docs/README.md`](docs/README.md): the index of everything under `docs/`: the setup network with diagrams and UI mocks ([`docs/setup-network.md`](docs/setup-network.md)), the Tesla notes ([`docs/tesla-car-control.md`](docs/tesla-car-control.md), [`docs/tesla-fleet-api.md`](docs/tesla-fleet-api.md)), the PDFs (deploy guide, test scenarios, user guide) and how they are rebuilt.
+- [`CLAUDE.md`](CLAUDE.md): the project rules, commands and git notes used when developing with Claude Code.
 
 ## License
 
