@@ -343,7 +343,7 @@ void test_changing_requests_need_the_safe_header() {
     Rig r;
     HttpResponse response = r.api.handle("POST", "/api/setup/save", r.params({{"ssid", "Home"}}), false);
     TEST_ASSERT_EQUAL(403, response.status);
-    TEST_ASSERT_TRUE(contains(response.body, "X-WattSync"));
+    TEST_ASSERT_TRUE(contains(response.body, "X-Brimwatt"));
     TEST_ASSERT_EQUAL(0, r.host.scans);
     TEST_ASSERT_EQUAL(403, r.api.handle("POST", "/api/setup/scan", {}, false).status);
     TEST_ASSERT_EQUAL(0, r.host.scans);

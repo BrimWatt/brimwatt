@@ -63,7 +63,7 @@ def block(title, desc, cmd=None):
     return KeepTogether(items)
 
 story = [
-    Paragraph("Run WattSync on the Raspberry Pi", h1),
+    Paragraph("Run Brimwatt on the Raspberry Pi", h1),
     Paragraph("Set up the Enphase token, keep the app running in the background, and read its logs. "
               "Target: <b>wattsync@wattsyncpi.local</b>", sub),
 
@@ -196,12 +196,12 @@ def footer(canvas, doc):
     canvas.saveState()
     canvas.setFont("Helvetica", 8)
     canvas.setFillColor(colors.HexColor("#888888"))
-    canvas.drawString(0.9 * inch, 0.5 * inch, "WattSync - Raspberry Pi deployment")
+    canvas.drawString(0.9 * inch, 0.5 * inch, "Brimwatt - Raspberry Pi deployment")
     canvas.drawRightString(letter[0] - 0.9 * inch, 0.5 * inch, "Page %d" % doc.page)
     canvas.restoreState()
 
 doc = SimpleDocTemplate(OUT, pagesize=letter, leftMargin=0.9 * inch, rightMargin=0.9 * inch,
                         topMargin=0.6 * inch, bottomMargin=0.75 * inch,
-                        title="Run WattSync on the Raspberry Pi", author="WattSync")
+                        title="Run Brimwatt on the Raspberry Pi", author="Brimwatt")
 doc.build(story, onFirstPage=footer, onLaterPages=footer)
 print("wrote", OUT)

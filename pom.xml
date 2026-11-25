@@ -3,13 +3,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.wattsync</groupId>
+    <groupId>com.brimwatt</groupId>
     <artifactId>solar-charger</artifactId>
     <version>1.0-SNAPSHOT</version>
 
-    <name>WattSync</name>
+    <name>Brimwatt</name>
     <description>Charges an EV from solar: reads an Enphase Envoy gateway and controls an OCPP 1.6J charger, with a web dashboard.</description>
-    <url>https://github.com/ny2sfo/wattsync</url>
+    <url>https://github.com/brimwatt/brimwatt</url>
     <licenses>
         <license>
             <name>GNU Affero General Public License v3.0 only</name>
@@ -72,7 +72,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.1</version>
                 <configuration>
-                    <mainClass>com.wattsync.SmartEnergyApp</mainClass>
+                    <mainClass>com.brimwatt.SmartEnergyApp</mainClass>
                 </configuration>
             </plugin>
             <plugin>
@@ -87,7 +87,7 @@
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.wattsync.SmartEnergyApp</mainClass>
+                                    <mainClass>com.brimwatt.SmartEnergyApp</mainClass>
                                 </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                             </transformers>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
-    <title>WattSync setup</title>
+    <title>Brimwatt setup</title>
     <style>
         :root { --blue: #0070f3; --ink: #111827; --muted: #64748b; --line: #e2e8f0; --bad: #b91c1c; --ok: #047857; }
         * { box-sizing: border-box; }
@@ -48,7 +48,7 @@
 <body>
 <main>
     <div id="form">
-        <h1>WattSync setup</h1>
+        <h1>Brimwatt setup</h1>
         <p class="lead">Choose your Wi-Fi and paste your Enphase details. This page only works while the setup network is open.</p>
 
         <div id="error" class="banner bad" role="alert" hidden></div>
@@ -216,7 +216,7 @@
     async function post(path, body) {
         const res = await fetch(path, {
             method: 'POST',
-            headers: { 'X-WattSync': '1', 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: { 'X-Brimwatt': '1', 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams(body || {})
         });
         return { ok: res.ok, text: (await res.text()).trim() };
@@ -289,11 +289,11 @@
             $('form').hidden = true;
             $('done').hidden = false;
             $('doneText').textContent = info.wifiChanged
-                ? 'WattSync is restarting and will join "' + info.ssid + '". Reconnect your phone to your usual Wi-Fi, then open http://wattsync.local. '
-                  + 'If it cannot join, the WattSync-Setup network comes back in about a minute and says why.'
-                : 'WattSync is restarting. Reconnect your phone to your usual Wi-Fi, then open http://wattsync.local.';
+                ? 'Brimwatt is restarting and will join "' + info.ssid + '". Reconnect your phone to your usual Wi-Fi, then open http://brimwatt.local. '
+                  + 'If it cannot join, the Brimwatt-Setup network comes back in about a minute and says why.'
+                : 'Brimwatt is restarting. Reconnect your phone to your usual Wi-Fi, then open http://brimwatt.local.';
         } catch (e) {
-            showError('Lost the connection. If the board has restarted, reconnect to your usual Wi-Fi and open http://wattsync.local.');
+            showError('Lost the connection. If the board has restarted, reconnect to your usual Wi-Fi and open http://brimwatt.local.');
             $('save').disabled = false;
             $('save').textContent = 'Save and restart';
         }

@@ -244,7 +244,7 @@ void test_the_check_finds_a_change_made_by_someone_else_and_puts_it_right() {
     for (int s = 0; s < 605; s++) r.tick();                // the check starts
     r.complete(5, 10, 10);                                 // somebody lowered it to 10 A on the car
     r.tick();
-    testing::check("amps 18", r.car.last());               // WattSync's value is set again
+    testing::check("amps 18", r.car.last());               // Brimwatt's value is set again
 }
 
 void test_the_check_notices_a_car_that_stopped_by_itself() {
@@ -274,14 +274,14 @@ void test_the_commander_waits_while_a_job_is_running() {
 
 // ---- what the planner reads back ----------------------------------------------------------------------------------------------------
 
-void test_the_planner_is_told_what_wattsync_set_not_a_measurement() {
+void test_the_planner_is_told_what_brimwatt_set_not_a_measurement() {
     Rig r;
     TEST_ASSERT_FALSE(r.commander.primaryStatus().has_value());      // never looked
     TEST_ASSERT_FALSE(r.commander.currentLimitAmps().has_value());
     r.observe(5, 14, 13);                                            // the car says 14 A set, 13 A drawn
     TEST_ASSERT_TRUE(*r.commander.primaryStatus() == ChargerStatus::Charging);
     TEST_ASSERT_EQUAL(14, *r.commander.currentLimitAmps());
-    TEST_ASSERT_EQUAL(14, (int)r.commander.currentDrawAmps());       // what was set: WattSync does not measure the car
+    TEST_ASSERT_EQUAL(14, (int)r.commander.currentDrawAmps());       // what was set: Brimwatt does not measure the car
     TEST_ASSERT_FALSE(r.commander.drawIsMeasured());
     r.observe(7, 14, 0);
     TEST_ASSERT_TRUE(*r.commander.primaryStatus() == ChargerStatus::SuspendedEV);
@@ -337,10 +337,10 @@ void test_commands_are_recorded_in_the_activity_log_with_their_reason() {
     TEST_ASSERT_TRUE(r.commander.lastCommandAtSeconds() > 0);
 }
 
-void test_the_status_says_what_wattsync_set() {
+void test_the_status_says_what_brimwatt_set() {
     Rig r;
     r.observe(5, 16, 16);
-    TEST_ASSERT_TRUE(r.commander.status().state.find("Charging at 16 A, as set by WattSync") != std::string::npos);
+    TEST_ASSERT_TRUE(r.commander.status().state.find("Charging at 16 A, as set by Brimwatt") != std::string::npos);
     r.observe(2, 16, 0);
     TEST_ASSERT_TRUE(r.commander.status().state.find("not plugged in") != std::string::npos);
 }
@@ -843,11 +843,11 @@ int main() {
     RUN_TEST(test_the_check_finds_a_change_made_by_someone_else_and_puts_it_right);
     RUN_TEST(test_the_check_notices_a_car_that_stopped_by_itself);
     RUN_TEST(test_the_commander_waits_while_a_job_is_running);
-    RUN_TEST(test_the_planner_is_told_what_wattsync_set_not_a_measurement);
+    RUN_TEST(test_the_planner_is_told_what_brimwatt_set_not_a_measurement);
     RUN_TEST(test_after_its_own_command_the_numbers_follow_without_another_read);
     RUN_TEST(test_a_car_that_falls_asleep_keeps_its_last_known_plugged_in_state);
     RUN_TEST(test_commands_are_recorded_in_the_activity_log_with_their_reason);
-    RUN_TEST(test_the_status_says_what_wattsync_set);
+    RUN_TEST(test_the_status_says_what_brimwatt_set);
     RUN_TEST(test_a_sleeping_car_is_woken_only_when_the_owner_allowed_it_and_charging_is_wanted);
     RUN_TEST(test_after_a_wake_the_car_is_looked_at_at_once_and_then_commanded);
     RUN_TEST(test_the_car_is_woken_at_most_once_every_thirty_minutes);

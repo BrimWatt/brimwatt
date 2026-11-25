@@ -60,7 +60,7 @@ HttpResponse ApiHandler::handle(const std::string& method, const std::string& pa
     // A web page on another site can send a POST without any permission, but it cannot add this header: so changing
     // requests without it are refused (the dashboard adds it).
     if (method == "POST" && !hasSafeHeader) {
-        return text(403, "Blocked: changing requests need the X-WattSync header (the dashboard adds it). With curl: -H 'X-WattSync: 1'");
+        return text(403, "Blocked: changing requests need the X-Brimwatt header (the dashboard adds it). With curl: -H 'X-Brimwatt: 1'");
     }
     if (path == "/api/telemetry" && method == "GET") return telemetry();
     if (path == "/api/mode" && method == "POST") return updateMode(query);
@@ -468,7 +468,7 @@ HttpResponse ApiHandler::updateSite(const Params& query) {
 HttpResponse ApiHandler::exportCsv() {
     HttpResponse response;
     response.contentType = "text/csv";
-    response.downloadName = "wattsync-days.csv";
+    response.downloadName = "brimwatt-days.csv";
     response.body = "date,solar_kwh,car_kwh,car_from_sun_kwh,grid_import_kwh,grid_export_kwh,saved_dollars\n";
     if (!history_) return response;
     char line[120];
@@ -616,7 +616,7 @@ HttpResponse ApiHandler::fleetCallback(const Params& query) {
     page.contentType = "text/html; charset=utf-8";
     auto html = [&](const std::string& title, const std::string& line) {
         page.body = "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta http-equiv=refresh content='4;url=/'>"
-                    "<title>WattSync</title><body style='font:18px system-ui;margin:2em;line-height:1.4'><h2>" + title + "</h2><p>" + line +
+                    "<title>Brimwatt</title><body style='font:18px system-ui;margin:2em;line-height:1.4'><h2>" + title + "</h2><p>" + line +
                     "</p><p><a href='/'>Back to the dashboard</a></p>";
         return page;
     };
@@ -756,7 +756,7 @@ HttpResponse ApiHandler::car(const std::string& path, const Params& query) {
         if (*mode == "car") {
             if (!now.paired) return text(400, "No car is paired yet.");
             const std::string* confirm = find(query, "confirm");
-            if (!confirm || *confirm != "yes") return text(400, "Switching to the car needs confirm=yes: WattSync will then change the car's charging by itself.");
+            if (!confirm || *confirm != "yes") return text(400, "Switching to the car needs confirm=yes: Brimwatt will then change the car's charging by itself.");
         }
         return answer(router_->setThroughCar(*mode == "car"), *mode == "car" ? "The car is in command" : "The charger is in command");
     }

@@ -625,7 +625,7 @@ void test_the_csv_export_has_a_header_and_one_line_per_day() {
     HttpResponse response = r.api.handle("GET", "/api/export.csv", {});
     TEST_ASSERT_EQUAL(200, response.status);
     testing::check("text/csv", response.contentType);
-    testing::check("wattsync-days.csv", response.downloadName);
+    testing::check("brimwatt-days.csv", response.downloadName);
     TEST_ASSERT_TRUE(testing::contains(response.body, "date,solar_kwh,car_kwh"));
     TEST_ASSERT_TRUE(testing::contains(response.body, "2025-10-"));   // dates are real calendar dates (epoch 1760000000 is Oct 2025)
 }
@@ -1184,7 +1184,7 @@ void test_with_tesla_mode_off_nothing_talks_to_the_car_but_the_key_can_be_forgot
     testing::check("forget", car.lastCall);
     JsonDocument t = r.telemetry();
     TEST_ASSERT_FALSE(t["car"]["mode"]["enabled"].as<bool>());
-    testing::check("wattsync-tesla", t["car"]["mode"]["hotspot"] | "");
+    testing::check("brimwatt-tesla", t["car"]["mode"]["hotspot"] | "");
 }
 
 void test_tesla_mode_needs_confirmation_then_saves_and_restarts() {
@@ -1243,7 +1243,7 @@ void test_the_hotspot_password_is_only_given_on_request_and_never_in_telemetry()
     TEST_ASSERT_EQUAL(200, reply.status);
     JsonDocument doc;
     deserializeJson(doc, reply.body);
-    testing::check("wattsync-tesla", doc["ssid"] | "");
+    testing::check("brimwatt-tesla", doc["ssid"] | "");
     testing::check("secret1234", doc["password"] | "");
     HttpResponse raw = r.api.handle("GET", "/api/telemetry", {});
     TEST_ASSERT_TRUE(raw.body.find("secret1234") == std::string::npos);

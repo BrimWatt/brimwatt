@@ -33,7 +33,7 @@ HttpResponse SetupApi::handle(const std::string& method, const std::string& path
         return text(403, "Setup is off. Hold the BOOT button for 5 seconds to turn it on.");
     }
     if (method == "POST" && !hasSafeHeader) {
-        return text(403, "Blocked: changing requests need the X-WattSync header (the setup page adds it).");
+        return text(403, "Blocked: changing requests need the X-Brimwatt header (the setup page adds it).");
     }
     host_.userActive();
 

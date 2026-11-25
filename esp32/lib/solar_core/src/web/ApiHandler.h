@@ -44,7 +44,7 @@ struct HttpResponse {
  *   POST /api/site (lat, lon, tz, name; send them in the body)   where the panels are: sunrise, the clock and the forecast; restarts the board
  *   GET  /api/diagnostics                    restarts and crashes, uptime, memory, Wi-Fi signal (404 if the platform has none)
  *   GET  /api/export.csv                     every day's energy totals as a spreadsheet file
- *   POST /api/car/mode?enabled=true|false&confirm=yes   Tesla mode (off by default): Bluetooth, the wattsync-tesla Wi-Fi and the car in command; restarts the board
+ *   POST /api/car/mode?enabled=true|false&confirm=yes   Tesla mode (off by default): Bluetooth, the brimwatt-tesla Wi-Fi and the car in command; restarts the board
  *   GET  /api/car/hotspot                    the Tesla hotspot's name and password (only while Tesla mode is on; never part of telemetry)
  *   POST /api/clock?epoch=<seconds>          sets the board's clock from the phone when it has none (away from home)
  *   POST /api/car/pair  (vin in the body)    adds this controller's own key to the owner's Tesla (the owner taps the key card)
@@ -54,7 +54,7 @@ struct HttpResponse {
  *   POST /api/car/through?mode=charger|car[&confirm=yes]   who is in command of the charge (the car needs confirm=yes and a paired car)
  *   POST /api/car/policy?onReturn=keep|tell|stop   what to do when the car is back after 10+ minutes out of reach
  *   POST /api/car/wake                       wakes a sleeping car now (a test command; the car stays awake a while and uses a little battery)
- *   POST /api/car/allowwake?enabled=true|false   may WattSync wake a sleeping car when charging is wanted (off by default)
+ *   POST /api/car/allowwake?enabled=true|false   may Brimwatt wake a sleeping car when charging is wanted (off by default)
  *   POST /api/car/cancel                     ends a pairing or test early
  *   POST /api/car/forget                     deletes our key and the car from this controller
  *   (the car's state is part of /api/telemetry as "car")
@@ -69,7 +69,7 @@ public:
 
     /**
      * Status 404 for anything that is not an API endpoint. `hasSafeHeader` says whether the request carried the
-     * X-WattSync header; POSTs without it are refused with 403 (cross-site protection).
+     * X-Brimwatt header; POSTs without it are refused with 403 (cross-site protection).
      */
     HttpResponse handle(const std::string& method, const std::string& path, const Params& query, bool hasSafeHeader = true);
 

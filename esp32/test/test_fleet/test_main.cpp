@@ -481,10 +481,10 @@ void test_the_link_switch_sends_everything_to_the_chosen_link_only() {
 // ---- signing an account in on the board ------------------------------------------------------------------------------------
 
 void test_only_addresses_on_the_home_network_may_get_the_sign_in_code() {
-    for (const char* ok : {"http://192.168.1.153", "http://10.0.0.5:80", "http://172.16.4.2", "http://172.31.255.1", "http://wattsync.local", "http://wattsync.local:80", "http://localhost", "http://localhost:3000", "http://169.254.1.2"})
+    for (const char* ok : {"http://192.168.1.153", "http://10.0.0.5:80", "http://172.16.4.2", "http://172.31.255.1", "http://brimwatt.local", "http://brimwatt.local:80", "http://localhost", "http://localhost:3000", "http://169.254.1.2"})
         TEST_ASSERT_TRUE_MESSAGE(FleetManager::isLocalOrigin(ok), ok);
     for (const char* bad : {"https://192.168.1.153", "http://example.com", "http://8.8.8.8", "http://172.32.0.1", "http://172.15.0.1", "http://192.169.1.1", "http://192.168.1", "http://192.168.1.1.5",
-                            "http://192.168.1.1/path", "http://user@192.168.1.1", "http://evil.local.example.com", "http://", "", "192.168.1.1", "http://192.168.1.300", "http://wattsync.local:abc", "http://a b.local"})
+                            "http://192.168.1.1/path", "http://user@192.168.1.1", "http://evil.local.example.com", "http://", "", "192.168.1.1", "http://192.168.1.300", "http://brimwatt.local:abc", "http://a b.local"})
         TEST_ASSERT_FALSE_MESSAGE(FleetManager::isLocalOrigin(bad), bad);
 }
 

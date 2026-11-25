@@ -43,7 +43,7 @@ void test_only_the_important_events_are_sent() {
     r.notifier.onEvent("Lost contact with the solar meter: charging stopped");
     TEST_ASSERT_EQUAL(2, r.sender.sent.size());
     testing::check("https://example.com/hook/secret", r.sender.sent[0].first);
-    testing::check("{\"text\":\"WattSync: Charging ended: 12.0 kWh, 80% from the sun\",\"content\":\"WattSync: Charging ended: 12.0 kWh, 80% from the sun\"}",
+    testing::check("{\"text\":\"Brimwatt: Charging ended: 12.0 kWh, 80% from the sun\",\"content\":\"Brimwatt: Charging ended: 12.0 kWh, 80% from the sun\"}",
                    r.sender.sent[0].second);
 }
 

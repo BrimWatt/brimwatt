@@ -13,7 +13,7 @@ constexpr int kCallError = 4;
 // ---- replies to the charger ----
 
 /**
- * The reply layout is [3, id, action, payload], copied from the earlier WattSync project that is known to work
+ * The reply layout is [3, id, action, payload], copied from the earlier Brimwatt project that is known to work
  * with this wallbox. The OCPP specification shows [3, id, payload]; change it here if a charger needs that.
  */
 std::string callResult(const std::string& messageId, const std::string& action, JsonVariantConst payload);

@@ -47,7 +47,7 @@ def section(title, rows):
     return [Paragraph(title, h2), t]
 
 S = []
-S += [Paragraph("Test Scenarios for WattSync", h1),
+S += [Paragraph("Test Scenarios for Brimwatt", h1),
       Paragraph("Checks to run on the real house to confirm the system behaves as expected. Tick the Pass box as you go.", sub),
       Paragraph("Before you start", h2),
       Paragraph("Follow the live log in one terminal while you test:", body),
@@ -153,7 +153,7 @@ S += section("I. Daylight window", [
 S += section("J. Dashboard feedback", [
     (29, "Every action confirms", "Switch modes, move the Custom slider, drag the allowance slider, tick and untick Solar hours only.",
      "A short toast appears for each, with a second line only when needed (for example <i>Saved, charger offline</i>). The allowance slider sends only when released.", False),
-    (30, "Bad values are refused", "Run <font face='Courier'>curl -X POST -H 'X-WattSync: 1' 'http://wattsyncpi.local:8080/api/allowance?watts=5000'</font> (the slider stops at 1000 W).",
+    (30, "Bad values are refused", "Run <font face='Courier'>curl -X POST -H 'X-Brimwatt: 1' 'http://wattsyncpi.local:8080/api/allowance?watts=5000'</font> (the slider stops at 1000 W).",
      "The server answers 400 with the allowed range (0 to 1000 W). The current allowance is unchanged.", False),
     (31, "Controller goes away", "Stop the service, wait 10 seconds, then try a mode change. Start the service again.",
      "Pill shows <i>Offline</i> and a banner says it cannot reach the controller. The mode change shows an error toast and the old mode stays selected. After restart: <i>Live</i> and a <i>Reconnected</i> toast.", False),
@@ -176,11 +176,11 @@ S += section("J. Dashboard feedback", [
      "The card shows that day's curve (solar, car, home, grid import) under the day's name, then the chip returns you to the bars. Days older than 30 days still show a curve, at lower detail.", False),
     (43, "History survives a restart", "Restart the app (or press RESET on the board, or cut its power for a minute). Open Today and 30 days.",
      "Today's curve, the activity list and the daily bars are still there. After a power cut or a hard kill (<font face='Courier'>sudo systemctl kill -s SIGKILL solar-charger</font> on the Pi) at most the last minute is missing: both save a small journal every minute and a full copy every 30 minutes.", True),
-    (44, "Export", "Open /api/export.csv (for example http://wattsync.local/api/export.csv) in a browser.",
+    (44, "Export", "Open /api/export.csv (for example http://brimwatt.local/api/export.csv) in a browser.",
      "A spreadsheet file downloads with one line per day: date, solar, car, car from the sun, grid import and grid export in kWh.", False),
     (52, "Pull down to refresh", "Open the page from its Home Screen icon, then pull the page down from the very top and let go.",
-     "The WattSync logo slides down in a small round badge, growing as you pull while its sync arrows turn; the bolt pops and glows once you have pulled far enough. Letting go reloads the page and the arrows spin around the bolt while it loads. A short pull springs back without reloading. No text appears. It does nothing in a normal Safari tab (Safari has its own) and does not start from a slider.", False),
-    (53, "Other sites cannot change settings", "Run <font face='Courier'>curl -X POST 'http://wattsyncpi.local:8080/api/pause?enabled=true'</font> (no header), then the same with <font face='Courier'>-H 'X-WattSync: 1'</font>, then resume.",
+     "The Brimwatt logo slides down in a small round badge, growing as you pull while its sync arrows turn; the bolt pops and glows once you have pulled far enough. Letting go reloads the page and the arrows spin around the bolt while it loads. A short pull springs back without reloading. No text appears. It does nothing in a normal Safari tab (Safari has its own) and does not start from a slider.", False),
+    (53, "Other sites cannot change settings", "Run <font face='Courier'>curl -X POST 'http://wattsyncpi.local:8080/api/pause?enabled=true'</font> (no header), then the same with <font face='Courier'>-H 'X-Brimwatt: 1'</font>, then resume.",
      "Without the header the answer is 403 and nothing changes. With it, charging pauses. The dashboard buttons always work.", False),
     (54, "Departure goal waits, then takes over", "In Settings turn on <i>Ready by</i> (the switch), set the energy to 10 kWh and the time about an hour from now (say 3 pm), with a car plugged in, in Eco, outside or inside solar hours.",
      "Early on nothing changes. Once the time left is only just enough, the headline says <i>Charging to make your goal</i> with kWh so far, the speed and <i>grid power if needed</i>, and the Activity list notes it. After the deadline the goal moves to tomorrow. Turn it off with the switch. It is ignored in Custom, while paused and with no car.", False),
@@ -265,11 +265,11 @@ S += [Spacer(1, 10), Paragraph("Useful log filters", h2),
 
 def footer(c, d):
     c.saveState(); c.setFont("Helvetica", 8); c.setFillColor(colors.HexColor("#888888"))
-    c.drawString(0.7 * inch, 0.45 * inch, "WattSync - test scenarios")
+    c.drawString(0.7 * inch, 0.45 * inch, "Brimwatt - test scenarios")
     c.drawRightString(letter[0] - 0.7 * inch, 0.45 * inch, "Page %d" % d.page); c.restoreState()
 
 doc = SimpleDocTemplate(OUT, pagesize=letter, leftMargin=0.7 * inch, rightMargin=0.7 * inch,
-                        topMargin=0.6 * inch, bottomMargin=0.7 * inch, title="Test Scenarios for WattSync",
-                        author="WattSync")
+                        topMargin=0.6 * inch, bottomMargin=0.7 * inch, title="Test Scenarios for Brimwatt",
+                        author="Brimwatt")
 doc.build(S, onFirstPage=footer, onLaterPages=footer)
 print("wrote", OUT)

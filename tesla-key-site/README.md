@@ -10,7 +10,7 @@ These files are published on a **public HTTPS domain you control** (any static h
 | `.nojekyll` | Stops GitHub Pages from hiding the `.well-known` folder. Harmless elsewhere. |
 
 **Never put the private key here.** Only the public half is published; the private key stays outside the repository
-(for example in `~/.wattsync/`) and is sent only to your own board by the setup tool.
+(for example in `~/.brimwatt/`) and is sent only to your own board by the setup tool.
 
 To use it: replace the public key with your own, upload the folder to a static host (for example Netlify Drop or Cloudflare Pages), set the
 app's Allowed Origin to that domain and add `https://<your-domain>/callback.html` to its Allowed Redirect URIs.

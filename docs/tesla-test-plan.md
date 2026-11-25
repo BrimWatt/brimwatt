@@ -7,16 +7,16 @@ Status key: `[ ]` not run, `[x]` passed, `[!]` failed (say what happened), `[-]`
 
 ## Before you start
 
-- [ ] The car belongs to someone else: tell its owner what will happen (a key is already in the car under Controls > Locks; WattSync will change its charging current and may wake it).
+- [ ] The car belongs to someone else: tell its owner what will happen (a key is already in the car under Controls > Locks; Brimwatt will change its charging current and may wake it).
 - [ ] The car is near the board (Bluetooth), **plugged in and awake**. Open a door, or use the Tesla app, to wake it.
-- [ ] The board is on Wi-Fi and `http://wattsync.local/` loads. Tesla mode is **off by default**: switch it on in Settings > Tesla first (section G); sections A-F need it on. Settings > Tesla then shows the paired car (masked VIN).
+- [ ] The board is on Wi-Fi and `http://brimwatt.local/` loads. Tesla mode is **off by default**: switch it on in Settings > Tesla first (section G); sections A-F need it on. Settings > Tesla then shows the paired car (masked VIN).
 - [ ] Note the car's current setting now (Tesla screen, or Settings > Tesla > Check now): ______ A. Put it back at the end (H).
-- [ ] Decide where the wallbox stands: if the car is **not** charged from your wallbox, nothing else is affected. If it is, switching to "Car" stops WattSync commanding the wallbox.
+- [ ] Decide where the wallbox stands: if the car is **not** charged from your wallbox, nothing else is affected. If it is, switching to "Car" stops Brimwatt commanding the wallbox.
 - [ ] Optional but useful: a serial monitor on the cable (`pio device monitor`) for the board's own log lines, and `tesla debug on` to see raw messages.
 
 Back out at any time: Settings > Tesla > **Control through = Charger**. Pause is the kill switch. Forget car removes the key from the board.
 
-## G. Tesla mode and the wattsync-tesla Wi-Fi (new 2026-10-27; do this section first, the others need Tesla mode on)
+## G. Tesla mode and the brimwatt-tesla Wi-Fi (new 2026-10-27; do this section first, the others need Tesla mode on)
 
 | # | Test | Expected | Result |
 |---|---|---|---|
@@ -25,14 +25,14 @@ Back out at any time: Settings > Tesla > **Control through = Charger**. Pause is
 | G3 | Memory with Tesla mode off: Diagnostics largest block | At least as high as before (about 53 KB or more); the graph and the three today tiles load | [ ] |
 | G4 | Switch Tesla mode on (confirm the dialog) | The board restarts; after about a minute the badge "Tesla mode" shows; Activity "Control moved to the car" once a car is paired; the wallbox is no longer commanded | [ ] |
 | G5 | Settings > Tesla > Password > Show | The password appears and hides again after 30 s | [ ] |
-| G6 | On a phone, join Wi-Fi `wattsync-tesla` with that password, open `http://192.168.4.1/` | The same dashboard loads (the phone may warn "no internet"; stay on it) | [ ] |
-| G7 | Home Wi-Fi still works while the hotspot is open | `http://wattsync.local/` also loads from the home network | [ ] |
+| G6 | On a phone, join Wi-Fi `brimwatt-tesla` with that password, open `http://192.168.4.1/` | The same dashboard loads (the phone may warn "no internet"; stay on it) | [ ] |
+| G7 | Home Wi-Fi still works while the hotspot is open | `http://brimwatt.local/` also loads from the home network | [ ] |
 | G8 | Away from home (or router off): power-cycle the board with Tesla mode on | Start-up carries on after about 25 s; the hotspot works; the dashboard shows the phone's time within a minute (clock set) | [ ] |
 | G9 | Away from home, Custom 8 A, car in command (section D) | Works without the Envoy and without internet | [ ] |
 | G10 | Dashboard speed with the hotspot open during a Bluetooth read | The page may pause a few seconds; note how long and whether it times out | [ ] |
 | G11 | Open the setup network (hold BOOT 5 s) while Tesla mode is on, then let it close | The hotspot comes back by itself after the setup network closes | [ ] |
 | G13 | Settings are separate: in Tesla mode change the mode, allowance and a price, then switch Tesla mode off | Charger mode shows its old values, not the Tesla ones; switching on again shows the Tesla ones; history, activity and sessions are separate too (first Tesla start has empty history) | [ ] |
-| G12 | Switch Tesla mode off | The board restarts; the badge goes; `wattsync-tesla` is gone; the charger is in command again | [ ] |
+| G12 | Switch Tesla mode off | The board restarts; the badge goes; `brimwatt-tesla` is gone; the charger is in command again | [ ] |
 
 ## A. Read only (safe)
 
@@ -65,7 +65,7 @@ Back out at any time: Settings > Tesla > **Control through = Charger**. Pause is
 |---|---|---|---|
 | D0 | Set the mode to **Custom** at a low current (8 A), car charging | Nothing changes yet | [ ] |
 | D1 | Settings > Tesla > **Control through = Car**; the dialog names the car (masked VIN) | Cancel keeps Charger. OK: toast "The car is in command"; Activity "Control moved to the car" | [ ] |
-| D2 | Wait about 1-2 minutes | Activity "Car: changed limit to 8 A: custom current" (or nothing if it already had 8 A); the car shows 8 A; the tile line says "Charging at 8 A, as set by WattSync" | [ ] |
+| D2 | Wait about 1-2 minutes | Activity "Car: changed limit to 8 A: custom current" (or nothing if it already had 8 A); the car shows 8 A; the tile line says "Charging at 8 A, as set by Brimwatt" | [ ] |
 | D3 | Move the Custom slider to 12 A (it sends after 5 s idle) | Within about 1-2 minutes the car shows 12 A and Activity logs it | [ ] |
 | D4 | **Pause** | "Car: stopped charging: paused by you" and the car stops | [ ] |
 | D5 | **Resume** | The car restarts (the current is set first, then start); Activity shows "started charging" | [ ] |
@@ -79,27 +79,27 @@ Back out at any time: Settings > Tesla > **Control through = Charger**. Pause is
 
 | # | Test | Expected | Result |
 |---|---|---|---|
-| E1 | Someone sets a different current on the car's screen | Within 10 minutes (the next check) WattSync sets its own value again | [ ] |
-| E2 | Lower the car's own charge limit below its battery % | Within 10 minutes the tile shows it finished; WattSync does not restart it | [ ] |
+| E1 | Someone sets a different current on the car's screen | Within 10 minutes (the next check) Brimwatt sets its own value again | [ ] |
+| E2 | Lower the car's own charge limit below its battery % | Within 10 minutes the tile shows it finished; Brimwatt does not restart it | [ ] |
 | E3 | Policy **Keep its setting**: take the board out of Bluetooth range (or the car away) for 12 minutes | Tile line turns amber "Out of reach for ..."; the car keeps its setting; **no** Activity message; back in range it carries on | [ ] |
 | E4 | Policy **Just tell me**, same outage | After 10 minutes Activity "Car not reachable for 10 minutes: it keeps its last setting" (and a message if a webhook is set); on return "Car reachable again" | [ ] |
 | E5 | Policy **Stop when it is back**, same outage | As E4, then on return the charge is stopped once, then planning resumes (the car restarts by the normal rules) | [ ] |
 | E6 | A 3-minute outage with any policy | No messages at all | [ ] |
 | E7 | Retry rhythm while out of reach (serial log) | Retries after 30 s, 60 s, 2 min, then every 5 min | [ ] |
 
-## F. Automatic wake (tick "Allow WattSync to wake the car"; car in command, plugged in)
+## F. Automatic wake (tick "Allow Brimwatt to wake the car"; car in command, plugged in)
 
 | # | Test | Expected | Result |
 |---|---|---|---|
 | F1 | With waking **off**, let the car sleep while charging is wanted | Tile line says asleep and waking is off; nothing is sent | [ ] |
-| F2 | Tick **Allow WattSync to wake the car**, let it sleep again while charging is wanted | Activity "Car: waking the car so charging can start", then the normal set/start commands | [ ] |
+| F2 | Tick **Allow Brimwatt to wake the car**, let it sleep again while charging is wanted | Activity "Car: waking the car so charging can start", then the normal set/start commands | [ ] |
 | F3 | Make it sleep again within 30 minutes | No second wake until 30 minutes have passed | [ ] |
 | F4 | Unplug the car, let it sleep, ask for charging | It is not woken (nothing to charge) | [ ] |
 
 ## H. Clean up
 
 - [ ] The car's current is back to the value noted at the start.
-- [ ] Control through = Charger; "Allow WattSync to wake the car" off unless you want it.
+- [ ] Control through = Charger; "Allow Brimwatt to wake the car" off unless you want it.
 - [ ] Tell the car's owner the test is over. Decide: keep the key paired, or **Forget car** here **and** remove the key in the car (Controls > Locks).
 - [ ] Record the model, year and firmware of the car in the table in `docs/tesla-car-control.md`.
 
@@ -111,7 +111,7 @@ The Activity lines around the time, the Tesla tile text, a screenshot of Setting
 
 - A sleeping car is only woken if waking is allowed; the read itself never wakes it.
 - Every Bluetooth session pauses the board for a few seconds; checks happen about every 10 minutes while in command.
-- The planner is told the draw WattSync **set**, not a measurement; the energy count follows it.
+- The planner is told the draw Brimwatt **set**, not a measurement; the energy count follows it.
 - Stepping down to the minimum before an outage is not possible (nothing can be sent to an unreachable car); the car keeps its last setting.
 
 

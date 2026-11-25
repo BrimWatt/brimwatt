@@ -221,7 +221,7 @@ void CarCommander::recordCommand(const std::string& description, const std::stri
 
 double CarCommander::currentDrawAmps() {
     if (!belief_.known || belief_.asleep || !charging(belief_.code) || !belief_.hasRequest) return 0;
-    return belief_.request;   // what WattSync set
+    return belief_.request;   // what Brimwatt set
 }
 
 std::optional<int> CarCommander::currentLimitAmps() {
@@ -251,14 +251,14 @@ CarCommander::Status CarCommander::status() const {
     if (unreachableSince_) st.unreachableSeconds = static_cast<int>((platform_.nowMillis() - *unreachableSince_) / 1000);
     if (!active_) st.state = "The charger is in command.";
     else if (belief_.known && belief_.asleep)
-        st.state = allowWake_ ? "The car is asleep. WattSync will wake it when charging is wanted."
-                              : "The car is asleep and waking is off: wake it with the Tesla app and WattSync carries on.";
+        st.state = allowWake_ ? "The car is asleep. Brimwatt will wake it when charging is wanted."
+                              : "The car is asleep and waking is off: wake it with the Tesla app and Brimwatt carries on.";
     else if (unreachableSince_) st.state = "The car cannot be reached. It keeps its last setting; trying again.";
     else if (stopOnReturn_) st.state = "Stopping the charge, as you chose for when the car comes back.";
     else {
-        st.state = "WattSync is controlling the car's charging.";
+        st.state = "Brimwatt is controlling the car's charging.";
         if (belief_.known) {
-            if (charging(belief_.code) && belief_.hasRequest) st.state += " Charging at " + std::to_string(belief_.request) + " A, as set by WattSync.";
+            if (charging(belief_.code) && belief_.hasRequest) st.state += " Charging at " + std::to_string(belief_.request) + " A, as set by Brimwatt.";
             else if (belief_.code == 2) st.state += " The car is not plugged in.";
             else if (belief_.code == 6) st.state += " The car has finished charging.";
             else if (!charging(belief_.code)) st.state += " Not charging.";

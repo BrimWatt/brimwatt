@@ -38,7 +38,7 @@ build/
 ### Mac OS ###
 .DS_Store
 
-### WattSync ###
+### Brimwatt ###
 # Secrets and per-machine files must never be committed
 **/secrets.h
 esp32/logs/

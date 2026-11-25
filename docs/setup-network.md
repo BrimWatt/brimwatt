@@ -1,6 +1,6 @@
 # The setup network (ESP32)
 
-The ESP32 can open a temporary Wi-Fi network of its own, **`WattSync-Setup`**, with a setup page on it. From a phone you pick the home Wi-Fi from a scanned list and paste the Enphase token, the Envoy address and the update password. It replaces editing `secrets.h` and reflashing whenever the router, the token or the Envoy address changes. It works on any phone or computer, with no app and no cable.
+The ESP32 can open a temporary Wi-Fi network of its own, **`Brimwatt-Setup`**, with a setup page on it. From a phone you pick the home Wi-Fi from a scanned list and paste the Enphase token, the Envoy address and the update password. It replaces editing `secrets.h` and reflashing whenever the router, the token or the Envoy address changes. It works on any phone or computer, with no app and no cable.
 
 > **Status:** built, covered by host tests, and flashed. **Confirmed on the board with an iPhone (2026-10-26):** the setup network opens, the phone joins it and the page works. **Still to check on the board:** a save with a wrong password (the trial and undo), a real change of Wi-Fi or token, and setup with the router off at start-up. The screenshots below are the real page served by a stand-in for the board's API, with made-up networks and dummy values, not photos of the board.
 
@@ -8,7 +8,7 @@ The ESP32 can open a temporary Wi-Fi network of its own, **`WattSync-Setup`**, w
 
 | | |
 |---|---|
-| Network name and password | `WattSync-Setup` / `wattsync` (the same on every board for now) |
+| Network name and password | `Brimwatt-Setup` / `brimwatt` (the same on every board for now) |
 | Address | `http://192.168.4.1/setup` (phones usually open it by themselves) |
 | Opens when | no Wi-Fi is set (stays open) · the saved Wi-Fi cannot be joined for 3 minutes at start-up (once per start) · BOOT held 5 s (GPIO0) · console command `setup` |
 | Closes when | 15 minutes without use (not when no Wi-Fi is set) · a save restarts the board · the Wi-Fi comes back while nobody is on it |
@@ -41,10 +41,10 @@ After a save with a different network (or a different password for the same one)
 
 ## Using it (iPhone)
 
-1. Join the Wi-Fi **WattSync-Setup**, password `wattsync`. If the page does not open by itself, open `http://192.168.4.1/setup` in Safari.
+1. Join the Wi-Fi **Brimwatt-Setup**, password `brimwatt`. If the page does not open by itself, open `http://192.168.4.1/setup` in Safari.
 2. Tap your network in the list (strongest first; a name seen on several access points appears once). Type its password. Hidden networks cannot be listed, so use *My network is not listed*. **Scan again** looks again; the page may stall for a few seconds because the board scans on the radio the page uses.
 3. Paste the **Enphase token**, check the **Envoy address** (empty finds it by itself) and set an **update password**. Leaving a secret field empty keeps what is saved; the page only ever says that one is saved.
-4. **Save and restart.** Rejoin your usual Wi-Fi and open `http://wattsync.local`.
+4. **Save and restart.** Rejoin your usual Wi-Fi and open `http://brimwatt.local`.
 
 ## What the page looks like
 
@@ -79,7 +79,7 @@ The first problem found is reported, in plain words, and nothing is saved.
 
 ## Endpoints
 
-All of them answer **403** while the setup network is closed (`Setup is off. Hold the BOOT button for 5 seconds to turn it on.`). Changing requests (`POST`) also need the `X-WattSync: 1` header, like the rest of the API. Secrets travel in the body of a POST, never in an address, and **no reply ever contains a secret**.
+All of them answer **403** while the setup network is closed (`Setup is off. Hold the BOOT button for 5 seconds to turn it on.`). Changing requests (`POST`) also need the `X-Brimwatt: 1` header, like the rest of the API. Secrets travel in the body of a POST, never in an address, and **no reply ever contains a secret**.
 
 | Endpoint | Purpose |
 |---|---|

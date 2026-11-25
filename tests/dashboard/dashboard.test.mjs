@@ -165,7 +165,7 @@ test('every control has a name a screen reader can say', () => {
 });
 
 test('changing requests carry the safe header', () => {
-    assert.match(script, /headers:\s*\{\s*'X-WattSync':\s*'1'\s*\}/);
+    assert.match(script, /headers:\s*\{\s*'X-Brimwatt':\s*'1'\s*\}/);
 });
 
 test('pull to refresh stays off in a normal tab and switches on for the Home Screen app', () => {
@@ -269,8 +269,8 @@ test('every Tesla test button asks before it changes the car', () => {
 test('the tile says who is in command, and warns when the car is asleep or out of reach', () => {
     const base = { watch: true, reading: { ageSeconds: 20, battery: 50, charging: 'charging', amps: 12, volts: 239 } };
     assert.equal(page.carView(base, null).control, '');                               // the charger is in command: no line
-    const on = page.carView(Object.assign({}, base, { control: { through: true, state: "WattSync is controlling the car's charging.", unreachableSeconds: 0 } }), null);
-    assert.match(on.control, /WattSync is controlling/);
+    const on = page.carView(Object.assign({}, base, { control: { through: true, state: "Brimwatt is controlling the car's charging.", unreachableSeconds: 0 } }), null);
+    assert.match(on.control, /Brimwatt is controlling/);
     assert.equal(on.controlWarn, false);
     const out = page.carView(Object.assign({}, base, { control: { through: true, state: 'The car cannot be reached. It keeps its last setting; trying again.', unreachableSeconds: 720 } }), null);
     assert.match(out.control, /Out of reach for 12m\./);

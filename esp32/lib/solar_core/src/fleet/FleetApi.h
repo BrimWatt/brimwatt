@@ -18,7 +18,7 @@ struct FleetRead {
     tesla::ChargeState charge;
 };
 
-/** The few Fleet API calls WattSync makes. Every call asks FleetAuth for a token, retries once with a new one after a 401, and turns Tesla's codes into plain words. */
+/** The few Fleet API calls Brimwatt makes. Every call asks FleetAuth for a token, retries once with a new one after a 401, and turns Tesla's codes into plain words. */
 class FleetApi {
 public:
     FleetApi(FleetHttp& http, FleetAuth& auth) : http_(http), auth_(auth) {}
@@ -32,7 +32,7 @@ public:
     /** POST signed_command with one routable message (the same protobuf the Bluetooth link sends, without the length prefix). `reply` is the car's routable answer. */
     bool signedCommand(const std::string& vin, const tesla::Bytes& routable, tesla::Bytes& reply, std::string& error);
 
-    /** Maps Tesla's charging_state words to the codes the rest of WattSync uses (2 disconnected ... 8 calibrating, 1 unknown). */
+    /** Maps Tesla's charging_state words to the codes the rest of Brimwatt uses (2 disconnected ... 8 calibrating, 1 unknown). */
     static int chargingStateCode(const std::string& text);
     static bool parseChargeState(const std::string& json, tesla::ChargeState& out);
 

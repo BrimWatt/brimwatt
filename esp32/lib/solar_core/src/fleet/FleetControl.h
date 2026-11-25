@@ -77,7 +77,7 @@ public:
     /** Letters and digits of a pasted VIN, capitals; spaces and dashes dropped. */
     static std::string cleanVin(const std::string& raw);
     static bool parseKeyHex(const std::string& hex, tesla::Bytes& out);
-    /** Only a board on the home network may be sent the sign-in code: an address like http://192.168.1.50, http://10.0.0.5:80, http://wattsync.local or http://localhost. */
+    /** Only a board on the home network may be sent the sign-in code: an address like http://192.168.1.50, http://10.0.0.5:80, http://brimwatt.local or http://localhost. */
     static bool isLocalOrigin(const std::string& origin);
 
 private:

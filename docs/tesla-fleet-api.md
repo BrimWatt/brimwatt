@@ -31,7 +31,7 @@ works from anywhere the board has internet (no Bluetooth range).
    **Allowed Redirect URIs** that include `https://<domain>/callback.html` (the page in `tesla-key-site/` that forwards Tesla's answer to the board) and,
    for the computer tool, `http://localhost:3000/oauth/tesla/`.
 2. Billing set up on the developer account with a small limit (the Fleet API is pay-per-use; a billing limit of 0 disables the app).
-3. `~/.wattsync/tesla-app.env` (mode 600) with the client id, client secret and domain; the app's private key in `~/.wattsync/tesla-app-private.pem`.
+3. `~/.brimwatt/tesla-app.env` (mode 600) with the client id, client secret and domain; the app's private key in `~/.brimwatt/tesla-app-private.pem`.
 4. `python3 tools/tesla_fleet/tesla_fleet.py register` (once per region).
 5. With Tesla mode on: `python3 tools/tesla_fleet/tesla_fleet.py setup-board --board http://<board>` puts the client id, the client SECRET, the domain and the
    signing key on the board (`POST /api/car/fleet/app`, body only, never echoed). After that nobody needs a computer.
@@ -69,8 +69,8 @@ wake; request prices. Checklist: `docs/tesla-test-plan.md`, section H.
 
 Decided 2026-11-07. With Tesla mode on (either link) the board does NOT run the wallbox side at all: the OCPP server never starts (`main.cpp`,
 `startControl`), so no wallbox can connect and nothing can start, stop or limit one. The car is the only thing controlled. With Tesla mode off the board is a
-wallbox controller as before and the car link is never used (Bluetooth stays off, API routes answer "Tesla mode is off"). The use case this serves: a car on a charger that WattSync does not talk to
-(for example a demo at another house), with the board at the owner's house reading the owner's solar. A car plugged into a wallbox that WattSync controls is wallbox mode.
+wallbox controller as before and the car link is never used (Bluetooth stays off, API routes answer "Tesla mode is off"). The use case this serves: a car on a charger that Brimwatt does not talk to
+(for example a demo at another house), with the board at the owner's house reading the owner's solar. A car plugged into a wallbox that Brimwatt controls is wallbox mode.
 
 ## Not built
 

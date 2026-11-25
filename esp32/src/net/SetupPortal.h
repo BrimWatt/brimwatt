@@ -18,7 +18,7 @@ enum class SetupReason {
 };
 
 /**
- * The board's own temporary Wi-Fi network ("WattSync-Setup") with a setup page, for choosing the home Wi-Fi and
+ * The board's own temporary Wi-Fi network ("Brimwatt-Setup") with a setup page, for choosing the home Wi-Fi and
  * pasting the Enphase details from a phone. It runs next to the normal Wi-Fi connection (access point plus station).
  * While it is open, every web address typed on a phone joined to it leads to the setup page (a "captive portal").
  *

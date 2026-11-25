@@ -17,7 +17,7 @@ enum class CarOnReturn { Keep = 0, Tell = 1, Stop = 2 };
  * "Control through: Car". Takes the current the planner wants and turns it into Bluetooth jobs for the car (set the current, start,
  * stop, and when allowed wake it), one at a time. It is a ChargeDevice, so the planner cannot tell it from the wallbox.
  *
- * WattSync is the only thing meant to set the car's current, so the commander works from what it believes the car is doing: what the
+ * Brimwatt is the only thing meant to set the car's current, so the commander works from what it believes the car is doing: what the
  * car last reported, updated by every command it sends. It does not measure the car. The car is read only to CHECK that belief:
  * after each command (the read-back), when it takes command or after an outage, and every 10 minutes (the car may have stopped by
  * itself, been unplugged, or had its current changed by someone else; the next decision then corrects it).
@@ -64,7 +64,7 @@ public:
     void setCommandContext(const std::string& context) override { context_ = context; }
     void refreshMeasurements() override;
     double currentDrawAmps() override;
-    bool drawIsMeasured() override { return false; }   // assumed from what WattSync set
+    bool drawIsMeasured() override { return false; }   // assumed from what Brimwatt set
     std::optional<int> currentLimitAmps() override;
     bool anyRestored() override { return false; }
     std::optional<ChargerStatus> primaryStatus() override;

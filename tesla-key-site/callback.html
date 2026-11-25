@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>WattSync</title>
+<title>Brimwatt</title>
 <style>body{font:18px/1.45 system-ui,sans-serif;margin:2em;max-width:34em}</style>
 </head>
 <body>
 <h2 id="t">Finishing the Tesla sign-in…</h2>
-<p id="m">Sending you back to your WattSync board.</p>
+<p id="m">Sending you back to your Brimwatt board.</p>
 <script>
 // Tesla sends the browser here with a one-use sign-in code. This page only forwards it to the board's own address on the home network (carried in
 // `state`). It never reads, stores or sends the code anywhere else, and refuses any address that is not private.
@@ -28,7 +28,7 @@
   }
   var q = new URLSearchParams(location.search), state = q.get('state') || '', code = q.get('code'), error = q.get('error');
   var tail = state.split('.')[1];
-  if (!tail) { show('Nothing to finish', 'Start the sign-in from your WattSync board: Settings > Tesla > Sign in to Tesla.'); return; }
+  if (!tail) { show('Nothing to finish', 'Start the sign-in from your Brimwatt board: Settings > Tesla > Sign in to Tesla.'); return; }
   var origin = '';
   try { origin = atob(tail.replace(/-/g, '+').replace(/_/g, '/')); } catch (e) { origin = ''; }
   if (!privateOrigin(origin)) { show('Cannot continue', 'The sign-in was not started from a board on your home network.'); return; }

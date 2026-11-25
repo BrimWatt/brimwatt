@@ -1,6 +1,6 @@
-<img src="docs/logo/wattsync-logo.png" width="96" alt="WattSync logo">
+<img src="docs/logo/brimwatt-logo.png" width="96" alt="Brimwatt logo">
 
-# WattSync
+# Brimwatt
 
 Charges an EV from solar. It reads an Enphase Envoy gateway, works out how much current the car can take, and tells an OCPP 1.6J wallbox what to do. A web dashboard shows live power and lets you pick a mode.
 
@@ -9,8 +9,8 @@ There are two interchangeable implementations that share one dashboard page. **R
 | | **ESP32-S3 board** (recommended) | **Raspberry Pi** |
 |---|---|---|
 | What it is | C++ firmware in [`esp32/`](esp32/), a board that costs a few dollars | A single Java 17 jar (Javalin) in this folder |
-| Dashboard | `http://wattsync.local/` (port 80) | `http://<pi-address>:8080/` |
-| Wallbox points at | `ws://wattsync.local:8080/pair` | `ws://<pi-address>:8080/pair` |
+| Dashboard | `http://brimwatt.local/` (port 80) | `http://<pi-address>:8080/` |
+| Wallbox points at | `ws://brimwatt.local:8080/pair` | `ws://<pi-address>:8080/pair` |
 | Extras | Optional Tesla control (Bluetooth or your Tesla account), setup from a phone, updates over Wi-Fi | Same planner and API, no Tesla control |
 
 **Contents:** [Quick start](#quick-start) · [Modes](#modes) · [Safety](#safety-and-recovery-behavior) · [Settings](#settings) · [Dashboard and HTTP API](#dashboard-and-http-api) · [OCPP](#ocpp) · [Documentation](#documentation) · [License](#license)
@@ -32,8 +32,8 @@ There are two interchangeable implementations that share one dashboard page. **R
 1. **Get the code and the build tool.**
 
    ```bash
-   git clone https://github.com/ny2sfo/wattsync.git wattsync
-   cd wattsync/esp32
+   git clone https://github.com/brimwatt/brimwatt.git brimwatt
+   cd brimwatt/esp32
    python3 -m venv .venv
    .venv/bin/pip install platformio
    ```
@@ -57,13 +57,13 @@ There are two interchangeable implementations that share one dashboard page. **R
 
    If the upload cannot connect, hold **BOOT**, tap **RESET**, release **BOOT**, and run it again. If a newly built tool complains about the C++ headers on macOS, run the build as `env -u CPLUS_INCLUDE_PATH .venv/bin/pio run -e esp32s3 -t upload`.
 
-   A healthy start prints the board name `wattsync`, `Wi-Fi: connected`, `Time: ...`, `mDNS: this board is wattsync.local` and `OCPP: listening on port 8080`.
+   A healthy start prints the board name `brimwatt`, `Wi-Fi: connected`, `Time: ...`, `mDNS: this board is brimwatt.local` and `OCPP: listening on port 8080`.
 
-4. **If it cannot join Wi-Fi, use the setup network.** With no Wi-Fi saved (or when the join fails for 3 minutes) the board opens its own network **`WattSync-Setup`** (password `wattsync`). Join it on a phone; the page opens by itself, or go to `http://192.168.4.1/setup`. Pick your Wi-Fi from the list and paste the Enphase token, the Envoy address and the update password. You can open it again any time by holding **BOOT** for 5 seconds. Details: [`docs/setup-network.md`](docs/setup-network.md). The setup password is the same on every board, so use the setup network at home only.
+4. **If it cannot join Wi-Fi, use the setup network.** With no Wi-Fi saved (or when the join fails for 3 minutes) the board opens its own network **`Brimwatt-Setup`** (password `brimwatt`). Join it on a phone; the page opens by itself, or go to `http://192.168.4.1/setup`. Pick your Wi-Fi from the list and paste the Enphase token, the Envoy address and the update password. You can open it again any time by holding **BOOT** for 5 seconds. Details: [`docs/setup-network.md`](docs/setup-network.md). The setup password is the same on every board, so use the setup network at home only.
 
-5. **Open the dashboard.** Browse to `http://wattsync.local/` (or the board's IP address, which the log prints). On the first visit, tap **Set your location** so sunrise and sunset, the daylight window and the forecast match where you live.
+5. **Open the dashboard.** Browse to `http://brimwatt.local/` (or the board's IP address, which the log prints). On the first visit, tap **Set your location** so sunrise and sunset, the daylight window and the forecast match where you live.
 
-6. **Point the charger at the board.** In the charger's OCPP settings enter the server address `ws://wattsync.local:8080/pair` (or `ws://<board-ip>:8080/pair`). The charger adds its own id. It should appear on the dashboard within a minute. The board starts in **ECO** mode, so with solar surplus and a car plugged in it starts charging by itself.
+6. **Point the charger at the board.** In the charger's OCPP settings enter the server address `ws://brimwatt.local:8080/pair` (or `ws://<board-ip>:8080/pair`). The charger adds its own id. It should appear on the dashboard within a minute. The board starts in **ECO** mode, so with solar surplus and a car plugged in it starts charging by itself.
 
 7. **Update later over Wi-Fi (no cable).** After the first cable flash, with the board and the computer on the same network:
 
@@ -71,7 +71,7 @@ There are two interchangeable implementations that share one dashboard page. **R
    env -u CPLUS_INCLUDE_PATH .venv/bin/pio run -e esp32s3-ota -t upload
    ```
 
-   It takes about 30 seconds, uses `OTA_PASSWORD` from `src/secrets.h` without printing it, and keeps the last charging limit running while it restarts. If `wattsync.local` does not resolve, put the board's IP in `upload_port` in `platformio.ini`.
+   It takes about 30 seconds, uses `OTA_PASSWORD` from `src/secrets.h` without printing it, and keeps the last charging limit running while it restarts. If `brimwatt.local` does not resolve, put the board's IP in `upload_port` in `platformio.ini`.
 
 More on the ESP32 route (console commands, what to check on a real charger, troubleshooting): [`esp32/README.md`](esp32/README.md).
 
@@ -80,8 +80,8 @@ More on the ESP32 route (console commands, what to check on a real charger, trou
 1. **Build the jar** (Java 17 and Maven; the tests run as part of the build):
 
    ```bash
-   git clone https://github.com/ny2sfo/wattsync.git wattsync
-   cd wattsync
+   git clone https://github.com/brimwatt/brimwatt.git brimwatt
+   cd brimwatt
    mvn clean package            # add -o to build offline if your Maven mirror is unreachable
    ```
 
@@ -114,7 +114,7 @@ Besides controlling the charger, the board can control a Tesla itself, either ov
 
 ### If something does not work
 
-- **Dashboard does not load:** check the boot log for `Dashboard: http://wattsync.local/`, try the IP address, and make sure your computer is on the same network.
+- **Dashboard does not load:** check the boot log for `Dashboard: http://brimwatt.local/`, try the IP address, and make sure your computer is on the same network.
 - **Board cannot join Wi-Fi:** it must be a 2.4 GHz network; after 3 minutes the setup network opens so you can fix the details.
 - **`envoy.local` not found:** enter the gateway's IP address on the setup page (or in `ENVOY_IP`).
 - **Boot lines but nothing from the program:** you are probably on the board's other USB port; use the UART/COM port with the default build.
@@ -168,9 +168,9 @@ A charge that is already running (after a restart, or switching from FAST) is ad
 - **Cheapest hours (for time-of-use power plans, no solar needed).** A fourth mode. It charges at the maximum current whenever power is not expensive and stops during the expensive hours. The expensive hours are the peak window under *Settings > Money > Higher price at certain hours* (default 4 pm to 9 pm), with an *Also on weekends* switch (on: every day, off: Monday to Friday only). That matches the main California plans: PG&E E-TOU-C and SCE TOU-D-4-9PM both have a 4 to 9 pm peak every day; some plans (PG&E E-TOU-D) are weekdays only. The hours are the same in summer and winter on those plans (summer is June to September), only the prices change, so there is one window, not seasonal tabs. It never reads the solar meter for charging (a lost meter is not a fail-safe, and with no meter set up the board shows price tiles, *Price now*, *Cheap at* / *Peak at* and *Car*, instead of the power picture). A *Ready by* goal still wins when time runs short. Telemetry: `peakWeekends`, `controller.expensiveNow`, `controller.secondsToPriceChange`. Under *Money > Higher price at certain hours* a **Your plan** list fills in the hours for PG&E E-TOU-C and SCE TOU-D-4-9PM (hours only, as published in October 2026; the prices change, so enter yours). Not built yet: separate winter and summer prices.
 - **Maximum current.** One setting (6 to 40 A, default 40) caps every mode, including Custom. Set it to what your wiring and breaker can carry.
 - **Peak price.** Under *Settings > Money*, the switch *Higher price at certain hours* adds an optional second price with its hours (24 h clock) so money saved counts the sun at the price of the hour it was used. Days recorded before it was set keep an estimate.
-- **Messages.** Optionally paste a webhook address (Slack, Discord, Home Assistant, IFTTT, Zapier ...) under *Settings*. WattSync posts `{"text": ..., "content": ...}` when charging ends, the solar meter is lost or returns, the charger disconnects, saved settings are found damaged, or the goal takes over. The same message is sent at most once per 10 minutes. The address is stored on the controller and the dashboard only shows its host. Use the *Send test* button to check it.
+- **Messages.** Optionally paste a webhook address (Slack, Discord, Home Assistant, IFTTT, Zapier ...) under *Settings*. Brimwatt posts `{"text": ..., "content": ...}` when charging ends, the solar meter is lost or returns, the charger disconnects, saved settings are found damaged, or the goal takes over. The same message is sent at most once per 10 minutes. The address is stored on the controller and the dashboard only shows its host. Use the *Send test* button to check it.
 - **Damaged settings.** If the state file cannot be read (and its `.bak` copy cannot either), the app starts **paused** and says so in the activity log, rather than charging on defaults. The previous good copy is kept as `solar-charger-state.json.bak`.
-- **Cross-site protection.** Every change (`POST`) must carry the header `X-WattSync: 1`. The dashboard adds it; a web page on another site cannot. With curl add `-H 'X-WattSync: 1'`.
+- **Cross-site protection.** Every change (`POST`) must carry the header `X-Brimwatt: 1`. The dashboard adds it; a web page on another site cannot. With curl add `-H 'X-Brimwatt: 1'`.
 - **Charger connection.** Heartbeat interval 60 s, idle timeout 5 min.
 
 ## Settings
@@ -186,7 +186,7 @@ Environment variables (set in `/etc/solar-charger.env` under systemd):
 | `STATE_FILE` | `solar-charger-state.json` | Where state is saved (relative to the working directory). |
 | `HISTORY_FILE` | `solar-charger-history.tsv` | Where the history is saved: this file holds the last two days by the minute, the activity log and the daily totals (fully rewritten every 30 minutes if changed, and on a normal stop); a second file next to it with `.long` added holds the 5-minute and hourly records and only ever grows at the end, and a third with `.journal` added is rewritten every minute with just what is new since the last full save and folded back in at the next start. A crash or power cut loses at most a minute. |
 
-Tunable constants live in [AppConfig.java](src/main/java/com/wattsync/config/AppConfig.java): poll interval, amp limits, smoothing time constants, deadband, start and stop timers, allowance default and maximum, daylight margins, fail-safe delay, state refresh and age limits. Change them and rebuild.
+Tunable constants live in [AppConfig.java](src/main/java/com/brimwatt/config/AppConfig.java): poll interval, amp limits, smoothing time constants, deadband, start and stop timers, allowance default and maximum, daylight margins, fail-safe delay, state refresh and age limits. Change them and rebuild.
 
 Dashboard-controlled, saved across restarts: mode, Custom current, grid allowance (0 to 1000 W), daylight window on/off.
 
@@ -214,7 +214,7 @@ Dashboard-controlled, saved across restarts: mode, Custom current, grid allowanc
 | `POST /api/pause?enabled=true\|false` | The kill switch: stop charging whatever the mode (`true`), or hand the charger back to the saved mode (`false`). Saved, so it survives a restart or crash. |
 | `POST /api/daylight?enabled=true\|false&startMin=0-180&endMin=0-180` | Turn the daylight window on or off, and/or set how many minutes after sunrise it opens and before sunset it closes (each parameter optional; nothing changes if any value is invalid) |
 
-All `POST` calls need the header `X-WattSync: 1`, for example `curl -X POST -H 'X-WattSync: 1' 'http://wattsyncpi.local:8080/api/mode?mode=ECO'`. There is no password on the dashboard or API. Keep it on your home network.
+All `POST` calls need the header `X-Brimwatt: 1`, for example `curl -X POST -H 'X-Brimwatt: 1' 'http://wattsyncpi.local:8080/api/mode?mode=ECO'`. There is no password on the dashboard or API. Keep it on your home network.
 
 ### Dashboard behavior
 
@@ -230,7 +230,7 @@ All `POST` calls need the header `X-WattSync: 1`, for example `curl -X POST -H '
 - **Today and Tomorrow bubbles** (a row of small buttons across the bottom of the headline card, next to the Solar Score, for homes with a solar meter and a set location: a weather picture (sun, partly cloudy, cloud, rain, from the day's cloud cover and rain) and the expected solar, such as **Today ~93 mi ›** and **Tomorrow ~30 mi ›**, in kWh or as ~miles of range depending on the unit chosen in Settings. Today is the whole-day estimate, never below what is already made; after the solar hours it says what was made (**Today ~78 mi made ›**), because the meter is not read then. Either opens a card with an hourly sunshine chart for tomorrow, the best hours, a rough kWh figure and a line about the current mode). The **phone** asks open-meteo.com for the forecast (never the board or the Pi), at most every 3 hours, sending only the area to a tenth of a degree (about 11 km; telemetry `site.lat`/`site.lon` give it that way) and its own address, and keeps the last answer on the phone. The kWh figure is learned from your own solar over the last 7 days compared with those days' weather (needs 3 usable days; otherwise only the words). Text only: it changes nothing about charging. *Settings > Display > Show tomorrow's forecast* turns it off and nothing is requested. Weather data by Open-Meteo.com (CC BY 4.0); the free service is for non-commercial use.
 - **Your impact** (on a phone, a small button under the headline such as **Solar Score 74 ›** with a small ring and the grade letter beside it opens it as a sheet with a **Done** button (a centred card on a wide screen, in two columns); Week / Month tabs; worked out on the phone from `/api/days` and `/api/sessions`, so it adds no work for the board or the Pi). The score is a **wheel**: a ring filled to the score out of 100 in the same gold-to-green as the *From your solar* bar, with the grade letter in the middle and "81 of 100" under it (the letter takes the colour the gradient has reached; a small version of the ring sits on the button under the headline; it fills in when the card opens if the phone allows animation). Grades: A 90 or more, B 75, C 60, D below: with solar it is 50 points for the share of the car's energy that came from solar plus 30 for charging outside the expensive hours, scaled to 100; without solar (no meter, or no solar energy in the period) it is called **Charge Score** and counts only the off-peak share. A part that does not apply (no peak price and not in Cheapest hours) is dropped and the rest share the 100. Ready by goals count for 20 points when at least one deadline was judged in the period (the controllers now record, once per deadline, whether the goal was reached: a line in the activity log, "Departure goal met" or "missed", and a per-day result kept for 400 days; a day with no car plugged in and no energy is not judged), with a **Ready on time** badge for days in a row. **Saved by Cheapest hours** compares each Cheapest-hours charge with charging at full current from the moment the car was plugged in (an estimate; needs a peak price above the normal price and a known plug-in time). Under it: miles, how much cheaper than gas, CO2 avoided against gas (solar homes only; 8.9 kg a gallon and a rough 0.23 kg per kWh for the grid), a streak (sunny days: at least half the car's energy from solar, skipping days with no charge or too little sun to cover it; or peak-free days for homes without solar), badges, and **Share image**, which draws a picture on the phone and opens the share sheet. The off-peak share assumes each charge drew evenly from start to stop. Everything is an estimate.
 - **Motion.** The power picture is alive: dots travel along each line in the direction the power flows (faster with more power; a dashed grey line means no flow), the Solar, Home, Grid and Car numbers glide to new values, the supply bar glows softly while anything is flowing, and the Car tile shows a light sweep while charging. The headline slides to new wording, the icon pops with a ring when charging starts, breathes while charging, shows a blue arc circling it while it is waiting with no countdown, and a ring that drains with the countdown when there is one. The mode highlight slides between Eco, Max solar, Custom and Cheapest hours (a 2 by 2 grid); the two sliders show a bar that fills during the 5-second wait and a check mark when sent; new Activity and Charging sessions rows slide in; the Settings sheet and help cards fade in. All of it stops with Reduce Motion on, and the dots pause while the page is hidden.
-- **Pull down to refresh.** In the Home Screen app (iOS gives a web app no pull-to-refresh of its own), pulling the page down from the top brings the WattSync logo into view in a small round badge: it slides down and grows as you pull while its two sync arrows turn, the yellow bolt pops and glows once you have pulled far enough, and after you let go the arrows spin around the bolt while the page reloads. There is no text, and with Reduce Motion on nothing spins or pops. A reload also picks up a newer version of the page after an update. It is off in a normal Safari tab, which already has it, ignores pulls that start on a slider or while a card is open, and can be tried elsewhere by adding `?pull` to the address. The page also declares itself as a web app (`apple-mobile-web-app-capable`) and is served with `no-cache`.
+- **Pull down to refresh.** In the Home Screen app (iOS gives a web app no pull-to-refresh of its own), pulling the page down from the top brings the Brimwatt logo into view in a small round badge: it slides down and grows as you pull while its two sync arrows turn, the yellow bolt pops and glows once you have pulled far enough, and after you let go the arrows spin around the bolt while the page reloads. There is no text, and with Reduce Motion on nothing spins or pops. A reload also picks up a newer version of the page after an update. It is off in a normal Safari tab, which already has it, ignores pulls that start on a slider or while a card is open, and can be tried elsewhere by adding `?pull` to the address. The page also declares itself as a web app (`apple-mobile-web-app-capable`) and is served with `no-cache`.
 - **Plain-words help.** A small blue **i** next to anything that may be unclear (the charging modes, the current, the grid allowance, the power picture, Saved today, From the sun, solar hours, the price, power for the car, the fail-safe) opens a short explanation with a *Got it* button (Esc or a tap outside also closes it). The texts are the `TIPS` list in `dashboard.html`.
 - **Diagnostics.** Under *Settings* (the gear), *Diagnostics* opens a short list: how long it has been running, why it last restarted, and on the board how many restarts it has counted (and how many were crashes, watchdogs or brownouts), the last crash and when, free memory, Wi-Fi signal and when the firmware was built. The board keeps the counters in flash, so a normal restart cannot hide a crash from the night before. The list is fetched only when opened.
 - **Charging sessions.** A tile lists each charge (*Charging now since 10:01 am*, *Yesterday 9:42 am to 3:05 pm*) with its kWh, the share that came from the sun and why it ended in plain words (*stopped from the app*, *car unplugged*, *stopped at the charger*, *charger restarted*, ...). Kept for the last 30 days (and at most 400 sessions) and saved with the history; the graphs and daily totals are separate and keep their own, longer history. Five show at a time, with *‹ Newer* / *Older ›* buttons; only the page on screen is requested.
@@ -239,11 +239,11 @@ All `POST` calls need the header `X-WattSync: 1`, for example `curl -X POST -H '
 - **Today's graph.** Solar (yellow, with a pale fill), car (blue), home without the car (violet) and the grid by the hour: import stands up from the zero line in red, export hangs down from it in green (the space below zero only appears on days that have some export). The daylight window is shaded, and a strip underneath shows when the car charged (blue) or charging was paused (grey). The graph starts at the day's first sign of life (at least 50 W of solar, the car drawing power, or a charge running; usually the start of the solar hours), not at a fixed hour, and ends where the solar hours end (or just past a later reading). Quiet readings before that, such as an overnight Custom or Paused stretch of home use only, are left off; a night charge starts the graph. A block above it always shows the day's solar, car, imported and exported energy, and a row of labelled columns below it shows the latest reading (*Now*, Solar, Home, Car, Grid in or out) until you hover with a mouse or tap with a finger; a tap keeps its reading until the next tap. On a phone the graph box is 250 px tall. Touch or hover on it to read the exact values for that moment. It is drawn at the screen's own width, so it stays readable on a phone.
 - **Activity.** The latest things that happened and why, for example *Started charging at 7 A: enough solar*, *Lowered charging to 9 A: less solar left*, *Stopped charging: home is using the solar*, *Car plugged in*, *Charging paused by you*, *Solar hours began*, *Lost contact with the solar meter: charging stopped*. Five events show at a time; when there are more, *‹ Newer* and *Older ›* buttons with a page count (*1 of 6*) step through the whole log; each press asks the controller for just that page, so a long history costs nothing extra. Events from an earlier day show the day under the time.
 - **Typed settings.** The electricity price shows a green check mark next to it as soon as you change it. Press it (or Enter) to save; Escape puts the saved value back. Sliders save on their own: the allowance when you let go, the Custom current a few seconds after you stop moving.
-- **User guide and demo.** [docs/user-guide.pdf](docs/user-guide.pdf) explains the dashboard to the car owner in plain words, and [docs/demo/wattsync-demo.mp4](docs/demo/wattsync-demo.mp4) (also a [GIF](docs/demo/wattsync-demo.gif)) is a short captioned walkthrough. Both mark the screens with numbered callouts and explain each feature. Both use made-up sample numbers.
+- **User guide and demo.** [docs/user-guide.pdf](docs/user-guide.pdf) explains the dashboard to the car owner in plain words, and [docs/demo/brimwatt-demo.mp4](docs/demo/brimwatt-demo.mp4) (also a [GIF](docs/demo/brimwatt-demo.gif)) is a short captioned walkthrough. Both mark the screens with numbered callouts and explain each feature. Both use made-up sample numbers.
 - **Miles instead of kWh.** *Settings > Display* switches the energy shown on the dashboard from kWh to estimated miles (kWh times *Miles per kWh*, default 3, shown with a `~`). It covers the car's energy today and from the sun, the day bars and their total, each charging session, the charge rate (kW becomes mi/h; the Car tile shows the other unit under its big number, so kW sits under miles per hour and miles per hour under kW, not the amps, which the headline already gives; a charger that does not report its real draw shows the set limit, marked with a `~`) and the goal (typed in miles; a hint shows the whole kWh that is actually sent). It is display only and kept in the phone's browser: the API, the planner, savings (dollars), the CSV export and message text stay in kWh. Activity lines written by the controller still say kWh. Kilometres are not offered yet.
 - **Savings.** *Saved today* is the sun's share of the car's energy today valued at your electricity price (a setting, in cents per kWh, default 30). *From the sun* is that share as a percentage. The energy is added up from the once-a-minute readings, so it is an estimate, typically within a few percent; the sun's share is whatever solar was left after the house, up to what the car drew.
 - **Live pill and meter age.** The pill at the top says *Live*. In the daytime, if the solar meter has gone quiet, it turns amber and says how old the reading is (*Meter 12m old*, *Meter ~5h old*). The same age shows under Solar. The reason charging is or isn't happening is the headline itself (*Waiting for sunrise*, *Waiting: home is using the solar*, *Lost contact with the solar meter...*), written in `waitView`, `fmtReason` and `whyText` in `dashboard.html`.
-- **Branding.** The page is called WattSync: the logo (a lightning bolt inside sync arrows) is inline in the header and also used for the browser-tab icon, embedded in the page so nothing extra is fetched. The logo files are in `docs/logo/` (`wattsync-logo.svg`, and a 512 px `wattsync-logo.png`). The first card is titled *Live power*.
+- **Branding.** The page is called Brimwatt: the logo (a lightning bolt inside sync arrows) is inline in the header and also used for the browser-tab icon, embedded in the page so nothing extra is fetched. The logo files are in `docs/logo/` (`brimwatt-logo.svg`, and a 512 px `brimwatt-logo.png`). The first card is titled *Live power*.
 - **Custom mode** still shows live solar, grid and home power. The meter reading is for display only; a gateway problem is shown but is never a fail-safe, since Custom needs no data.
 
 ## OCPP
@@ -258,7 +258,7 @@ Enter `ws://<host>:8080/pair` in the wallbox (it adds its own charger id, so `/p
 
 ## Code layout
 
-`src/main/java/com/wattsync/`
+`src/main/java/com/brimwatt/`
 
 | Package | Contents |
 |---|---|
@@ -281,7 +281,7 @@ The dashboard is `src/main/resources/dashboard.html`. Logging is configured in `
 - The Envoy connection trusts any certificate (its certificate is self-signed). Notification messages over HTTPS do not check the server's certificate. Acceptable on a home network.
 - The Enphase token is a long-lived JWT that must be renewed by hand when it expires.
 - **Secrets on the ESP32 board** (Wi-Fi password, Enphase token, update password, Tesla keys and sign-in) are kept in unencrypted flash: anyone with physical access can read them.
-- The setup network (`WattSync-Setup`) uses one fixed password on every board, which this repository makes public: open it only at home. Deriving it from the chip is planned (see [`docs/setup-network.md`](docs/setup-network.md)).
+- The setup network (`Brimwatt-Setup`) uses one fixed password on every board, which this repository makes public: open it only at home. Deriving it from the chip is planned (see [`docs/setup-network.md`](docs/setup-network.md)).
 - Tesla control is experimental: Bluetooth control was tried on one car; the account link has not been tried on a real car. See [`docs/tesla-fleet-api.md`](docs/tesla-fleet-api.md).
 
 ## Documentation
@@ -292,13 +292,13 @@ The dashboard is `src/main/resources/dashboard.html`. Logging is configured in `
 
 ## Disclaimer
 
-WattSync is an independent project. It is not affiliated with, endorsed by or sponsored by Tesla, Inc., Enphase Energy, Espressif, the Raspberry Pi
+Brimwatt is an independent project. It is not affiliated with, endorsed by or sponsored by Tesla, Inc., Enphase Energy, Espressif, the Raspberry Pi
 Foundation or the maker of any charger it works with. Product and company names are trademarks of their owners and are used only to say what the
 software works with. It is not a safety device: use it at your own risk and keep your charger's own protections in place.
 
 ## License
 
-WattSync is free software under the **GNU Affero General Public License, version 3** (AGPL-3.0-only): see [`LICENSE`](LICENSE).
+Brimwatt is free software under the **GNU Affero General Public License, version 3** (AGPL-3.0-only): see [`LICENSE`](LICENSE).
 Copyright (C) 2026 Deepak Sanem.
 
 In plain words: you may use, study, change and share it. If you change it and let other people use your version, including over a network

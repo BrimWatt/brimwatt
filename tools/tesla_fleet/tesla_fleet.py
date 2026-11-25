@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""One-time Tesla Fleet API set-up for a WattSync board, run on your computer (standard library only; needs `openssl`).
+"""One-time Tesla Fleet API set-up for a Brimwatt board, run on your computer (standard library only; needs `openssl`).
 
   python3 tools/tesla_fleet/tesla_fleet.py register          tell Tesla about the app's domain (once per region)
-  python3 tools/tesla_fleet/tesla_fleet.py setup-board --board http://wattsync.local
+  python3 tools/tesla_fleet/tesla_fleet.py setup-board --board http://brimwatt.local
                                                              put the app (client id, SECRET, domain, signing key) on the board ONCE, so that
                                                              anyone can then sign a Tesla account in from the board's own page
-  python3 tools/tesla_fleet/tesla_fleet.py login [--board http://wattsync.local] [--region na|eu] [--vin VIN]
+  python3 tools/tesla_fleet/tesla_fleet.py login [--board http://brimwatt.local] [--region na|eu] [--vin VIN]
                                                              sign in to Tesla in your browser, list the cars, and (with --board) hand the
                                                              sign-in to the board
 
-Settings live in ~/.wattsync/tesla-app.env (never in the repository), one NAME=value per line:
+Settings live in ~/.brimwatt/tesla-app.env (never in the repository), one NAME=value per line:
   TESLA_CLIENT_ID=...        from the Tesla developer dashboard
   TESLA_CLIENT_SECRET=...    from the same page (used only here, never sent to the board)
   TESLA_DOMAIN=...           the domain that hosts the app's public key, e.g. wattsync.netlify.app
   TESLA_REDIRECT_URI=...     optional, default http://localhost:3000/oauth/tesla/ (must match the dashboard exactly)
-The app's private key is ~/.wattsync/tesla-app-private.pem (made once; only its public half is hosted).
+The app's private key is ~/.brimwatt/tesla-app-private.pem (made once; only its public half is hosted).
 
 Secrets are never printed. The refresh token is NOT written to disk: Tesla's refresh tokens are single use, so the only copy that
 matters is the one the board keeps. VINs are shown masked.
@@ -32,7 +32,9 @@ import urllib.parse
 import urllib.request
 import webbrowser
 
-HOME = os.path.expanduser("~/.wattsync")
+HOME = os.path.expanduser("~/.brimwatt")
+if not os.path.isdir(HOME) and os.path.isdir(os.path.expanduser("~/.wattsync")):
+    HOME = os.path.expanduser("~/.wattsync")   # the folder's name before the project was renamed
 ENV_FILE = os.path.join(HOME, "tesla-app.env")
 KEY_FILE = os.path.join(HOME, "tesla-app-private.pem")
 AUTH_URL = "https://auth.tesla.com/oauth2/v3/authorize"
@@ -138,7 +140,7 @@ def cmd_register(args):
     status, body = request("POST", API[args.region] + "/api/1/partner_accounts", {"domain": env["TESLA_DOMAIN"]},
                            {"Authorization": "Bearer " + token})
     if say_status("Register %s in region %s" % (env["TESLA_DOMAIN"], args.region), status, body):
-        print("Next:  python3 tools/tesla_fleet/tesla_fleet.py login --board http://wattsync.local")
+        print("Next:  python3 tools/tesla_fleet/tesla_fleet.py login --board http://brimwatt.local")
     else:
         print("Check that https://%s/.well-known/appspecific/com.tesla.3p.public-key.pem opens and that the dashboard's Allowed Origin is https://%s"
               % (env["TESLA_DOMAIN"], env["TESLA_DOMAIN"]))
@@ -163,7 +165,7 @@ def wait_for_code(redirect_uri, state):
             else:
                 result["error"] = q.get("error_description", q.get("error", ["no code"]))[0]
             self.send_response(200); self.send_header("Content-Type", "text/plain; charset=utf-8"); self.end_headers()
-            self.wfile.write(b"WattSync: you can close this tab and go back to the terminal.")
+            self.wfile.write(b"Brimwatt: you can close this tab and go back to the terminal.")
             done.set()
 
         def log_message(self, *a):
@@ -215,7 +217,7 @@ def cmd_login(args):
         die("more than one car: choose one with --vin.")
     if not args.no_key:
         form["key"] = private_key_hex()
-    status, body = request("POST", args.board.rstrip("/") + "/api/car/fleet/connect", form, {"X-WattSync": "1"}, form=True)
+    status, body = request("POST", args.board.rstrip("/") + "/api/car/fleet/connect", form, {"X-Brimwatt": "1"}, form=True)
     say_status("Send to the board", status, body if status != 200 else "")
     if status != 200:
         if "Tesla mode is off" in body:
@@ -223,7 +225,7 @@ def cmd_login(args):
         sys.exit(1)
     print("Done. In Settings > Tesla choose Connect through: Tesla account. Then, on the phone that is your car's key, open:")
     print("  https://tesla.com/_ak/%s%s" % (env["TESLA_DOMAIN"], ("?vin=" + vin) if vin else ""))
-    print("  (approve adding the app's key to the car; WattSync cannot send charge commands until that is done)")
+    print("  (approve adding the app's key to the car; Brimwatt cannot send charge commands until that is done)")
 
 
 def cmd_setup_board(args):
@@ -231,7 +233,7 @@ def cmd_setup_board(args):
     form = {"clientId": env["TESLA_CLIENT_ID"], "clientSecret": env["TESLA_CLIENT_SECRET"], "domain": env["TESLA_DOMAIN"], "region": args.region}
     if not args.no_key:
         form["key"] = private_key_hex()
-    status, body = request("POST", args.board.rstrip("/") + "/api/car/fleet/app", form, {"X-WattSync": "1"}, form=True)
+    status, body = request("POST", args.board.rstrip("/") + "/api/car/fleet/app", form, {"X-Brimwatt": "1"}, form=True)
     if not say_status("Put the app on the board", status, body if status != 200 else ""):
         if "Tesla mode is off" in body:
             print("  Turn Tesla mode on in Settings > Tesla first.")
@@ -249,12 +251,12 @@ def main():
     reg = sub.add_parser("register", help="register the app's domain with Tesla (once per region)")
     reg.add_argument("--region", choices=sorted(API), default="na")
     setup = sub.add_parser("setup-board", help="put the app on the board so it can sign an account in itself")
-    setup.add_argument("--board", required=True, help="the board's address, e.g. http://wattsync.local or http://192.168.1.153")
+    setup.add_argument("--board", required=True, help="the board's address, e.g. http://brimwatt.local or http://192.168.1.153")
     setup.add_argument("--region", choices=sorted(API), default="na")
     setup.add_argument("--no-key", action="store_true", help="do not send the app's signing key")
     login = sub.add_parser("login", help="sign in to Tesla and hand the sign-in to the board")
     login.add_argument("--region", choices=sorted(API), default="na")
-    login.add_argument("--board", help="the board's address, e.g. http://wattsync.local or http://192.168.1.153")
+    login.add_argument("--board", help="the board's address, e.g. http://brimwatt.local or http://192.168.1.153")
     login.add_argument("--vin", help="the car's VIN (needed when the account has several cars)")
     login.add_argument("--no-key", action="store_true", help="do not send the app's signing key (the board already has one)")
     args = parser.parse_args()

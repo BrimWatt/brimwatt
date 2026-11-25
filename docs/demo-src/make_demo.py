@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builds the user guide screenshots (docs/guide/*.png) and the demo animation (docs/demo/wattsync-demo.gif).
+"""Builds the user guide screenshots (docs/guide/*.png) and the demo animation (docs/demo/brimwatt-demo.gif).
 
 No Pi or board is needed. Each picture is the REAL dashboard page (src/main/resources/dashboard.html) running against a
 stand-in for the controller's API that returns made-up sample numbers, loaded in headless Chrome at phone width.
@@ -168,7 +168,7 @@ def shoot(scene, path, height, scale, extra=None):
         outer.write_text(f'<!doctype html><body style="margin:0;background:#fff"><iframe src="page.html" width="{WIDTH}" height="{height}" style="border:0;display:block"></iframe></body>')
         raw = Path(tmp) / "raw.png"
         cmd = [CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars", f"--window-size=600,{height}",
-               f"--force-device-scale-factor={scale}", "--virtual-time-budget=6000", f"--screenshot={raw}", outer.as_uri()]
+               f"--force-device-scale-factor={scale}", "--force-prefers-reduced-motion", "--virtual-time-budget=6000", f"--screenshot={raw}", outer.as_uri()]
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=90)
         Image.open(raw).crop((0, 0, WIDTH * scale, height * scale)).save(path)
 
@@ -382,7 +382,7 @@ FRAMES = [
     ("custom", dict(scrollTo="#modes"), 4.5, "modes-custom", "Need a fast charge? Use Custom",
      "A fixed current from 6 to 40 amps, sun or no sun. It can use grid power."),
     ("charging-goal", dict(scrollY=0), 4.5, "top-goal", "Set a goal for the morning",
-     "Say how much and by when. WattSync charges only as fast as needed to get there. Pause stops everything."),
+     "Say how much and by when. Brimwatt charges only as fast as needed to get there. Pause stops everything."),
     ("history-7", dict(scrollTo="#chart"), 4.5, "graph-7", "See what the sun saved you",
      "One bar per day: yellow from the sun, red from the grid. Day, week, month and year views."),
     ("miles", {}, 4.5, "top-miles", "Prefer miles? Switch the units",
@@ -424,7 +424,7 @@ def demo():
         # GIF: half size, small palette
         small = [f.resize((f.width // 2, f.height // 2), Image.LANCZOS) for f in big]
         pal = [f.quantize(colors=128, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for f in small]
-        out = OUT_DEMO / "wattsync-demo.gif"
+        out = OUT_DEMO / "brimwatt-demo.gif"
         pal[0].save(out, save_all=True, append_images=pal[1:], duration=[int(d * 1000) for d in durations], loop=0, optimize=True, disposal=2)
         print("demo", out, round(out.stat().st_size / 1e6, 2), "MB")
         # MP4 (H.264, plays everywhere): needs ffmpeg
@@ -440,7 +440,7 @@ def demo():
         lines.append(f"file '{Path(tmp) / f'v{len(big) - 1}.png'}'")   # the concat list needs the last file repeated
         lst = Path(tmp) / "list.txt"
         lst.write_text("\n".join(lines))
-        mp4 = OUT_DEMO / "wattsync-demo.mp4"
+        mp4 = OUT_DEMO / "brimwatt-demo.mp4"
         subprocess.run([ff, "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(lst), "-vf", "fps=30,format=yuv420p",
                         "-c:v", "libx264", "-crf", "20", "-movflags", "+faststart", str(mp4)], check=True)
         print("demo", mp4, round(mp4.stat().st_size / 1e6, 2), "MB")

@@ -6,12 +6,12 @@ namespace device {
 
 /**
  * The name this board announces on the network. It is what the router's device list shows (the Pi appears as
- * "wattsyncpi") and it also becomes the mDNS name, so the board is reachable as wattsync.local.
+ * "wattsyncpi") and it also becomes the mDNS name, so the board is reachable as brimwatt.local.
  * Letters, digits and hyphens only, 24 characters at most.
  */
 constexpr uint32_t kTeslaJoinMillis = 25UL * 1000;             // Tesla mode: how long start-up waits for the home Wi-Fi
 constexpr uint32_t kTeslaRejoinMillis = 10UL * 60 * 1000;      // Tesla mode: how often it looks for the home Wi-Fi again when idle
-constexpr const char* kHostname = "wattsync";
+constexpr const char* kHostname = "brimwatt";
 
 constexpr uint32_t kPollIntervalMillis = 60000;        // same as the Java app
 constexpr uint32_t kWifiConnectTimeoutMillis = 30000;

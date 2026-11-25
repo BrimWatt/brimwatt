@@ -41,9 +41,9 @@ void SerialConsole::printHelp() {
     Serial.println("  stop              stop the charge now (Eco and Max solar may restart it by their rules)");
     Serial.println("  ask               ask the charger for its status and meter values");
     Serial.println("  wifi              which network the board is on (never the password)");
-    Serial.println("  setup             open the setup network (WattSync-Setup) to change Wi-Fi, the Enphase token, the Envoy address");
+    Serial.println("  setup             open the setup network (Brimwatt-Setup) to change Wi-Fi, the Enphase token, the Envoy address");
     Serial.println("  setup clear       forget everything saved from the setup page (secrets.h applies again) and restart");
-    Serial.println("  tesla mode on|off            Tesla mode (off by default): Bluetooth, the wattsync-tesla Wi-Fi and the car in command; restarts the board");
+    Serial.println("  tesla mode on|off            Tesla mode (off by default): Bluetooth, the brimwatt-tesla Wi-Fi and the car in command; restarts the board");
     Serial.println("  tesla scan [seconds]         list every Tesla in range with its signal (no VIN needed; 10-300 s, default 60)");
     Serial.println("  tesla scan <VIN> [seconds]   listen for your own car only; nothing is sent to the car");
     Serial.println("  tesla pair <VIN>    add this controller's own key to your car (you tap your key card in the car); VIN is never printed");

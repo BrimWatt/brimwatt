@@ -2,7 +2,7 @@
 
 The ESP32-S3 side of the solar charger. It does what the Java app does:
 
-- joins Wi-Fi under a recognisable name (**`wattsync`**, shown in the router's device list like `wattsyncpi`)
+- joins Wi-Fi under a recognisable name (**`brimwatt`**, shown in the router's device list like `wattsyncpi`)
 - reads the Enphase Envoy meters over HTTPS every minute
 - acts as the **OCPP 1.6J server** the wallbox connects to, with the same behaviour as the Java app
 - has a **pause (kill switch)** that stops charging whatever the mode and survives restarts
@@ -11,14 +11,14 @@ The ESP32-S3 side of the solar charger. It does what the Java app does:
 - stops both solar modes if the Envoy is silent for 150 s (**fail-safe**)
 - plans **Cheapest hours** (`CHEAPEST`) with the same rules as the Java app: maximum current outside the expensive hours (the peak window), no meter needed; `solar::CheapHours` in `lib/solar_core/src/planner/CheapHours.h`, applied through the wallbox hold in `SolarController::applyCheapHours`
 - **remembers its settings** (mode, Custom current, allowance, daylight toggle) in flash across restarts
-- serves the **same web dashboard** as the Pi, at `http://wattsync.local/`: tiles, today's graph, an activity feed, charging sessions and savings (see the main README)
+- serves the **same web dashboard** as the Pi, at `http://brimwatt.local/`: tiles, today's graph, an activity feed, charging sessions and savings (see the main README)
 - keeps **a year of history** at lower detail the older it gets: every minute for 2 days, every 5 minutes for 30 days, every hour for a year, plus daily energy totals for a year and the activity log. Saved to flash every minute in a small journal, folded into a full save every 30 minutes, so a power cut loses at most a minute. The whole year takes about 0.4 MB of the 3.4 MB the board has; the dashboard's 7 days, 30 days and Year tabs and the CSV export read from it
 
 - **remembers each charger** (status, transaction id, the limit it set) in flash, so after a restart or a power cut a charge in progress is picked up again straight away and shows on the dashboard; saved state older than an hour is ignored
 
 - takes new firmware **over Wi-Fi** (`pio run -e esp32s3-ota -t upload`), protected by a password
 
-- opens its own **setup network** (`WattSync-Setup`) when it has no Wi-Fi to join, or when you hold the BOOT button: from a phone you pick your Wi-Fi from a scanned list and paste the Enphase token, the Envoy address and the update password, with no cable and no app (section 1b)
+- opens its own **setup network** (`Brimwatt-Setup`) when it has no Wi-Fi to join, or when you hold the BOOT button: from a phone you pick your Wi-Fi from a scanned list and paste the Enphase token, the Envoy address and the update password, with no cable and no app (section 1b)
 
 **It now controls the wallbox on its own.** With the default settings it starts in ECO and acts on the solar surplus, exactly as the Pi does. Only one of the Pi and the ESP32 may be connected to the wallbox at a time.
 
@@ -60,7 +60,7 @@ open -e src/secrets.h
 
 Since the setup network exists, these values are only **defaults**: anything saved from the setup page (section 1b) wins over `secrets.h`, field by field. You can still flash with real values in `secrets.h` and never use the setup page. With the placeholders left in, the board simply fails to join, and after 3 minutes the setup network opens.
 
-The device name is `kHostname` in `src/config/DeviceConfig.h` (letters, digits and hyphens, 24 characters at most). It is both the DHCP name the router lists and the mDNS name (`wattsync.local`). Until you flash this version the board shows under the default name `esp32s3-XXXXXX`.
+The device name is `kHostname` in `src/config/DeviceConfig.h` (letters, digits and hyphens, 24 characters at most). It is both the DHCP name the router lists and the mDNS name (`brimwatt.local`). Until you flash this version the board shows under the default name `esp32s3-XXXXXX`.
 
 **If the Wi-Fi drops while running** (router restarted or off): the radio's own reconnect gets 15 s, then the board asks it to reconnect, then every minute joins again from scratch, and every fifth try also switches the radio off and on. It never restarts itself for this. The log says `Wi-Fi: still down, ...` and, when it returns, `Wi-Fi: back after N s`. Not used in Tesla mode (it has its own slower retry) or while the setup network is open.
 
@@ -68,7 +68,7 @@ The device name is `kHostname` in `src/config/DeviceConfig.h` (letters, digits a
 
 > Diagrams (start-up flow, the Wi-Fi trial, where each value comes from), screenshots of every state of the page, the endpoints and the code map are in [`../docs/setup-network.md`](../docs/setup-network.md).
 
-The board can open a temporary Wi-Fi network of its own, **`WattSync-Setup`** (password **`wattsync`**, fixed for now), with a setup page on it. It works on any phone or computer, with no app and no cable, and it replaces editing `secrets.h` and reflashing when the router, the Enphase token or the Envoy address changes.
+The board can open a temporary Wi-Fi network of its own, **`Brimwatt-Setup`** (password **`brimwatt`**, fixed for now), with a setup page on it. It works on any phone or computer, with no app and no cable, and it replaces editing `secrets.h` and reflashing when the router, the Enphase token or the Envoy address changes.
 
 **When it opens**
 - **No Wi-Fi is set** (first start with placeholders, or after `setup clear`): it opens at once and stays open until something is saved.
@@ -77,17 +77,17 @@ The board can open a temporary Wi-Fi network of its own, **`WattSync-Setup`** (p
 - Except with no Wi-Fi at all, it closes after **15 minutes without use**.
 
 **Using it (iPhone)**
-1. Join the Wi-Fi **WattSync-Setup**, password `wattsync`. The phone usually opens the page by itself; if it does not, open `http://192.168.4.1/setup` in Safari.
+1. Join the Wi-Fi **Brimwatt-Setup**, password `brimwatt`. The phone usually opens the page by itself; if it does not, open `http://192.168.4.1/setup` in Safari.
 2. The page lists the networks the board can see, strongest first (names repeated by a mesh or repeater appear once). Tap yours and type its password. Hidden networks cannot be listed: use *My network is not listed* and type the name. **Scan again** looks again; the page may stall for a few seconds while the board scans.
 3. Paste the **Enphase token** (spaces, quotes and a leading `Bearer` are cleaned off), the **Envoy address** (empty = find it as `envoy.local`) and an **update password** (8 to 64 characters, for `pio run -e esp32s3-ota`).
-4. **Save and restart.** Rejoin your usual Wi-Fi and open `http://wattsync.local`.
+4. **Save and restart.** Rejoin your usual Wi-Fi and open `http://brimwatt.local`.
 
 Leaving a secret field empty **keeps** what is saved: the page never shows a saved token or password, it only says one is saved. To change only the token, paste it and leave the rest.
 
 **A Wi-Fi change is a trial.** After saving a different network the board restarts and tries it. If it joins, it keeps it. If not (wrong password, 5 GHz only, out of range) the **previous network is put back** and the setup network opens again with the reason on the page (`Could not join "X": wrong password. The previous Wi-Fi was put back.`). A failed attempt never leaves the board without a network it knew worked. Changes to the token, Envoy address and update password are kept either way.
 
 **Safety**
-- The page and its endpoints answer only while the setup network is open (403 otherwise). Changes need the `X-WattSync` header like the rest of the API, and secrets travel in the body of a POST, never in an address.
+- The page and its endpoints answer only while the setup network is open (403 otherwise). Changes need the `X-Brimwatt` header like the rest of the API, and secrets travel in the body of a POST, never in an address.
 - No reply ever contains a secret. The saved values are in the flash's `net` area, which is **not encrypted**: someone holding the board can read them, exactly as they could read `secrets.h` values compiled into the firmware.
 - **The setup network's password is the same on every board and written here**, so while it is open anyone within Wi-Fi range who has read this could join it and change the settings. That window is short (15 minutes, and only after a failure, a BOOT press or a console command), but it is real. A password derived from the board's own ID is the planned improvement.
 - Saved values can be wiped with `setup clear`: the board restarts using `secrets.h` again.
@@ -113,12 +113,12 @@ What you should see after boot:
 
 ```
 === ESP32-S3 solar charger ===
-Name:   wattsync
-INFO  Wi-Fi: connected in 2300 ms, IP 192.168.1.42, signal -41 dBm, device name "wattsync"
+Name:   brimwatt
+INFO  Wi-Fi: connected in 2300 ms, IP 192.168.1.42, signal -41 dBm, device name "brimwatt"
 INFO  Time: 2026-10-14 22:06:49 PDT
-INFO  mDNS: this board is wattsync.local
+INFO  mDNS: this board is brimwatt.local
 INFO  OCPP: listening on port 8080 (subprotocol ocpp1.6)
-INFO  Point the wallbox at ws://wattsync.local:8080/pair  (or ws://192.168.1.42:8080/pair); it adds its own id
+INFO  Point the wallbox at ws://brimwatt.local:8080/pair  (or ws://192.168.1.42:8080/pair); it adds its own id
 INFO  Settings: none saved yet, starting with defaults (ECO, 32 A custom, 1000 W allowance).
 INFO  [DAYLIGHT] Today's window: 07:24 to 17:55
 INFO  Envoy: envoy.local is 192.168.1.112 (312 ms)
@@ -146,30 +146,30 @@ What to know:
 - **Nothing recent is lost.** Just before the update starts the board saves its history to flash.
 - **A bad image does not take over.** The new firmware is checked before the board switches to it, and a failed or interrupted transfer leaves the current firmware running (`OTA: update failed: ...` in the log). There is no automatic roll-back if a verified image misbehaves after it starts; for that, flash by cable.
 - **The password is never printed or typed.** `scripts/ota_auth.py` reads it from `src/secrets.h` and passes it to the uploader.
-- If `wattsync.local` does not resolve from your computer, put the board's IP address in `upload_port` in `platformio.ini`.
+- If `brimwatt.local` does not resolve from your computer, put the board's IP address in `upload_port` in `platformio.ini`.
 
 ## 3. The dashboard
 
-Open **`http://wattsync.local/`** (or `http://<the board's IP>/`, printed at boot) from any device on the network. It is the same page as the Pi's dashboard: live solar, grid, charger and home power, the controller's state and reason, the mode buttons, the Custom current, the grid allowance slider and the daylight window toggle.
+Open **`http://brimwatt.local/`** (or `http://<the board's IP>/`, printed at boot) from any device on the network. It is the same page as the Pi's dashboard: live solar, grid, charger and home power, the controller's state and reason, the mode buttons, the Custom current, the grid allowance slider and the daylight window toggle.
 
 - The page is the Java app's `src/main/resources/dashboard.html`, copied in before every firmware build and embedded in the binary, so the two dashboards cannot drift apart. Change the page in one place and rebuild.
 - The endpoints are the same as the Pi's (`GET /api/telemetry`, `POST /api/mode`, `/api/allowance`, `/api/daylight`) with the same messages and checks.
 - Changes made on the dashboard are saved to flash like those made in the console.
-- There is no password, as on the Pi: keep it on the home network. Every change (`POST`) must carry the header `X-WattSync: 1` (the dashboard adds it; with curl use `-H 'X-WattSync: 1'`), so a page on another site cannot change settings.
+- There is no password, as on the Pi: keep it on the home network. Every change (`POST`) must carry the header `X-Brimwatt: 1` (the dashboard adds it; with curl use `-H 'X-Brimwatt: 1'`), so a page on another site cannot change settings.
 - The board also has `POST /api/maxamps`, `/api/goal` (departure goal: kWh by a time), `/api/notify` and `/api/notify/test` (messages to a webhook), and `/api/rate` takes the peak price and hours. They behave exactly as on the Pi, see the main README. Settings are kept in flash (NVS keys `maxAmps`, `peakCents`, `peakFrom`, `peakTo`, `peakWknd` (Cheapest hours: expensive hours also on weekends), `goalKwh`, `goalMin`, `notifyUrl`).
 - **Tesla in the dashboard (experimental, board only).** Settings > Tesla pairs the car (type the VIN; the VIN travels in the body of a POST and is shown only masked), shows pairing progress ("tap your key card now"), and has a switch "Read the car every few minutes" (on by default once paired; read only), **Check now**, **Forget car**, and a collapsed **For testing** group with Start, Stop and a current box (each asks first, and "Put the setting back" appears after a current change). Once a car is paired a **Tesla** tile under the modes shows battery with the charge limit marked, charging state and amps, how old the reading is, and the charger's own amps for comparison. The controller never commands the car by itself yet: "Control through: Car" is not built. A read pauses the main loop for a few seconds (Bluetooth connect), so the watch runs every 5 minutes, not every minute. Endpoints: `POST /api/car/pair|refresh|watch|test|cancel|forget`, state in telemetry `car`. NVS `tesla`: `key`, `vin`, `watch`.
-- **Tesla mode (board only, off by default).** Settings > Tesla > Tesla mode switches everything Tesla on or off and restarts the board. Off: Bluetooth is never started and no Tesla control is shown. On: Bluetooth works, the board also opens its own Wi-Fi **`wattsync-tesla`** (password shown in Settings > Tesla; open `http://192.168.4.1/` after joining) next to the home Wi-Fi, and a paired car is put in command instead of the charger. **Wallbox mode and Tesla mode are either-or:** with Tesla mode on the OCPP server is not started, so no wallbox connects or is controlled. A second link, **Connect through: Bluetooth | Tesla account** (the Tesla Fleet API over the internet), is chosen next to the switch; see `docs/tesla-fleet-api.md`. **The two modes are separate setups:** each has its own settings (mode, current, allowance, hours, prices, goal, messages) and its own history (graph, activity, sessions, savings); the first Tesla-mode start begins from defaults, and switching back shows the charger's own again. Only the Wi-Fi/meter/update credentials, the Tesla key and the hotspot password are shared. Away from home the board carries on without the home Wi-Fi, the Envoy and the internet (use Custom; the phone sets the clock). See `docs/tesla-car-control.md`.
-- **Control through: Car (experimental, board only; the default stays Charger).** Settings > Tesla > *Control through* moves the command from the wall charger to the car: the planner (Eco, Max solar, Custom, Pause, departure goal, daylight window, fail-safe) then sets the car's current over Bluetooth and starts/stops its charging, and the charger is no longer commanded (only one is in command at a time). Switching to Car asks for confirmation in the page and needs `confirm=yes` in the API, and only works for a paired car; the choice is saved (NVS `tesla`: `through`, `onreturn`) and is dropped if the car is forgotten. *If the car can't be reached*: **Keep its setting** (default, silent), **Just tell me** (a message after 10 minutes out of reach, and when it is back) or **Stop when it is back** (also stops the charge once after a 10+ minute outage). Failed jobs retry after 30 s, 60 s, 2 min, then every 5 min; meanwhile the car keeps its last setting (it cannot be stepped down to the minimum first: nothing can be sent). **WattSync does not measure the car:** it is the only thing setting the current, so the draw it tells the planner is what it last set (the dashboard says "set to N A" rather than "charging at"). The car is read only to check that: after each command (the read-back), when WattSync takes command or after an outage, and **every 10 minutes** (a read pauses the main loop for a few seconds). If the check finds the car stopped by itself (charge limit, unplugged) or its current changed by someone else, the next decision corrects it. **Waking a sleeping car** is off until you tick "Allow WattSync to wake the car when charging is wanted" (Settings > Tesla): then it wakes the car only when charging is wanted and the car was last seen plugged in, at most once every 30 minutes (a wake keeps the car awake 10-15 minutes and uses a little battery). Without it a sleeping car is left alone and the tile says so. The test buttons (including **Wake now**) switch off while the car is in command. Console: `tesla wake`.
+- **Tesla mode (board only, off by default).** Settings > Tesla > Tesla mode switches everything Tesla on or off and restarts the board. Off: Bluetooth is never started and no Tesla control is shown. On: Bluetooth works, the board also opens its own Wi-Fi **`brimwatt-tesla`** (password shown in Settings > Tesla; open `http://192.168.4.1/` after joining) next to the home Wi-Fi, and a paired car is put in command instead of the charger. **Wallbox mode and Tesla mode are either-or:** with Tesla mode on the OCPP server is not started, so no wallbox connects or is controlled. A second link, **Connect through: Bluetooth | Tesla account** (the Tesla Fleet API over the internet), is chosen next to the switch; see `docs/tesla-fleet-api.md`. **The two modes are separate setups:** each has its own settings (mode, current, allowance, hours, prices, goal, messages) and its own history (graph, activity, sessions, savings); the first Tesla-mode start begins from defaults, and switching back shows the charger's own again. Only the Wi-Fi/meter/update credentials, the Tesla key and the hotspot password are shared. Away from home the board carries on without the home Wi-Fi, the Envoy and the internet (use Custom; the phone sets the clock). See `docs/tesla-car-control.md`.
+- **Control through: Car (experimental, board only; the default stays Charger).** Settings > Tesla > *Control through* moves the command from the wall charger to the car: the planner (Eco, Max solar, Custom, Pause, departure goal, daylight window, fail-safe) then sets the car's current over Bluetooth and starts/stops its charging, and the charger is no longer commanded (only one is in command at a time). Switching to Car asks for confirmation in the page and needs `confirm=yes` in the API, and only works for a paired car; the choice is saved (NVS `tesla`: `through`, `onreturn`) and is dropped if the car is forgotten. *If the car can't be reached*: **Keep its setting** (default, silent), **Just tell me** (a message after 10 minutes out of reach, and when it is back) or **Stop when it is back** (also stops the charge once after a 10+ minute outage). Failed jobs retry after 30 s, 60 s, 2 min, then every 5 min; meanwhile the car keeps its last setting (it cannot be stepped down to the minimum first: nothing can be sent). **Brimwatt does not measure the car:** it is the only thing setting the current, so the draw it tells the planner is what it last set (the dashboard says "set to N A" rather than "charging at"). The car is read only to check that: after each command (the read-back), when Brimwatt takes command or after an outage, and **every 10 minutes** (a read pauses the main loop for a few seconds). If the check finds the car stopped by itself (charge limit, unplugged) or its current changed by someone else, the next decision corrects it. **Waking a sleeping car** is off until you tick "Allow Brimwatt to wake the car when charging is wanted" (Settings > Tesla): then it wakes the car only when charging is wanted and the car was last seen plugged in, at most once every 30 minutes (a wake keeps the car awake 10-15 minutes and uses a little battery). Without it a sleeping car is left alone and the tile says so. The test buttons (including **Wake now**) switch off while the car is in command. Console: `tesla wake`.
 - Messages go out from a short background task so the main loop never waits. Secure (https) addresses are not certificate-checked, because the board holds no certificate list; messages are short status lines, never a password.
 - **Start-up with no internet.** The board connects to Wi-Fi, starts the dashboard, mDNS and OTA at once, and gets the time in the background (pool.ntp.org, time.google.com, then the router). Charging control (OCPP server and meter polling) starts as soon as the clock is valid; until then the dashboard says so and *Diagnostics* shows the clock. Nothing waits on the internet at boot.
-- If `wattsync.local` does not resolve on your computer, use the IP address.
+- If `brimwatt.local` does not resolve on your computer, use the IP address.
 
 ## 4. Testing with the real wallbox
 
 The wallbox can talk to only one controller, so while testing the ESP32 the Pi must not be controlling it.
 
 1. Stop the Pi app: `ssh wattsync@wattsyncpi.local "sudo systemctl stop solar-charger"`
-2. In the wallbox's settings, change the OCPP server URL to `ws://wattsync.local:8080/pair` (the wallbox adds its charger id itself; the older `/ocpp/wallbox/<chargerId>` URL also still works; if `.local` names do not work in the wallbox, use the IP address printed at boot).
+2. In the wallbox's settings, change the OCPP server URL to `ws://brimwatt.local:8080/pair` (the wallbox adds its charger id itself; the older `/ocpp/wallbox/<chargerId>` URL also still works; if `.local` names do not work in the wallbox, use the IP address printed at boot).
 3. Reboot the wallbox, or wait for it to reconnect. The monitor should show `Wallbox connected -> ID: ...`, then `BootNotification`, `StatusNotification`, and a status resync after 5 s.
 4. Try the console commands below.
 5. **When finished, change the wallbox URL back to the Pi and restart it:** `ssh wattsync@wattsyncpi.local "sudo systemctl start solar-charger"`.
@@ -200,7 +200,7 @@ The wallbox can talk to only one controller, so while testing the ESP32 the Pi m
 | `tesla wake` | **Changes the car.** Wakes a sleeping car: looks first (an awake car is left alone), sends one signed wake command, then asks the car for its status every few seconds for up to about 20 s. Needs the car paired and in range |
 | `tesla charge amps <6-40>` | **Changes the car.** Sets the charging current the car asks for, then reads it back. Same rules as above |
 | `tesla debug on` / `tesla debug off` | Prints every message to and from the car as hex (no secrets in them). Off at every start; use it when trying a new car model |
-| `tesla mode on\|off` | Tesla mode (off by default): Bluetooth, the `wattsync-tesla` Wi-Fi and the car in command; restarts the board. Every other `tesla ...` command refuses while it is off |
+| `tesla mode on\|off` | Tesla mode (off by default): Bluetooth, the `brimwatt-tesla` Wi-Fi and the car in command; restarts the board. Every other `tesla ...` command refuses while it is off |
 | `tesla selftest` | Runs Tesla's published example values (key agreement, message check, one encrypted command) through the board's own cryptography. No car needed |
 | `help` | The list |
 
@@ -222,17 +222,17 @@ Settings changed here are saved to flash at once.
 | Saved settings | Change mode and allowance, press RESET: the boot log says `Settings: restored ...` |
 | Restart mid-charge | While the car charges, press RESET on the board: after the wallbox reconnects the log says `Restored last known state of charger ...`, the dashboard keeps showing the charge (Car: Charging, Charging at the right limit), and ECO/BALANCED/Custom carry on without stopping the car |
 | Kill switch | Press **Pause charging** on the dashboard (or type `pause`) while the car charges: it stops within a second and the banner says charging is paused. Press RESET on the board: it comes back still paused and does not restart the car. **Resume charging** returns to the earlier mode |
-| Dashboard | `http://wattsync.local/` loads, shows live values and updates every few seconds; switching mode, moving the allowance slider and the daylight toggle show a confirmation and match `status` in the console |
+| Dashboard | `http://brimwatt.local/` loads, shows live values and updates every few seconds; switching mode, moving the allowance slider and the daylight toggle show a confirmation and match `status` in the console |
 | Measured current | The `status` line shows `n A measured` if the wallbox reports it (same as the Java app's `measured` label) |
 | Reconnect | Power-cycle the wallbox: it reconnects, a status resync follows, no duplicate sessions |
-| Setup by hand | Hold BOOT for 5 s (or type `setup`): the log says `Setup: ... the setup network is open`; `WattSync-Setup` appears on the phone; the page lists networks within a few seconds and lists yours |
+| Setup by hand | Hold BOOT for 5 s (or type `setup`): the log says `Setup: ... the setup network is open`; `Brimwatt-Setup` appears on the phone; the page lists networks within a few seconds and lists yours |
 | Setup, nothing changes | Open it, change nothing, close it (wait 15 min or restart): the board's Wi-Fi, charging and dashboard are unaffected |
 | Setup, wrong Wi-Fi password | Choose your network with a wrong password and save: the board restarts, logs `Could not join ...: wrong password. The previous Wi-Fi was put back.`, rejoins the old network, and the setup page shows the same message |
 | Setup, good change | Save the same network with the right password: it restarts, joins, and `wifi` shows the network; the setup network is gone |
 | Setup, token only | Paste a new token (everything else empty): no Wi-Fi trial; after the restart the Envoy reads work (`mode ...` line shows fresh readings) |
 | Setup, no Wi-Fi at all | `setup clear` with placeholders in `secrets.h`: the setup network opens at once and stays open; after saving a real network the dashboard is back |
 | Setup, router off at boot | Power the board with the router off: after 3 minutes the setup network opens; switch the router on: the board joins by itself within a minute |
-| Phone setup sheet | Join `WattSync-Setup` on the iPhone: the setup page opens by itself, or `192.168.4.1/setup` works in Safari |
+| Phone setup sheet | Join `Brimwatt-Setup` on the iPhone: the setup page opens by itself, or `192.168.4.1/setup` works in Safari |
 
 Anything different from what the Pi does is a bug in this port; send me the log.
 
@@ -278,7 +278,7 @@ CPLUS_INCLUDE_PATH=$(xcrun --show-sdk-path)/usr/include/c++/v1 .venv/bin/pio tes
 
 - **Boot loop or `PSRAM ID read error`:** the board does not have octal PSRAM. In `platformio.ini` change `board_build.arduino.memory_type` to `qio_qspi` and remove `-DBOARD_HAS_PSRAM`.
 - **Boot lines only, nothing from the program:** the log goes to the UART/COM port with the default build (`esp32s3`). If the cable is in the other, native USB port, use `-e esp32s3-usb` for both upload and monitor.
-- **The dashboard does not load:** check the boot log for `Dashboard: http://wattsync.local/`; try the IP address; make sure the computer is on the same network.
+- **The dashboard does not load:** check the boot log for `Dashboard: http://brimwatt.local/`; try the IP address; make sure the computer is on the same network.
 - **Wi-Fi fails to connect:** the log says why (`wrong password` or `network not found`, the board only joins 2.4 GHz networks). After 3 minutes the setup network opens (section 1b); fix the details there.
 - **`envoy.local` not found:** enter the Envoy address on the setup page (or set `ENVOY_IP` in `src/secrets.h`).
 - **The setup page says "Setup is off":** the setup network is closed. Hold BOOT for 5 seconds or type `setup`.

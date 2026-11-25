@@ -856,7 +856,7 @@ void test_a_wake_ignores_broadcasts() {
 // ---- the same messages over the Fleet API's signed_command endpoint ---------------------------------------------------------
 
 namespace {
-/** Tesla's cloud as far as WattSync uses it, with the pretend car behind signed_command. */
+/** Tesla's cloud as far as Brimwatt uses it, with the pretend car behind signed_command. */
 class PretendFleet : public solar::fleet::FleetHttp {
 public:
     FakeCar& car;

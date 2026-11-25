@@ -11,5 +11,5 @@
     </root>
 
     <!-- Our own code: INFO and above (DEBUG lines hidden) -->
-    <logger name="com.wattsync" level="INFO"/>
+    <logger name="com.brimwatt" level="INFO"/>
 </configuration>

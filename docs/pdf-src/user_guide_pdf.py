@@ -95,7 +95,7 @@ def footer(canvas, doc):
     canvas.saveState()
     canvas.setFont("Helvetica", 8)
     canvas.setFillColor(colors.HexColor("#777777"))
-    canvas.drawString(0.85 * inch, 0.5 * inch, "WattSync user guide. Pictures use made-up sample numbers.")
+    canvas.drawString(0.85 * inch, 0.5 * inch, "Brimwatt user guide. Pictures use made-up sample numbers.")
     canvas.drawRightString(letter[0] - 0.85 * inch, 0.5 * inch, "Page %d" % doc.page)
     canvas.restoreState()
 
@@ -103,13 +103,13 @@ def footer(canvas, doc):
 S = []
 
 # ---- cover and first look -------------------------------------------------------------------------------------------
-S += [P("WattSync", h1), P("User guide: charge your car from your own sunshine", sub)]
+S += [P("Brimwatt", h1), P("User guide: charge your car from your own sunshine", sub)]
 S.append(side(shot("top", caption="Charging from the sun (sample data)"), [
-    P("<b>What it does.</b> WattSync watches how much power your solar panels make and how much your house uses. It then tells your car charger how fast to charge, "
+    P("<b>What it does.</b> Brimwatt watches how much power your solar panels make and how much your house uses. It then tells your car charger how fast to charge, "
       "so the car drinks the spare sunshine instead of buying it from the power company."),
     P("<b>What you do.</b> Open the dashboard on your phone, pick a way to charge, and leave it. You can pause any time, set a goal for the morning, and see how much the sun saved you."),
     P("<b>Where it lives.</b> A small controller in your home (a Raspberry Pi or an ESP32 board) talks to your solar gateway and to your charger. The dashboard is a web page it serves to your phone. "
-      "Open <font face='Courier'>http://wattsync.local</font> (the board) or <font face='Courier'>http://wattsyncpi.local:8080</font> (the Pi)."),
+      "Open <font face='Courier'>http://brimwatt.local</font> (the board) or <font face='Courier'>http://wattsyncpi.local:8080</font> (the Pi)."),
     P("<b>Tip.</b> On an iPhone, open the page in Safari, tap Share, then Add to Home Screen. It then opens like an app, and pulling down at the top refreshes it."),
 ]))
 
@@ -199,7 +199,7 @@ S.append(table(["You see", "It means", "What to do"], [
 S += [P("4. Ready by (departure goal)", h2)]
 S.append(side(shot("settings-goal", width=2.4 * inch, crop=(0.25, 0.46), caption="Settings: Ready by"), [
     P("Open <b>Settings</b> (the gear icon at the top right) and the <b>Ready by</b> card. Turn on <i>Have the car ready at a set time</i>, then say how much energy you want, and by when, for example 20 kWh by 7:00 am or 5:30 pm. Tap the green check mark to save. Turn the switch off to stop."),
-    P("Until time gets short, nothing changes: the sun charges as usual. When the time left is only just enough, WattSync charges at the lowest speed that still gets there, "
+    P("Until time gets short, nothing changes: the sun charges as usual. When the time left is only just enough, Brimwatt charges at the lowest speed that still gets there, "
       "using grid power if it has to, even at night."),
     P("The headline then shows progress, for example <i>Goal: 12 of 20 kWh by 7:00 am</i>."),
     P("<b>Good to know.</b> It only works while a car is plugged in. It is ignored while paused and in Custom. It never goes above your maximum current. "
@@ -247,7 +247,7 @@ S.append(table(["Setting", "What it does"], [
     ["Money", "Your price per kWh in cents, and a switch for an optional peak price with its hours. Only used to work out savings."],
     ["Limits", "Maximum current the charger is ever asked for, in any mode (6 to 40 A). Set it to what your wiring and car can take."],
     ["Display", "Theme (Match my phone, Light or Dark; it only changes how the page looks on this phone) and kWh or miles, with miles per kWh. See section 6."],
-    ["Messages", "An optional web address (Slack, Discord, Home Assistant and similar). WattSync posts a short message when charging ends, the solar meter is lost or returns, the charger disconnects, or the goal takes over. "
+    ["Messages", "An optional web address (Slack, Discord, Home Assistant and similar). Brimwatt posts a short message when charging ends, the solar meter is lost or returns, the charger disconnects, or the goal takes over. "
                  "The same message is sent at most once per 10 minutes. Use <i>Send test</i> to check it. Only the address's host is shown afterwards."],
     ["Diagnostics", "A short health list: setup check (solar meter, charger, clock), how long it has been running, why it last restarted, free memory and Wi-Fi signal."],
 ], [1.7 * inch, 5.1 * inch]))
@@ -271,7 +271,7 @@ S.append(note("<b>About the pictures.</b> Every screen in this guide is the real
 
 def build():
     doc = SimpleDocTemplate(OUT, pagesize=letter, leftMargin=0.85 * inch, rightMargin=0.85 * inch, topMargin=0.8 * inch, bottomMargin=0.8 * inch,
-                            title="WattSync user guide", author="WattSync")
+                            title="Brimwatt user guide", author="Brimwatt")
     doc.build(S, onFirstPage=footer, onLaterPages=footer)
     print("wrote", os.path.abspath(OUT), round(os.path.getsize(OUT) / 1e6, 2), "MB")
 

@@ -10,8 +10,8 @@
 namespace solar::setup {
 
 // The temporary network the board opens for setup. The password is fixed for now (8 characters is the WPA2 minimum).
-constexpr const char* kApName = "WattSync-Setup";
-constexpr const char* kApPassword = "wattsync";
+constexpr const char* kApName = "Brimwatt-Setup";
+constexpr const char* kApPassword = "brimwatt";
 constexpr const char* kPortalAddress = "192.168.4.1";
 
 constexpr size_t kMaxSsidBytes = 32;

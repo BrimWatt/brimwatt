@@ -5,7 +5,7 @@
 <rect x="30" y="40" width="300" height="170" rx="10" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
 <text text-anchor="middle" font-size="14" font-weight="400" fill="#111827"><tspan x="180.0" y="75.3">secrets.h (compiled in)</tspan><tspan x="180.0" y="93.5">the defaults</tspan><tspan x="180.0" y="111.7"></tspan><tspan x="180.0" y="129.9">Wi-Fi name and password</tspan><tspan x="180.0" y="148.1">Enphase token</tspan><tspan x="180.0" y="166.3">Envoy address</tspan><tspan x="180.0" y="184.5">Update password</tspan></text>
 <rect x="30" y="250" width="300" height="90" rx="10" fill="#e0efff" stroke="#0070f3" stroke-width="1.5"/>
-<text text-anchor="middle" font-size="14" font-weight="600" fill="#111827"><tspan x="180.0" y="281.7">Setup page (WattSync-Setup)</tspan><tspan x="180.0" y="299.9">writes what you enter to the</tspan><tspan x="180.0" y="318.1">board’s flash (not to secrets.h)</tspan></text>
+<text text-anchor="middle" font-size="14" font-weight="600" fill="#111827"><tspan x="180.0" y="281.7">Setup page (Brimwatt-Setup)</tspan><tspan x="180.0" y="299.9">writes what you enter to the</tspan><tspan x="180.0" y="318.1">board’s flash (not to secrets.h)</tspan></text>
 <rect x="370" y="150" width="190" height="60" rx="10" fill="#fff7e0" stroke="#e5c365" stroke-width="1.5"/>
 <text text-anchor="middle" font-size="14" font-weight="600" fill="#111827"><tspan x="465.0" y="175.8">for each field,</tspan><tspan x="465.0" y="194.0">which one is set?</tspan></text>
 <polyline points="330,125 465,125 465,150" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#head)"/>

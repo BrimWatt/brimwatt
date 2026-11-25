@@ -83,7 +83,7 @@ class Svg:
 
 # ---------------------------------------------------------------------------------------------------------------
 def system_overview():
-    s = Svg(1020, 470, "WattSync system overview",
+    s = Svg(1020, 470, "Brimwatt system overview",
             "The Envoy gateway is read every 60 seconds by the controller (a Raspberry Pi or an ESP32-S3, one at a time), "
             "which controls the wallbox over OCPP and serves a dashboard to a phone or computer.")
     s.add('<rect x="16" y="16" width="988" height="438" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" stroke-dasharray="3 4"/>')
@@ -93,7 +93,7 @@ def system_overview():
     s.box(780, 100, 200, 100, ["Wallbox", "OCPP 1.6J charger", "plugged into the car"], "box", 15, 600)
 
     s.add('<rect x="400" y="62" width="240" height="268" rx="12" fill="#eef5ff" stroke="#0070f3" stroke-width="1.5"/>')
-    s.text(520, 84, "WattSync controller", 15, 700, "#0b3d91")
+    s.text(520, 84, "Brimwatt controller", 15, 700, "#0b3d91")
     s.text(520, 102, "only one is connected to the wallbox", 12, 400, MUTED)
     s.box(420, 120, 200, 86, ["Raspberry Pi", "Java app", "dashboard and OCPP on :8080"], "box", 13, 600)
     s.box(420, 220, 200, 94, ["ESP32-S3", "C++ firmware", "dashboard :80, OCPP :8080", "setup network"], "box", 13, 600)
@@ -106,7 +106,7 @@ def system_overview():
     s.box(400, 370, 240, 64, ["Phone or computer", "dashboard in a browser"], "blue", 14, 600)
     s.arrow([(520, 370), (520, 330)], "HTTP", (548, 352), color="#0070f3")
 
-    s.box(40, 330, 300, 104, ["Setup page (ESP32 only)", "join the Wi-Fi “WattSync-Setup”,", "open 192.168.4.1/setup", "to change Wi-Fi and Enphase details"], "note", 13, 400, dashed=True)
+    s.box(40, 330, 300, 104, ["Setup page (ESP32 only)", "join the Wi-Fi “Brimwatt-Setup”,", "open 192.168.4.1/setup", "to change Wi-Fi and Enphase details"], "note", 13, 400, dashed=True)
     s.arrow([(340, 382), (400, 382)], None, dashed=True)
 
     s.text(880, 250, ["Pi and ESP32 both", "do the same job; the", "dashboard page is shared"], 12.5, 400, MUTED)
@@ -200,7 +200,7 @@ def settings_precedence():
             "secrets.h holds the defaults compiled into the firmware. Whatever was saved from the setup page is kept in flash and wins, "
             "field by field. An empty secret field on the page keeps the saved value.")
     s.box(30, 40, 300, 170, ["secrets.h (compiled in)", "the defaults", "", "Wi-Fi name and password", "Enphase token", "Envoy address", "Update password"], "note", 14, 400)
-    s.box(30, 250, 300, 90, ["Setup page (WattSync-Setup)", "writes what you enter to the", "board’s flash (not to secrets.h)"], "blue", 14, 600)
+    s.box(30, 250, 300, 90, ["Setup page (Brimwatt-Setup)", "writes what you enter to the", "board’s flash (not to secrets.h)"], "blue", 14, 600)
 
     s.box(370, 150, 190, 60, ["for each field,", "which one is set?"], "ask", 14, 600)
     s.arrow([(330, 125), (465, 125), (465, 150)], "defaults", (400, 108))

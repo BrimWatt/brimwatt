@@ -12,7 +12,7 @@ public:
     virtual void saveThrough(bool car) = 0;
     virtual int loadOnReturn() = 0;                 // CarOnReturn as a number
     virtual void saveOnReturn(int value) = 0;
-    virtual bool loadAllowWake() = 0;               // may WattSync wake a sleeping car? (off unless the owner switches it on)
+    virtual bool loadAllowWake() = 0;               // may Brimwatt wake a sleeping car? (off unless the owner switches it on)
     virtual void saveAllowWake(bool on) = 0;
     // Tesla mode (off unless the owner switches it on) and its hotspot password; the defaults suit stores that do not keep them.
     virtual bool loadTeslaMode() { return false; }

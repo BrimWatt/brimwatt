@@ -1,6 +1,6 @@
-# Contributing to WattSync
+# Contributing to Brimwatt
 
-Thanks for your interest. WattSync controls real charging equipment, so changes are reviewed for safety and correctness first.
+Thanks for your interest. Brimwatt controls real charging equipment, so changes are reviewed for safety and correctness first.
 
 ## Getting set up
 
@@ -18,13 +18,13 @@ All three suites must pass before a change is merged. On macOS the C++ tests nee
 
 ## Ground rules
 
-- **The two controllers must behave the same.** The planner and control rules exist twice: Java (`src/main/java/com/wattsync/charging`)
+- **The two controllers must behave the same.** The planner and control rules exist twice: Java (`src/main/java/com/brimwatt/charging`)
   and C++ (`esp32/lib/solar_core/src/planner`). A rule change goes into both, with the same numbers and tests in both.
 - **Test what you change.** The timing rules (start, stop, smoothing, daylight window, fail-safe) are encoded in tests; update them with the rule.
 - **One dashboard page.** `src/main/resources/dashboard.html` is served by the Pi and embedded in the firmware. After editing it,
   rebuild both the jar and the firmware. Logic you want tested goes in a plain `function` so the dashboard tests can load it.
 - **New API routes** are registered in the portable handler (`esp32/lib/solar_core/src/web/ApiHandler.*`), in the Pi's routes
-  (`web/ApiRoutes.java`) and, for the board, in `esp32/src/web/WebServerAdapter.cpp`. Every changing request needs the `X-WattSync: 1` header.
+  (`web/ApiRoutes.java`) and, for the board, in `esp32/src/web/WebServerAdapter.cpp`. Every changing request needs the `X-Brimwatt: 1` header.
 - **No secrets, no personal data.** Never commit tokens, keys, passwords, VINs, real coordinates, Wi-Fi names or screenshots of a real
   installation. `esp32/src/secrets.h` is git-ignored; use made-up values in tests and sample data in pictures.
 - **Plain words in the UI.** Short, no jargon; say "solar", not "sun".
@@ -39,7 +39,7 @@ All three suites must pass before a change is merged. On macOS the C++ tests nee
 
 ## Licensing
 
-WattSync is licensed under the [GNU Affero General Public License v3.0](LICENSE). By contributing you agree that your contribution is
+Brimwatt is licensed under the [GNU Affero General Public License v3.0](LICENSE). By contributing you agree that your contribution is
 licensed under the same terms.
 
 ## Reporting security problems

@@ -67,12 +67,12 @@ void Notifier::onEvent(const std::string& text) {
     if (it != lastSent_.end() && now - it->second < kRepeatMillis) return;
     if (lastSent_.size() > 20) lastSent_.clear();
     lastSent_[text] = now;
-    sender_.sendAsync(url, body("WattSync: " + text));
+    sender_.sendAsync(url, body("Brimwatt: " + text));
 }
 
 std::string Notifier::sendTest() {
     if (state_.notifyUrl().empty()) return "No address set";
-    return sender_.sendNow(state_.notifyUrl(), body("WattSync: test message, notifications work"));
+    return sender_.sendNow(state_.notifyUrl(), body("Brimwatt: test message, notifications work"));
 }
 
 }  // namespace solar

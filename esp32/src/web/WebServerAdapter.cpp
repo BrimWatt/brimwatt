@@ -67,7 +67,7 @@ void WebServerAdapter::begin() {
     server_.on("/api/setup/save", HTTP_POST, [this] { serveSetupApi(); });
     server_.on("/favicon.ico", HTTP_GET, [this] { serveFavicon(); });   // browsers ask for it on every visit
     server_.onNotFound([this] { serveApi(); });                            // answers 404 for anything else
-    static const char* kHeaders[] = {"X-WattSync"};
+    static const char* kHeaders[] = {"X-Brimwatt"};
     server_.collectHeaders(kHeaders, 1);   // so changing requests can be checked for the safe header
     server_.begin();
     LOG_INFO("Dashboard: http://%s.local/ (port 80)", kHostname);
@@ -119,7 +119,7 @@ void WebServerAdapter::serveSetupPage() {
 
 void WebServerAdapter::serveSetupApi() {
     std::string method = server_.method() == HTTP_GET ? "GET" : server_.method() == HTTP_POST ? "POST" : "OTHER";
-    solar::HttpResponse response = setupApi_.handle(method, server_.uri().c_str(), readParams(), server_.hasHeader("X-WattSync"));
+    solar::HttpResponse response = setupApi_.handle(method, server_.uri().c_str(), readParams(), server_.hasHeader("X-Brimwatt"));
     server_.sendHeader("Cache-Control", "no-store");
     server_.send(response.status, response.contentType.c_str(), response.body.c_str());
 }
@@ -135,7 +135,7 @@ void WebServerAdapter::serveApi() {
         return;
     }
     std::string method = server_.method() == HTTP_GET ? "GET" : server_.method() == HTTP_POST ? "POST" : "OTHER";
-    solar::HttpResponse response = api_.handle(method, server_.uri().c_str(), readParams(), server_.hasHeader("X-WattSync"));
+    solar::HttpResponse response = api_.handle(method, server_.uri().c_str(), readParams(), server_.hasHeader("X-Brimwatt"));
     server_.sendHeader("Cache-Control", "no-store");
     if (!response.downloadName.empty()) {
         server_.sendHeader("Content-Disposition", String("attachment; filename=\"") + response.downloadName.c_str() + "\"");

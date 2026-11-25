@@ -11,7 +11,7 @@
 | Tesla account link (Fleet API): design, set-up, what is assumed and untested | [tesla-fleet-api.md](tesla-fleet-api.md) |
 | Tesla test plan: a checklist to run at the car, with expected results and a result column | [tesla-test-plan.md](tesla-test-plan.md) |
 | User guide for the car owner: dashboard, modes, goal, history, settings (PDF) | [user-guide.pdf](user-guide.pdf) |
-| Demo video of the dashboard on sample data (MP4, and a GIF of the same) | [demo/wattsync-demo.mp4](demo/wattsync-demo.mp4), [GIF](demo/wattsync-demo.gif) |
+| Demo video of the dashboard on sample data (MP4, and a GIF of the same) | [demo/brimwatt-demo.mp4](demo/brimwatt-demo.mp4), [GIF](demo/brimwatt-demo.gif) |
 | Running the Java app on a Raspberry Pi: service, token, logs, state (PDF) | [deploy-to-raspberry-pi.pdf](deploy-to-raspberry-pi.pdf) |
 | Scenarios to try on a real installation (PDF) | [test-scenarios.pdf](test-scenarios.pdf) |
 | Working on the project: layout, commands, rules, git notes | [../CLAUDE.md](../CLAUDE.md) |
